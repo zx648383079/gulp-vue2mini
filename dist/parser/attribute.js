@@ -1,65 +1,48 @@
-export class Attribute {
-    /**
-     *
-     */
-    constructor(
-        public items: {[key: string]: string| boolean} = {}
-    ) {
+"use strict";
+exports.__esModule = true;
+var Attribute = (function () {
+    function Attribute(items) {
+        if (items === void 0) { items = {}; }
+        this.items = items;
     }
-
-    /**
-     * get
-     */
-    public get(key: string) {
+    Attribute.prototype.get = function (key) {
         return this.items.hasOwnProperty(key) ? this.items[key] : undefined;
-    }
-
-    /**
-     * set
-     */
-    public set(key: string| any, value?: any) {
+    };
+    Attribute.prototype.set = function (key, value) {
         if (typeof key === 'object') {
             Object.assign(this.items, key);
             return this;
         }
         if (typeof value === 'undefined') {
-            return this.delete(key);
+            return this["delete"](key);
         }
         this.items[key] = value;
         return this;
-    }
-
-    public filter(cb: (key: string, value: any) => boolean) {
-        for (const key in this.items) {
+    };
+    Attribute.prototype.filter = function (cb) {
+        for (var key in this.items) {
             if (this.items.hasOwnProperty(key) && cb(key, this.items[key]) === true) {
                 delete this.items[key];
             }
         }
         return this;
-    }
-
-    /**
-     * delete
-     */
-    public delete(key: string) {
+    };
+    Attribute.prototype["delete"] = function (key) {
         delete this.items[key];
         return this;
-    }
-
-    /**
-     * on
-     */
-    public on(keys: string[] | string, cb: (value: any, key: string) => any) {
+    };
+    Attribute.prototype.on = function (keys, cb) {
+        var _this = this;
         if (typeof keys === 'object') {
-            keys.forEach(key => {
-                this.on(key, cb);
+            keys.forEach(function (key) {
+                _this.on(key, cb);
             });
             return this;
         }
         if (!this.items.hasOwnProperty(keys)) {
             return this;
         }
-        const val = cb(this.items[keys], keys);
+        var val = cb(this.items[keys], keys);
         if (typeof val === 'undefined') {
             delete this.items[keys];
             return this;
@@ -75,42 +58,34 @@ export class Attribute {
         }
         this.items = Object.assign(this.items, val);
         return this;
-    }
-
-    /**
-     * map
-     */
-    public map(cb: (key: string, value: any) => any) {
-        for (const key in this.items) {
+    };
+    Attribute.prototype.map = function (cb) {
+        for (var key in this.items) {
             if (this.items.hasOwnProperty(key)) {
                 cb(key, this.items[key]);
             }
         }
         return this;
-    }
-
-    /**
-     * toString
-     */
-    public toString() {
-        let data: string[] = [];
-        this.map((key, value) => {
+    };
+    Attribute.prototype.toString = function () {
+        var data = [];
+        this.map(function (key, value) {
             if (typeof value === 'undefined' || value === false) {
-                return
+                return;
             }
             if (value === true) {
                 data.push(key);
-                return 
+                return;
             }
             if (Array.isArray(value)) {
                 value = value.join(' ');
-            };
-            data.push(`${key}="${value}"`);
+            }
+            ;
+            data.push(key + "=\"" + value + "\"");
         });
         return data.join(' ');
-    }
-
-    public static create(attribute: Attribute | any): Attribute {
+    };
+    Attribute.create = function (attribute) {
         if (!attribute) {
             return new Attribute();
         }
@@ -118,5 +93,7 @@ export class Attribute {
             return attribute;
         }
         return new Attribute(attribute);
-    }
-}
+    };
+    return Attribute;
+}());
+exports.Attribute = Attribute;

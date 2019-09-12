@@ -1,7 +1,9 @@
 import { Transform } from "readable-stream";
 import * as vinyl from "vinyl";
 import * as fs from "fs";
-import { parsePage, htmlToWxml, endImport, preImport, replaceTTF, parseJson } from "./parser";
+import { parsePage, parseJson } from "./parser/ts";
+import { preImport, endImport, replaceTTF } from "./parser/css";
+import { htmlToWxml } from "./parser/wxml";
 
 export function template (tag: string) {
     return new Transform({

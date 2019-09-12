@@ -2,7 +2,9 @@
 exports.__esModule = true;
 var readable_stream_1 = require("readable-stream");
 var fs = require("fs");
-var parser_1 = require("./parser");
+var ts_1 = require("./parser/ts");
+var css_1 = require("./parser/css");
+var wxml_1 = require("./parser/wxml");
 function template(tag) {
     return new readable_stream_1.Transform({
         objectMode: true,
@@ -35,7 +37,7 @@ function template(tag) {
                     if (fs.existsSync(path)) {
                         data = JSON.parse(fs.readFileSync(path).toString());
                     }
-                    var str_1 = parser_1.parseJson(String(file.contents), data);
+                    var str_1 = ts_1.parseJson(String(file.contents), data);
                     if (!str_1) {
                         return callback();
                     }
@@ -43,13 +45,13 @@ function template(tag) {
                     return callback(null, file);
                 }
                 if (tag === 'presass') {
-                    var str_2 = parser_1.preImport(String(file.contents));
+                    var str_2 = css_1.preImport(String(file.contents));
                     file.contents = Buffer.from(str_2);
                     return callback(null, file);
                 }
                 if (tag === 'endsass') {
-                    var str_3 = parser_1.endImport(String(file.contents));
-                    str_3 = parser_1.replaceTTF(String(file.contents), file.base);
+                    var str_3 = css_1.endImport(String(file.contents));
+                    str_3 = css_1.replaceTTF(String(file.contents), file.base);
                     file.contents = Buffer.from(str_3);
                     return callback(null, file);
                 }
@@ -60,7 +62,7 @@ function template(tag) {
                     if (!/(pages|components)/.test(file.path)) {
                         return callback(null, file);
                     }
-                    file.contents = Buffer.from(parser_1.parsePage(String(file.contents)));
+                    file.contents = Buffer.from(ts_1.parsePage(String(file.contents)));
                     return callback(null, file);
                 }
                 var html = String(file.contents);
@@ -87,10 +89,10 @@ function template(tag) {
                     }
                 }
                 if (tag === 'tpl') {
-                    str = parser_1.htmlToWxml(str);
+                    str = wxml_1.htmlToWxml(str);
                 }
                 else if (tag === 'ts') {
-                    str = parser_1.parsePage(str);
+                    str = ts_1.parsePage(str);
                 }
                 file.contents = Buffer.from(str);
                 return callback(null, file);
