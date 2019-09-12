@@ -49,7 +49,7 @@ gulp.src('src/**/*.{vue,html}')
 ```
 
 
-[转化核心](src/parser.ts)
+[转化核心](src/parser)
 
 支持 ts sass
 
