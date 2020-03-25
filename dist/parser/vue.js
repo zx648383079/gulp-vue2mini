@@ -82,6 +82,6 @@ function splitTsFile(content, tplfuns, appendJson) {
             content: ts_1.parsePage(content, tplfuns)
         }
     };
-    data['json'] = { type: 'json', content: json || '' };
+    data['json'] = { type: 'json', content: json || '{}' };
     return data;
 }

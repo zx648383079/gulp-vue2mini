@@ -230,4 +230,3 @@ Page(new Index());
 ## 注意
 
 新增了一些指定的声明请[参考](https://github.com/zx648383079/Mini-Timer/tree/master/typings/wx/lib.vue.d.ts)
-

@@ -3,7 +3,10 @@ exports.__esModule = true;
 var html_1 = require("./html");
 exports.wxmlFunc = [];
 function createInputFunc(name, property) {
-    return "    " + name + "(event: InputEvent) {\n        this.setData({\n            " + property + ": event.detail.value\n        });\n    }";
+    return "    " + name + "(event: InputEvent) {\n        let data = this.data;\n        data." + property + " = event.detail.value;\n        this.setData(data);\n    }";
+}
+function createTapFunc(name, property, val) {
+    return "    " + name + "(e: TouchEvent) {\n        let data = this.data;\n        data." + property + " = e.currentTarget.dataset." + val + ";\n        this.setData(data);\n    }";
 }
 function jsonToWxml(json, exclude) {
     if (exclude === void 0) { exclude = /^.+[\-A-Z].+$/; }
@@ -13,7 +16,7 @@ function jsonToWxml(json, exclude) {
             return ['wx:if', '{{ ' + value + ' }}'];
         },
         'v-model': function (value) {
-            var func = value + 'Changed';
+            var func = value.replace(/\./g, '') + 'Changed';
             exports.wxmlFunc.push(createInputFunc(func, value));
             return ['value', '{{' + value + '}}', "bind:input=\"" + func + "\""];
         },
@@ -23,6 +26,34 @@ function jsonToWxml(json, exclude) {
         'v-else': 'wx:else',
         ':src': function (value) {
             return ['src', '{{ ' + value + ' }}'];
+        },
+        ':class': function (value, _, attrs) {
+            var cls = attrs.get('class') || '';
+            if (typeof cls === 'object' && cls instanceof Array) {
+                cls = cls.join(' ');
+            }
+            var block = [];
+            if (cls.length > 1) {
+                block.push('\'' + cls + '\'');
+            }
+            value = value.trim();
+            if (value.charAt(0) === '{') {
+                value.substr(1, value.length - 2).split(',').forEach(function (item) {
+                    var _a = item.split(':', 2), key = _a[0], con = _a[1];
+                    block.push('(' + con + '?\' ' + key + '\': \'\')');
+                });
+            }
+            else if (value.charAt(0) === '[') {
+                value.substr(1, value.length - 2).split(',').forEach(function (item) {
+                    block.push('\' \'');
+                    block.push('(' + item + ')');
+                });
+            }
+            else {
+                block.push('\' \'');
+                block.push('(' + value + ')');
+            }
+            return ['class', '{{ ' + block.join('+') + ' }}'];
         },
         'v-bind:src': function (value) {
             return ['src', '{{ ' + value + ' }}'];
@@ -52,7 +83,18 @@ function jsonToWxml(json, exclude) {
         },
         'href': 'url',
         ':key': false,
-        '@click': 'bindtap',
+        '@click': function (value) {
+            if (value.indexOf('=') < 0) {
+                return ['bindtap', value];
+            }
+            var _a = value.split('=', 2), key = _a[0], val = _a[1];
+            key = key.trim();
+            val = qv(val.trim());
+            var dataKey = key.replace(/\./g, '');
+            var func = 'tapItem' + dataKey;
+            exports.wxmlFunc.push(createTapFunc(func, key, dataKey));
+            return ['bindtap', func, "data-" + dataKey + "=\"" + val + "\""];
+        },
         'v-on:click': 'bindtap',
         '(click)': 'bindtap',
         '@touchstart': 'bindtouchstart',
@@ -124,7 +166,20 @@ function jsonToWxml(json, exclude) {
         return "<view" + attr + ">" + content + "</view>";
     });
     function q(v) {
+        if (typeof v === 'object' && v instanceof Array) {
+            v = v.join(' ');
+        }
         return '"' + v + '"';
+    }
+    function qv(val) {
+        if (/^[\d\.]+$/.test(val)) {
+            return val;
+        }
+        var match = val.match(/^['"](.+)['"]$/);
+        if (match) {
+            return match[1];
+        }
+        return '{{ ' + val + ' }}';
     }
     function parseNodeAttr(attrs, tag) {
         if (tag === void 0) { tag = 'view'; }
@@ -140,7 +195,7 @@ function jsonToWxml(json, exclude) {
             if (replace_attrs.hasOwnProperty(key)) {
                 var attr = replace_attrs[key];
                 if (typeof attr === 'function') {
-                    var args = attr(value, tag);
+                    var args = attr(value, tag, attrs);
                     key = args[0];
                     value = args[1];
                     if (args.length > 2) {

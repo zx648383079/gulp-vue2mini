@@ -39,7 +39,7 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     if (cachesFiles.has(tplFile)) {
         return Buffer.from(cachesFiles.get(tplFile));
     }
-    return Buffer.from('');
+    return Buffer.from(wantTag === 'json' ? '{}' : '');
 }
 
 export function template (tag: string) {

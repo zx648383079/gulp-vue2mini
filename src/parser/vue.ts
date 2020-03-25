@@ -98,6 +98,6 @@ function splitTsFile(content: string, tplfuns?: string[], appendJson?: any): IFi
             content: parsePage(content, tplfuns)
         }
     };
-    data['json'] = {type: 'json', content: json || ''};
+    data['json'] = {type: 'json', content: json || '{}'};
     return data;
 }
