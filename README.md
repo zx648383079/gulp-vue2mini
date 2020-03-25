@@ -9,6 +9,8 @@
 npm i gulp-vue2mini --save-dev
 ```
 
+暂不支持 `gulp watch`
+
 gulpfile.js 使用
 
 ```js
@@ -228,3 +230,4 @@ Page(new Index());
 ## 注意
 
 新增了一些指定的声明请[参考](https://github.com/zx648383079/Mini-Timer/tree/master/typings/wx/lib.vue.d.ts)
+

@@ -4,15 +4,15 @@ var readable_stream_1 = require("readable-stream");
 var fs = require("fs");
 var css_1 = require("./parser/css");
 var vue_1 = require("./parser/vue");
+var cache_1 = require("./parser/cache");
+var cachesFiles = new cache_1.CacheManger();
 function dealTemplateFile(contentBuff, path, ext, wantTag) {
     if (wantTag === 'tpl') {
         wantTag = 'wxml';
     }
     var tplFile = path.replace(ext, '__tmpl.' + wantTag);
-    if (fs.existsSync(tplFile)) {
-        var buff = fs.readFileSync(tplFile);
-        fs.unlinkSync(tplFile);
-        return buff;
+    if (cachesFiles.has(tplFile)) {
+        return Buffer.from(cachesFiles.get(tplFile));
     }
     var data = {};
     if (['scss', 'sass', 'less', 'css', 'wxss'].indexOf(wantTag) < 0) {
@@ -25,13 +25,11 @@ function dealTemplateFile(contentBuff, path, ext, wantTag) {
     for (var key in res) {
         if (res.hasOwnProperty(key)) {
             var item = res[key];
-            fs.writeFileSync(path.replace(ext, '__tmpl.' + item.type), item.content);
+            cachesFiles.set(path.replace(ext, '__tmpl.' + item.type), item.content);
         }
     }
-    if (fs.existsSync(tplFile)) {
-        var buff = fs.readFileSync(tplFile);
-        fs.unlinkSync(tplFile);
-        return buff;
+    if (cachesFiles.has(tplFile)) {
+        return Buffer.from(cachesFiles.get(tplFile));
     }
     return Buffer.from('');
 }

@@ -3,6 +3,9 @@ import * as vinyl from "vinyl";
 import * as fs from "fs";
 import { preImport, endImport, replaceTTF } from "./parser/css";
 import { splitFile } from "./parser/vue";
+import { CacheManger } from "./parser/cache";
+
+const cachesFiles = new CacheManger();
 
 /**
  * 处理文件
@@ -16,10 +19,8 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
         wantTag = 'wxml';
     }
     let tplFile = path.replace(ext, '__tmpl.' + wantTag);
-    if (fs.existsSync(tplFile)) {
-        const buff = fs.readFileSync(tplFile);
-        fs.unlinkSync(tplFile);
-        return buff;
+    if (cachesFiles.has(tplFile)) {
+        return Buffer.from(cachesFiles.get(tplFile));
     }
     let data = {};
     if (['scss', 'sass', 'less', 'css', 'wxss'].indexOf(wantTag) < 0) {
@@ -32,13 +33,11 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     for (const key in res) {
         if (res.hasOwnProperty(key)) {
             const item = res[key];
-            fs.writeFileSync(path.replace(ext, '__tmpl.' + item.type), item.content);
+            cachesFiles.set(path.replace(ext, '__tmpl.' + item.type), item.content);
         }
     }
-    if (fs.existsSync(tplFile)) {
-        const buff = fs.readFileSync(tplFile);
-        fs.unlinkSync(tplFile);
-        return buff;
+    if (cachesFiles.has(tplFile)) {
+        return Buffer.from(cachesFiles.get(tplFile));
     }
     return Buffer.from('');
 }
