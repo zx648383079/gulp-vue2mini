@@ -3,17 +3,33 @@ import { Element } from "./element";
 import { Attribute } from "./attribute";
 
 /**
+ * 获取tpl提取的方法
+ */
+export let wxmlFunc: string[] = [];
+
+function createInputFunc(name: string, property: string): string {
+    return `    ${name}(event: InputEvent) {
+        this.setData({
+            ${property}: event.detail.value
+        });
+    }`;
+}
+
+/**
  * json 转 wxml
  * @param json 
  */
 export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): string {
+    wxmlFunc = [];
     const disallow_attrs: string[] = [],
         replace_attrs:{[key: string]: Function | string| boolean} = {
             'v-if': function(value: string) {
                 return ['wx:if', '{{ ' +value + ' }}'];
             },
             'v-model': function(value: string) {
-                return ['value', '{{' + value + '}}', `bind:input="${value}Changed"`];
+                const func = value + 'Changed';
+                wxmlFunc.push(createInputFunc(func, value));
+                return ['value', '{{' + value + '}}', `bind:input="${func}"`];
             },
             'v-elseif': function(value: string) {
                 return ['wx:elif', '{{ ' +value + ' }}'];

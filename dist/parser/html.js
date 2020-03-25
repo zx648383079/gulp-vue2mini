@@ -2,6 +2,7 @@
 exports.__esModule = true;
 var element_1 = require("./element");
 exports.SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr'];
+var ALLOW_INCLUDE_TAGS = ['style', 'script'];
 var BLOCK_TYPE;
 (function (BLOCK_TYPE) {
     BLOCK_TYPE[BLOCK_TYPE["NONE"] = 0] = "NONE";
@@ -128,7 +129,7 @@ function htmlToJson(content) {
                     moveEndTag(tag);
                     return element_1.Element.noKid(tag.trim(), attrs);
                 }
-                var children = parserElements();
+                var children = ALLOW_INCLUDE_TAGS.indexOf(tag) >= 0 ? parserSpecialText(tag) : parserElements();
                 if (children.length < 1) {
                     return element_1.Element.noKid(tag.trim(), attrs);
                 }
@@ -232,6 +233,33 @@ function htmlToJson(content) {
             return getElement();
         }
         return false;
+    }, parserSpecialText = function (blockTag) {
+        var text = '', endTag = '', code = '';
+        while (pos < content.length) {
+            code = content.charAt(++pos);
+            if (endTag.length > 0) {
+                if (code === endTag && backslashedCount() % 2 === 0) {
+                    endTag = '';
+                }
+                text += code;
+                continue;
+            }
+            if (code !== '<') {
+                text += code;
+                continue;
+            }
+            var tag = getNodeEndTag(pos);
+            if (tag !== blockTag) {
+                text += code;
+                continue;
+            }
+            pos += 2 + tag.length;
+            break;
+        }
+        if (text.length < 1) {
+            return [];
+        }
+        return [element_1.Element.text(text.trim())];
     }, parserElements = function () {
         var items = [];
         while (pos < content.length) {

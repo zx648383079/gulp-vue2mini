@@ -94,11 +94,11 @@ sass 引用模式自动处理
 
 
 
-定义`WxPage` `WxCommpent` 两个类，增强 `setData` 的智能提示，
+定义`WxPage` `WxCommpent` `WxApp` 三个类，增强 `setData` 的智能提示，
 
 `export` 是为了避免提示未使用，编译时会自动去除
 
-增加自动添加 `Page(new Index())` `Commpent(new Index())` 到末尾
+增加自动添加 `Page(new Index())` `Commpent(new Index())` `App(new Index())` 到末尾
 
 增加json配置生成
 ```ts
@@ -227,4 +227,4 @@ Page(new Index());
 
 ## 注意
 
-新增了一些指定的声明请[参考](https://github.com/zx648383079/Mini-Shop/tree/master/typings/wx)
+新增了一些指定的声明请[参考](https://github.com/zx648383079/Mini-Timer/tree/master/typings/wx/lib.vue.d.ts)

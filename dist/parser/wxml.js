@@ -1,14 +1,21 @@
 "use strict";
 exports.__esModule = true;
 var html_1 = require("./html");
+exports.wxmlFunc = [];
+function createInputFunc(name, property) {
+    return "    " + name + "(event: InputEvent) {\n        this.setData({\n            " + property + ": event.detail.value\n        });\n    }";
+}
 function jsonToWxml(json, exclude) {
     if (exclude === void 0) { exclude = /^.+[\-A-Z].+$/; }
+    exports.wxmlFunc = [];
     var disallow_attrs = [], replace_attrs = {
         'v-if': function (value) {
             return ['wx:if', '{{ ' + value + ' }}'];
         },
         'v-model': function (value) {
-            return ['value', '{{' + value + '}}', "bind:input=\"" + value + "Changed\""];
+            var func = value + 'Changed';
+            exports.wxmlFunc.push(createInputFunc(func, value));
+            return ['value', '{{' + value + '}}', "bind:input=\"" + func + "\""];
         },
         'v-elseif': function (value) {
             return ['wx:elif', '{{ ' + value + ' }}'];

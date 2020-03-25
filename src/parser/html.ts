@@ -1,6 +1,12 @@
 import { Element } from "./element";
-
+/**
+ * 单标签
+ */
 export const SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr'];
+/**
+ * 不进行深入解析的标签
+ */
+const ALLOW_INCLUDE_TAGS = ['style', 'script'];
 
 enum BLOCK_TYPE {
     NONE,
@@ -180,7 +186,7 @@ export function htmlToJson(content: string): Element {
                     moveEndTag(tag);
                     return Element.noKid(tag.trim(), attrs);
                 }
-                const children = parserElements();
+                const children = ALLOW_INCLUDE_TAGS.indexOf(tag) >= 0 ? parserSpecialText(tag) : parserElements();
                 if (children.length < 1) {
                     return Element.noKid(tag.trim(), attrs);
                 }
@@ -289,6 +295,39 @@ export function htmlToJson(content: string): Element {
             return getElement();
         }
         return false;
+    },
+    /**
+     * 获取特殊的内容
+     */
+    parserSpecialText = function(blockTag: string): Element[] {
+        let text = '',
+            endTag = '',
+            code = '';
+        while (pos < content.length) {
+            code = content.charAt(++pos);
+            if (endTag.length > 0) {
+                if (code === endTag && backslashedCount() % 2 === 0) {
+                    endTag = '';
+                }
+                text += code;
+                continue;
+            }
+            if (code !== '<') {
+                text += code;
+                continue;
+            }
+            let tag = getNodeEndTag(pos);
+            if (tag !== blockTag) {
+                text += code;
+                continue;
+            }
+            pos += 2 + tag.length;
+            break;
+        }
+        if (text.length < 1) {
+            return [];
+        }
+        return [Element.text(text.trim())];
     },
     /**
      * 获取元素集合
