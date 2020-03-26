@@ -1,6 +1,8 @@
 # gulp-vue2mini
 简单的将vue 转化为小程序代码
 
+## 使用示例请查看【[此处](https://github.com/zx648383079/gulp-vue2mini/tree/example)】
+
 ## 使用方法
 
 安装
