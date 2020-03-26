@@ -1,37 +1,24 @@
 {
-  "name": "gulp-vue2mini",
-  "version": "1.0.2",
-  "description": "converter vue to mini program",
-  "main": "dist/index.js",
+  "name": "mini_timer",
+  "version": "1.0.0",
   "scripts": {
-    "test": "node dist/test.js",
-    "build": "gulp"
+    "start": "gulp && gulp vue",
+    "watch": "gulp && gulp vue && gulp watch",
+    "build": "gulp cleanall && gulp && gulp vue && gulp cleantmp"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/zx648383079/gulp-vue2mini.git"
-  },
-  "keywords": [
-    "vue",
-    "mini"
-  ],
-  "author": "zodream",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/zx648383079/gulp-vue2mini/issues"
-  },
-  "homepage": "https://github.com/zx648383079/gulp-vue2mini#readme",
-  "files": [
-    "dist"
-  ],
   "devDependencies": {
     "@types/node": "^13.9.3",
-    "@types/readable-stream": "^2.3.5",
-    "@types/vinyl": "^2.0.4",
     "gulp": "^4.0.2",
+    "gulp-clean": "^0.4.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-replace": "^1.0.0",
+    "gulp-sass": "^4.0.2",
     "gulp-typescript": "^5.0.1",
-    "readable-stream": "^3.6.0",
-    "typescript": "^3.8.3",
-    "vinyl": "^2.2.0"
+    "gulp-vue2mini": "^1.0.1",
+    "node-sass": "^4.13.0",
+    "typescript": "^3.6.4"
+  },
+  "dependencies": {
+    "ts-md5": "^1.2.7"
   }
 }
