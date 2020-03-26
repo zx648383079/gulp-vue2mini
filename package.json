@@ -1,5 +1,5 @@
 {
-  "name": "mini_timer",
+  "name": "mini_example",
   "version": "1.0.0",
   "scripts": {
     "start": "gulp && gulp vue",
