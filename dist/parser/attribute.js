@@ -85,6 +85,9 @@ var Attribute = (function () {
         });
         return data.join(' ');
     };
+    Attribute.prototype.clone = function () {
+        return Attribute.create(JSON.parse(JSON.stringify(this.items)));
+    };
     Attribute.create = function (attribute) {
         if (!attribute) {
             return new Attribute();

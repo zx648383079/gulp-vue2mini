@@ -95,8 +95,9 @@ sass 引用模式自动处理
  第一个支付为`:` | `={{ }}`
  其他包含`@` |
 
+支持 `:class` 数组形式及 `{active: true}` 形式自动会合并 `class` 
 
-
+支持 `@click` 直接赋值及直接传参数  `@click="i = 1"`  `@click="tap(i, a)"`
 
 定义`WxPage` `WxCommpent` `WxApp` 三个类，增强 `setData` 的智能提示，
 
@@ -231,4 +232,4 @@ Page(new Index());
 
 ## 注意
 
-新增了一些指定的声明请[参考](https://github.com/zx648383079/Mini-Timer/tree/master/typings/wx/lib.vue.d.ts)
+新增了一些指定的声明请[参考](https://github.com/zx648383079/gulp-vue2mini/tree/example/typings/wx/lib.vue.d.ts)

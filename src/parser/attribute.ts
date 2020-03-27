@@ -110,6 +110,10 @@ export class Attribute {
         return data.join(' ');
     }
 
+    public clone(): Attribute {
+        return Attribute.create(JSON.parse(JSON.stringify(this.items)));
+    }
+
     public static create(attribute: Attribute | any): Attribute {
         if (!attribute) {
             return new Attribute();

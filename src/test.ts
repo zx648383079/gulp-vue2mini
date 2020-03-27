@@ -1,6 +1,7 @@
 // import { readFileSync, writeFileSync } from 'fs';
 // import { dealTemplateFile } from './gulp-tempate';
 
-// let srcPath = __dirname + '/index.html';
+// let srcPath = __dirname + '/index.vue';
 
-// writeFileSync(__dirname + '/index.json', dealTemplateFile(readFileSync(srcPath), srcPath, '.html', 'json'));
+// writeFileSync(__dirname + '/index.wxml', dealTemplateFile(readFileSync(srcPath), srcPath, '.vue', 'tpl'));
+

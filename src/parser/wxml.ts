@@ -32,6 +32,61 @@ function createTapFunc(name: string, property: string, val: string): string {
         this.setData(data);
     }`;
 }
+/**
+ * 生成直接传多个值func
+ * @param name 
+ * @param target 
+ * @param args 
+ */
+function createTapCoverterFunc(name: string, target: string, args: string[]): string {
+    let lines: string[] = [];
+    args.forEach(item => {
+        lines.push('e.currentTarget.dataset.' + item);
+    });
+    const line = lines.join(', ');
+    return `    ${name}(e: TouchEvent) {
+        this.${target}(${line});
+    }`;
+}
+/**
+ * 首字母大写
+ */
+export function firstUpper(val: string): string {
+    if (!val) {
+        return '';
+    }
+    val = val.trim();
+    if (val.length < 1) {
+        return '';
+    }
+    if (val.length === 1) {
+        return val.toUpperCase();
+    }
+    return val.substring(0, 1).toUpperCase() + val.substring(1);
+}
+
+/**
+ * 转化成驼峰
+ * @param val 
+ * @param isFirstUpper 第一个字母是否大写
+ */
+export function studly(val: string, isFirstUpper: boolean = true): string {
+    if (!val || val.length < 1) {
+        return '';
+    }
+    let items: string[] = [];
+    val.split(/[\.\s_-]+/).forEach(item => {
+        if (item.length < 1) {
+            return;
+        }
+        if (!isFirstUpper && items.length < 1) {
+            items.push(item);
+            return;
+        }
+        items.push(firstUpper(item));
+    });
+    return items.join('');
+}
 
 /**
  * json 转 wxml
@@ -45,7 +100,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
                 return ['wx:if', '{{ ' + value + ' }}'];
             },
             'v-model': function(value: string) {
-                const func = value.replace(/\./g, '') + 'Changed';
+                const func = studly(value, false) + 'Changed';
                 wxmlFunc.push(createInputFunc(func, value));
                 return ['value', '{{' + value + '}}', `bind:input="${func}"`];
             },
@@ -53,38 +108,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
                 return ['wx:elif', '{{ ' +value + ' }}'];
             },
             'v-else': 'wx:else',
-            ':src': function(value: string) {
-                return ['src', '{{ ' +value + ' }}'];
-            },
-            ':class': function(value: string, _: string, attrs: Attribute) {
-                let cls: any = attrs.get('class') || '';
-                if (typeof cls === 'object' && cls instanceof Array) {
-                    cls = cls.join(' ');
-                }
-                let block = [];
-                if (cls.length > 1) {
-                    block.push('\'' + cls + '\'');
-                }
-                value = value.trim();
-                if (value.charAt(0) === '{') {
-                    value.substr(1, value.length - 2).split(',').forEach(item => {
-                        const [key, con] = item.split(':', 2);
-                        block.push('(' + con + '?\' ' + key + '\': \'\')');
-                    });
-                } else if (value.charAt(0) === '[') {
-                    value.substr(1, value.length - 2).split(',').forEach(item => {
-                        block.push('\' \'');
-                        block.push('(' + item + ')');
-                    });
-                } else {
-                    block.push('\' \'');
-                    block.push('(' + value + ')');
-                }
-                return ['class', '{{ ' + block.join('+') + ' }}'];
-            },
-            'v-bind:src': function(value: string) {
-                return ['src', '{{ ' +value + ' }}'];
-            },
+            ':src': converterSrc,
+            ':class': converterClass,
+            'v-bind:class': converterClass,
+            'v-bind:src': converterSrc,
             'v-for': function(value: string) {
                 let index = 'index';
                 let item = 'item';
@@ -109,20 +136,9 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             },
             'href': 'url',
             ':key': false,
-            '@click': function(value: string) {
-                if (value.indexOf('=') < 0) {
-                    return ['bindtap', value];
-                }
-                let [key, val] = value.split('=', 2);
-                key = key.trim();
-                val = qv(val.trim());
-                const dataKey = key.replace(/\./g, '');
-                const func = 'tapItem' + dataKey;
-                wxmlFunc.push(createTapFunc(func, key, dataKey));
-                return ['bindtap', func, `data-${dataKey}="${val}"`];
-            },
-            'v-on:click': 'bindtap',
-            '(click)': 'bindtap',
+            '@click': converterTap,
+            'v-on:click': converterTap,
+            '(click)': converterTap,
             '@touchstart': 'bindtouchstart',
             '@touchmove': 'bindtouchmove',
             '@touchend': 'bindtouchend',
@@ -193,6 +209,70 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
         }
         return `<view${attr}>${content}</view>`;
     });
+
+    function converterSrc(value: string): string[] {
+        return ['src', '{{ ' +value + ' }}'];
+    }
+
+    function converterClass(value: string, _: string, attrs: Attribute): string[] {
+        let cls: any = attrs.get('class') || '';
+        if (typeof cls === 'object' && cls instanceof Array) {
+            cls = cls.join(' ');
+        }
+        let block = [];
+        if (cls.length > 1) {
+            block.push('\'' + cls + ' \'');
+        }
+        value = value.trim();
+        if (value.charAt(0) === '{') {
+            value.substr(1, value.length - 2).split(',').forEach(item => {
+                const [key, con] = item.split(':', 2);
+                block.push('(' + con + '? ' + qStr(key) + ': \'\')');
+            });
+        } else if (value.charAt(0) === '[') {
+            value.substr(1, value.length - 2).split(',').forEach(item => {
+                block.push('\' \'');
+                block.push('(' + item + ')');
+            });
+        } else {
+            block.push('\' \'');
+            block.push('(' + value + ')');
+        }
+        return ['class', '{{ ' + block.join('+') + ' }}'];
+    }
+
+    function converterTap(value: string): string[] {
+        if (value.indexOf('=') > 0) {
+            let [key, val] = value.split('=', 2);
+            key = key.trim();
+            val = qv(val.trim());
+            let dataKey = studly(key);
+            const func = 'tapItem' + dataKey;
+            dataKey = dataKey.toLowerCase(); // 只能接受
+            wxmlFunc.push(createTapFunc(func, key, dataKey));
+            return ['bindtap', func, `data-${dataKey}="${val}"`];
+        }
+        const match = value.match(/^([^\(\)]+)\((.*)\)$/);
+        if (!match) {
+            return ['bindtap', value];
+        }
+        const args = match[2].trim();
+        const func = match[1].trim();
+        if (args.length < 1) {
+            return ['bindtap', func];
+        }
+        let ext: string[] = [];
+        let lines: string[] = [];
+        args.split(',').forEach((item, i) => {
+            const key = 'arg'+i;
+            const val = qv(item.trim());
+            lines.push(key);
+            ext.push(`data-${key}="${val}"`)
+        });
+        const funcTo = 'converter' + func;
+        wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
+        return ['bindtap', funcTo, ext.join(' ')];
+    }
     /**
      * 转换成属性值 包含""
      * @param v 
@@ -202,6 +282,17 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             v = v.join(' ');
         }
         return '"' + v + '"';
+    }
+
+    /**
+     * 转换成字符串
+     * @param v 
+     */
+    function qStr(v: any): string {
+        if (/^['"](.+)['"]$/.test(v)) {
+            return v;
+        }
+        return '\'' + v + '\'';
     }
 
     /**
@@ -229,15 +320,16 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
         if (!attrs) {
             return str;
         }
+        let attrsClone = Attribute.create({});
         attrs.map((key, value) => {
             if (disallow_attrs.indexOf(key) >= 0) {
-                return
+                return;
             }
             let ext = '';
             if (replace_attrs.hasOwnProperty(key)) {
                 const attr: string|Function| boolean = replace_attrs[key];
                 if (typeof attr === 'function') {
-                    const args: string[] = attr(value, tag, attrs);
+                    const args: string[] = attr(value, tag, attrsClone);
                     key = args[0];
                     value = args[1];
                     if (args.length > 2) {
@@ -254,7 +346,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
                 return
             }
             if (value === true) {
-                str += ' ' + key + ext;
+                attrsClone.set(key, value);
                 return
             }
             if (Array.isArray(value)) {
@@ -269,9 +361,14 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
                 key = key.substr(1);
                 value = '{{ ' + value +' }}';
             }
-            str += ' ' + key + '=' + q(value) + ext;
+            attrsClone.set(key, value);
+            if (ext.length < 1) {
+                return;
+            }
+            str += ' ' + ext;
         });
-        return str;
+        str = attrsClone.toString() + str;
+        return str.trim().length > 0 ? ' ' + str : '';
     }
 
     function parseButton(node: Element, content: string): string {

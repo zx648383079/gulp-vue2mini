@@ -25,7 +25,11 @@ function dealTemplateFile(contentBuff, path, ext, wantTag) {
     for (var key in res) {
         if (res.hasOwnProperty(key)) {
             var item = res[key];
-            cachesFiles.set(path.replace(ext, '__tmpl.' + item.type), item.content);
+            var cacheKey = path.replace(ext, '__tmpl.' + item.type);
+            if (!item.content || item.content.trim().length < 1 && cachesFiles.has(cacheKey)) {
+                continue;
+            }
+            cachesFiles.set(cacheKey, item.content);
         }
     }
     if (cachesFiles.has(tplFile)) {

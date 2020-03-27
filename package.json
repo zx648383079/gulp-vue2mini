@@ -1,6 +1,6 @@
 {
   "name": "gulp-vue2mini",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "converter vue to mini program",
   "main": "dist/index.js",
   "scripts": {

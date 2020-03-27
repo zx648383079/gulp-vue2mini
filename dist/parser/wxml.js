@@ -1,6 +1,7 @@
 "use strict";
 exports.__esModule = true;
 var html_1 = require("./html");
+var attribute_1 = require("./attribute");
 exports.wxmlFunc = [];
 function createInputFunc(name, property) {
     return "    " + name + "(event: InputEvent) {\n        let data = this.data;\n        data." + property + " = event.detail.value;\n        this.setData(data);\n    }";
@@ -8,6 +9,47 @@ function createInputFunc(name, property) {
 function createTapFunc(name, property, val) {
     return "    " + name + "(e: TouchEvent) {\n        let data = this.data;\n        data." + property + " = e.currentTarget.dataset." + val + ";\n        this.setData(data);\n    }";
 }
+function createTapCoverterFunc(name, target, args) {
+    var lines = [];
+    args.forEach(function (item) {
+        lines.push('e.currentTarget.dataset.' + item);
+    });
+    var line = lines.join(', ');
+    return "    " + name + "(e: TouchEvent) {\n        this." + target + "(" + line + ");\n    }";
+}
+function firstUpper(val) {
+    if (!val) {
+        return '';
+    }
+    val = val.trim();
+    if (val.length < 1) {
+        return '';
+    }
+    if (val.length === 1) {
+        return val.toUpperCase();
+    }
+    return val.substring(0, 1).toUpperCase() + val.substring(1);
+}
+exports.firstUpper = firstUpper;
+function studly(val, isFirstUpper) {
+    if (isFirstUpper === void 0) { isFirstUpper = true; }
+    if (!val || val.length < 1) {
+        return '';
+    }
+    var items = [];
+    val.split(/[\.\s_-]+/).forEach(function (item) {
+        if (item.length < 1) {
+            return;
+        }
+        if (!isFirstUpper && items.length < 1) {
+            items.push(item);
+            return;
+        }
+        items.push(firstUpper(item));
+    });
+    return items.join('');
+}
+exports.studly = studly;
 function jsonToWxml(json, exclude) {
     if (exclude === void 0) { exclude = /^.+[\-A-Z].+$/; }
     exports.wxmlFunc = [];
@@ -16,7 +58,7 @@ function jsonToWxml(json, exclude) {
             return ['wx:if', '{{ ' + value + ' }}'];
         },
         'v-model': function (value) {
-            var func = value.replace(/\./g, '') + 'Changed';
+            var func = studly(value, false) + 'Changed';
             exports.wxmlFunc.push(createInputFunc(func, value));
             return ['value', '{{' + value + '}}', "bind:input=\"" + func + "\""];
         },
@@ -24,40 +66,10 @@ function jsonToWxml(json, exclude) {
             return ['wx:elif', '{{ ' + value + ' }}'];
         },
         'v-else': 'wx:else',
-        ':src': function (value) {
-            return ['src', '{{ ' + value + ' }}'];
-        },
-        ':class': function (value, _, attrs) {
-            var cls = attrs.get('class') || '';
-            if (typeof cls === 'object' && cls instanceof Array) {
-                cls = cls.join(' ');
-            }
-            var block = [];
-            if (cls.length > 1) {
-                block.push('\'' + cls + '\'');
-            }
-            value = value.trim();
-            if (value.charAt(0) === '{') {
-                value.substr(1, value.length - 2).split(',').forEach(function (item) {
-                    var _a = item.split(':', 2), key = _a[0], con = _a[1];
-                    block.push('(' + con + '?\' ' + key + '\': \'\')');
-                });
-            }
-            else if (value.charAt(0) === '[') {
-                value.substr(1, value.length - 2).split(',').forEach(function (item) {
-                    block.push('\' \'');
-                    block.push('(' + item + ')');
-                });
-            }
-            else {
-                block.push('\' \'');
-                block.push('(' + value + ')');
-            }
-            return ['class', '{{ ' + block.join('+') + ' }}'];
-        },
-        'v-bind:src': function (value) {
-            return ['src', '{{ ' + value + ' }}'];
-        },
+        ':src': converterSrc,
+        ':class': converterClass,
+        'v-bind:class': converterClass,
+        'v-bind:src': converterSrc,
         'v-for': function (value) {
             var index = 'index';
             var item = 'item';
@@ -83,20 +95,9 @@ function jsonToWxml(json, exclude) {
         },
         'href': 'url',
         ':key': false,
-        '@click': function (value) {
-            if (value.indexOf('=') < 0) {
-                return ['bindtap', value];
-            }
-            var _a = value.split('=', 2), key = _a[0], val = _a[1];
-            key = key.trim();
-            val = qv(val.trim());
-            var dataKey = key.replace(/\./g, '');
-            var func = 'tapItem' + dataKey;
-            exports.wxmlFunc.push(createTapFunc(func, key, dataKey));
-            return ['bindtap', func, "data-" + dataKey + "=\"" + val + "\""];
-        },
-        'v-on:click': 'bindtap',
-        '(click)': 'bindtap',
+        '@click': converterTap,
+        'v-on:click': converterTap,
+        '(click)': converterTap,
         '@touchstart': 'bindtouchstart',
         '@touchmove': 'bindtouchmove',
         '@touchend': 'bindtouchend'
@@ -165,11 +166,80 @@ function jsonToWxml(json, exclude) {
         }
         return "<view" + attr + ">" + content + "</view>";
     });
+    function converterSrc(value) {
+        return ['src', '{{ ' + value + ' }}'];
+    }
+    function converterClass(value, _, attrs) {
+        var cls = attrs.get('class') || '';
+        if (typeof cls === 'object' && cls instanceof Array) {
+            cls = cls.join(' ');
+        }
+        var block = [];
+        if (cls.length > 1) {
+            block.push('\'' + cls + ' \'');
+        }
+        value = value.trim();
+        if (value.charAt(0) === '{') {
+            value.substr(1, value.length - 2).split(',').forEach(function (item) {
+                var _a = item.split(':', 2), key = _a[0], con = _a[1];
+                block.push('(' + con + '? ' + qStr(key) + ': \'\')');
+            });
+        }
+        else if (value.charAt(0) === '[') {
+            value.substr(1, value.length - 2).split(',').forEach(function (item) {
+                block.push('\' \'');
+                block.push('(' + item + ')');
+            });
+        }
+        else {
+            block.push('\' \'');
+            block.push('(' + value + ')');
+        }
+        return ['class', '{{ ' + block.join('+') + ' }}'];
+    }
+    function converterTap(value) {
+        if (value.indexOf('=') > 0) {
+            var _a = value.split('=', 2), key = _a[0], val = _a[1];
+            key = key.trim();
+            val = qv(val.trim());
+            var dataKey = studly(key);
+            var func_1 = 'tapItem' + dataKey;
+            dataKey = dataKey.toLowerCase();
+            exports.wxmlFunc.push(createTapFunc(func_1, key, dataKey));
+            return ['bindtap', func_1, "data-" + dataKey + "=\"" + val + "\""];
+        }
+        var match = value.match(/^([^\(\)]+)\((.*)\)$/);
+        if (!match) {
+            return ['bindtap', value];
+        }
+        var args = match[2].trim();
+        var func = match[1].trim();
+        if (args.length < 1) {
+            return ['bindtap', func];
+        }
+        var ext = [];
+        var lines = [];
+        args.split(',').forEach(function (item, i) {
+            var key = 'arg' + i;
+            var val = qv(item.trim());
+            lines.push(key);
+            ext.push("data-" + key + "=\"" + val + "\"");
+        });
+        var funcTo = 'converter' + func;
+        exports.wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
+        return ['bindtap', funcTo, ext.join(' ')];
+    }
     function q(v) {
         if (typeof v === 'object' && v instanceof Array) {
             v = v.join(' ');
         }
         return '"' + v + '"';
+    }
+    function qStr(v) {
+        if (/^['"](.+)['"]$/.test(v)) {
+            return v;
+        }
+        return '\'' + v + '\'';
     }
     function qv(val) {
         if (/^[\d\.]+$/.test(val)) {
@@ -187,6 +257,7 @@ function jsonToWxml(json, exclude) {
         if (!attrs) {
             return str;
         }
+        var attrsClone = attribute_1.Attribute.create({});
         attrs.map(function (key, value) {
             if (disallow_attrs.indexOf(key) >= 0) {
                 return;
@@ -195,7 +266,7 @@ function jsonToWxml(json, exclude) {
             if (replace_attrs.hasOwnProperty(key)) {
                 var attr = replace_attrs[key];
                 if (typeof attr === 'function') {
-                    var args = attr(value, tag, attrs);
+                    var args = attr(value, tag, attrsClone);
                     key = args[0];
                     value = args[1];
                     if (args.length > 2) {
@@ -214,7 +285,7 @@ function jsonToWxml(json, exclude) {
                 return;
             }
             if (value === true) {
-                str += ' ' + key + ext;
+                attrsClone.set(key, value);
                 return;
             }
             if (Array.isArray(value)) {
@@ -231,9 +302,14 @@ function jsonToWxml(json, exclude) {
                 key = key.substr(1);
                 value = '{{ ' + value + ' }}';
             }
-            str += ' ' + key + '=' + q(value) + ext;
+            attrsClone.set(key, value);
+            if (ext.length < 1) {
+                return;
+            }
+            str += ' ' + ext;
         });
-        return str;
+        str = attrsClone.toString() + str;
+        return str.trim().length > 0 ? ' ' + str : '';
     }
     function parseButton(node, content) {
         var attr = parseNodeAttr(node.attribute);

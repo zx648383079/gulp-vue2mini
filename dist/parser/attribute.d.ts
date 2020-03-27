@@ -12,5 +12,6 @@ export declare class Attribute {
     on(keys: string[] | string, cb: (value: any, key: string) => any): this;
     map(cb: (key: string, value: any) => any): this;
     toString(): string;
+    clone(): Attribute;
     static create(attribute: Attribute | any): Attribute;
 }

@@ -33,7 +33,11 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     for (const key in res) {
         if (res.hasOwnProperty(key)) {
             const item = res[key];
-            cachesFiles.set(path.replace(ext, '__tmpl.' + item.type), item.content);
+            const cacheKey = path.replace(ext, '__tmpl.' + item.type);
+            if (!item.content || item.content.trim().length < 1 && cachesFiles.has(cacheKey)) {
+                continue;
+            }
+            cachesFiles.set(cacheKey, item.content);
         }
     }
     if (cachesFiles.has(tplFile)) {
