@@ -53,13 +53,17 @@ exports.studly = studly;
 function jsonToWxml(json, exclude) {
     if (exclude === void 0) { exclude = /^.+[\-A-Z].+$/; }
     exports.wxmlFunc = [];
+    var existFunc = [];
     var disallow_attrs = [], replace_attrs = {
         'v-if': function (value) {
             return ['wx:if', '{{ ' + value + ' }}'];
         },
         'v-model': function (value) {
             var func = studly(value, false) + 'Changed';
-            exports.wxmlFunc.push(createInputFunc(func, value));
+            if (existFunc.indexOf(func) < 0) {
+                exports.wxmlFunc.push(createInputFunc(func, value));
+                existFunc.push(func);
+            }
             return ['value', '{{' + value + '}}', "bind:input=\"" + func + "\""];
         },
         'v-elseif': function (value) {
@@ -205,7 +209,10 @@ function jsonToWxml(json, exclude) {
             var dataKey = studly(key);
             var func_1 = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
-            exports.wxmlFunc.push(createTapFunc(func_1, key, dataKey));
+            if (existFunc.indexOf(func_1) < 0) {
+                exports.wxmlFunc.push(createTapFunc(func_1, key, dataKey));
+                existFunc.push(func_1);
+            }
             return ['bindtap', func_1, "data-" + dataKey + "=\"" + val + "\""];
         }
         var match = value.match(/^([^\(\)]+)\((.*)\)$/);
@@ -226,7 +233,10 @@ function jsonToWxml(json, exclude) {
             ext.push("data-" + key + "=\"" + val + "\"");
         });
         var funcTo = 'converter' + func;
-        exports.wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
+        if (existFunc.indexOf(func) < 0) {
+            exports.wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
+            existFunc.push(func);
+        }
         return ['bindtap', funcTo, ext.join(' ')];
     }
     function q(v) {

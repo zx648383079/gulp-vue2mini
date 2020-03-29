@@ -94,6 +94,7 @@ export function studly(val: string, isFirstUpper: boolean = true): string {
  */
 export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): string {
     wxmlFunc = [];
+    let existFunc: string[] = [];
     const disallow_attrs: string[] = [],
         replace_attrs:{[key: string]: Function | string| boolean} = {
             'v-if': function(value: string) {
@@ -101,7 +102,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             },
             'v-model': function(value: string) {
                 const func = studly(value, false) + 'Changed';
-                wxmlFunc.push(createInputFunc(func, value));
+                if (existFunc.indexOf(func) < 0) {
+                    wxmlFunc.push(createInputFunc(func, value));
+                    existFunc.push(func);
+                }
                 return ['value', '{{' + value + '}}', `bind:input="${func}"`];
             },
             'v-elseif': function(value: string) {
@@ -249,7 +253,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             let dataKey = studly(key);
             const func = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase(); // 只能接受
-            wxmlFunc.push(createTapFunc(func, key, dataKey));
+            if (existFunc.indexOf(func) < 0) {
+                wxmlFunc.push(createTapFunc(func, key, dataKey));
+                existFunc.push(func);
+            }
             return ['bindtap', func, `data-${dataKey}="${val}"`];
         }
         const match = value.match(/^([^\(\)]+)\((.*)\)$/);
@@ -270,7 +277,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             ext.push(`data-${key}="${val}"`)
         });
         const funcTo = 'converter' + func;
-        wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
+        if (existFunc.indexOf(func) < 0) {
+            wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
+            existFunc.push(func);
+        }
         return ['bindtap', funcTo, ext.join(' ')];
     }
     /**
