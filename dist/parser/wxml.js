@@ -58,13 +58,17 @@ function jsonToWxml(json, exclude) {
         'v-if': function (value) {
             return ['wx:if', '{{ ' + value + ' }}'];
         },
-        'v-model': function (value) {
+        'v-model': function (value, tag) {
             var func = studly(value, false) + 'Changed';
             if (existFunc.indexOf(func) < 0) {
                 exports.wxmlFunc.push(createInputFunc(func, value));
                 existFunc.push(func);
             }
-            return ['value', '{{' + value + '}}', "bind:input=\"" + func + "\""];
+            var inputFunc = 'bind:input';
+            if (['picker', 'switch', 'slider'].indexOf(tag) >= 0) {
+                inputFunc = 'bindchange';
+            }
+            return ['value', '{{' + value + '}}', inputFunc + "=\"" + func + "\""];
         },
         'v-elseif': function (value) {
             return ['wx:elif', '{{ ' + value + ' }}'];
@@ -143,8 +147,8 @@ function jsonToWxml(json, exclude) {
         if (['label', 'slot', 'style',
             'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
             'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
-            'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
-            'open-data', 'web-view', 'ad', 'official-account'
+            'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
+            'open-data', 'web-view', 'ad', 'official-account',
         ].indexOf(item.tag + '') >= 0) {
             var attr_4 = parseNodeAttr(item.attribute, item.tag);
             return "<" + item.tag + attr_4 + ">" + content + "</" + item.tag + ">";

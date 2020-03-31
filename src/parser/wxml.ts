@@ -100,13 +100,17 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             'v-if': function(value: string) {
                 return ['wx:if', '{{ ' + value + ' }}'];
             },
-            'v-model': function(value: string) {
+            'v-model': function(value: string, tag: string) {
                 const func = studly(value, false) + 'Changed';
                 if (existFunc.indexOf(func) < 0) {
                     wxmlFunc.push(createInputFunc(func, value));
                     existFunc.push(func);
                 }
-                return ['value', '{{' + value + '}}', `bind:input="${func}"`];
+                let inputFunc = 'bind:input';
+                if (['picker', 'switch', 'slider'].indexOf(tag) >= 0) {
+                    inputFunc = 'bindchange';
+                }
+                return ['value', '{{' + value + '}}', `${inputFunc}="${func}"`];
             },
             'v-elseif': function(value: string) {
                 return ['wx:elif', '{{ ' +value + ' }}'];
@@ -185,8 +189,8 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
         if (['label', 'slot', 'style', 
             'script', 'template', 'view', 'scroll-view', 'swiper', 'block', 
             'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
-            'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
-            'open-data', 'web-view', 'ad', 'official-account'
+            'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
+            'open-data', 'web-view', 'ad', 'official-account', 
             ].indexOf(item.tag + '') >= 0) {
             const attr = parseNodeAttr(item.attribute, item.tag);
             return `<${item.tag}${attr}>${content}</${item.tag}>`;
