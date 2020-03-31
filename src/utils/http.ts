@@ -22,7 +22,8 @@ export function request<T>(method: 'OPTIONS'| 'GET' | 'HEAD' | 'POST' | 'PUT' | 
         requestHandler = Object.assign(requestHandler, option);
     }
     let { url, params, data, headers, mask, loading, guest } = requestHandler;
-    if (loading === undefined || loading) {
+    loading = loading === undefined || loading;
+    if (loading) {
       wx.showLoading && wx.showLoading({title: 'Loading...', mask: mask ? mask : false})
     }
     const configs = util.getAppParams();
@@ -57,6 +58,11 @@ export function request<T>(method: 'OPTIONS'| 'GET' | 'HEAD' | 'POST' | 'PUT' | 
                     return;
                 }
                 if (statusCode !== 401 || !guest) {
+                    if (loading) {
+                        // 必须先关闭loading
+                        loading = false;
+                        wx.hideLoading();
+                    }
                     wx.showToast({
                         title: (data as any).message,
                         icon: 'none',
@@ -79,7 +85,7 @@ export function request<T>(method: 'OPTIONS'| 'GET' | 'HEAD' | 'POST' | 'PUT' | 
                 reject('Network request failed')
             },
             complete() {
-                if ((loading === undefined || loading) && wx.hideLoading) {
+                if (loading && wx.hideLoading) {
                     wx.hideLoading();
                 }
             }
@@ -148,7 +154,8 @@ export function put<T>(url: string, data = {}, option?: IRequestOption) {
  */
 export function uploadFile<T>(file: string, requestHandler: IRequest, name: string = 'file'): Promise<T> {
     let { url, params, data, headers, mask, loading, guest } = requestHandler;
-    if (loading === undefined || loading) {
+    loading = loading === undefined || loading;
+    if (loading) {
       wx.showLoading && wx.showLoading({title: 'Loading...', mask: mask ? mask : false})
     }
     const configs = util.getAppParams();
@@ -181,6 +188,11 @@ export function uploadFile<T>(file: string, requestHandler: IRequest, name: stri
                     return;
                 }
                 if (statusCode !== 401 || !guest) {
+                    if (loading) {
+                        // 必须先关闭loading
+                        loading = false;
+                        wx.hideLoading();
+                    }
                     wx.showToast({
                         title: (data as any).message,
                         icon: 'none',
@@ -202,7 +214,7 @@ export function uploadFile<T>(file: string, requestHandler: IRequest, name: stri
                 reject('Network request failed')
             },
             complete() {
-                if ((loading === undefined || loading) && wx.hideLoading) {
+                if (loading && wx.hideLoading) {
                     wx.hideLoading();
                 }
             }
