@@ -10,7 +10,9 @@ interface IAppParam {
     timestamp: string,
     sign: string,
 }
-
+/**
+ * api 接口需要的验证参数
+ */
 export function getAppParams(): IAppParam {
     const timestamp = getCurrentTime();
     const sign = Md5.hashStr(appId + timestamp + secret) + '';
@@ -62,7 +64,7 @@ export function each(data: any, cb: (val: any, key: string | number) => boolean|
   }
 }
 
-export function uriEncode (path: string, obj: any = {}, unEncodeURI?: boolean) {
+export function uriEncode(path: string, obj: any = {}, unEncodeURI?: boolean) {
     let result = []
     for (let name of Object.keys(obj)) {
         let value = obj[name];
