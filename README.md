@@ -91,8 +91,8 @@ sass 引用模式自动处理
  `v-show` | `hidden="{{! }}"`
  `v-for` | `wx:for="{{  }}" wx:for-index=" " wx:for-item=""`
  `v-model` | `value="{{  }}" bind:input=" Changed"`
- 第一个支付为`@`且值不为空 | `bind:`
- 第一个支付为`:` | `={{ }}`
+ 第一个字符为`@`且值不为空 | `bind:`
+ 第一个字符为`:` | `={{ }}`
  其他包含`@` |
 
 支持 对 `picker` `switch` `slider` 执行 `v-model` 值绑定
