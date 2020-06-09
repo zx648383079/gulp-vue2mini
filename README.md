@@ -235,3 +235,15 @@ Page(new Index());
 ## 注意
 
 新增了一些指定的声明请[参考](https://github.com/zx648383079/gulp-vue2mini/tree/example/typings/wx/lib.vue.d.ts)
+
+如果 ts 报错太多而中断，可以考虑屏蔽
+
+```js
+var plumber = require('gulp-plumber');
+
+.pipe(plumber({
+    errorHandler() {
+        this.emit('end');
+    }
+}))
+```

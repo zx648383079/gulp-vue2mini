@@ -84,7 +84,7 @@ export function splitFile(content: string, ext: string = 'vue', appendJson?: any
     }
     if (items.script.lines.length > 0) {
         let json = splitTsFile(items.script.lines.join(LINE_SPLITE), tplFuns, appendJson);
-        res.script = {type: items.script.type, content: json.script?.content as string}
+        res.script = {type: items.script.type, content: json.script ? json.script.content : ''}
         res.json =json.json;
     }
     return res;

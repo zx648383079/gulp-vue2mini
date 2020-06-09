@@ -46,7 +46,7 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     return Buffer.from(wantTag === 'json' ? '{}' : '');
 }
 
-export function template (tag: string) {
+export function template(tag: string) {
     return new Transform({
         objectMode: true,
         transform: function (file: vinyl, _: any, callback: Function) {

@@ -168,13 +168,16 @@ export function htmlToJson(content: string): Element {
     getElement = function(): Element {
         let tag = '', 
             attrs: {[key: string]: string| boolean} = {}, 
-            code: string, 
+            code: string,
             status: BLOCK_TYPE = BLOCK_TYPE.TAG, 
             name: string = '', 
             value: string = '', 
             endAttr: string| undefined; // 属性的结束标记
         while (pos < content.length) {
             code = content.charAt(++ pos);
+            if ((code === '\n' || code === '\r') && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
+                code = ' ';
+            }
             if (code === '>' && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
                 // 修复只有属性名就结算
                 if (status === BLOCK_TYPE.ATTR && name !== '') {
@@ -219,9 +222,13 @@ export function htmlToJson(content: string): Element {
                     continue;
                 }
                 if (status == BLOCK_TYPE.ATTR) {
-                    status = BLOCK_TYPE.ATTR;
-                    attrs[name] = true;
-                    name = '';
+                    name = name.trim();
+                    // 修复为空的属性名
+                    if (name.length > 0) {
+                        status = BLOCK_TYPE.ATTR;
+                        attrs[name] = true;
+                        name = '';
+                    }
                     continue;
                 }
                 if (!endAttr && status === BLOCK_TYPE.ATTR_VALUE) {

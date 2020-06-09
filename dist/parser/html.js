@@ -120,6 +120,9 @@ function htmlToJson(content) {
         var tag = '', attrs = {}, code, status = BLOCK_TYPE.TAG, name = '', value = '', endAttr;
         while (pos < content.length) {
             code = content.charAt(++pos);
+            if ((code === '\n' || code === '\r') && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
+                code = ' ';
+            }
             if (code === '>' && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
                 if (status === BLOCK_TYPE.ATTR && name !== '') {
                     attrs[name] = true;
@@ -162,9 +165,12 @@ function htmlToJson(content) {
                     continue;
                 }
                 if (status == BLOCK_TYPE.ATTR) {
-                    status = BLOCK_TYPE.ATTR;
-                    attrs[name] = true;
-                    name = '';
+                    name = name.trim();
+                    if (name.length > 0) {
+                        status = BLOCK_TYPE.ATTR;
+                        attrs[name] = true;
+                        name = '';
+                    }
                     continue;
                 }
                 if (!endAttr && status === BLOCK_TYPE.ATTR_VALUE) {
