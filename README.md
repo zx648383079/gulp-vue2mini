@@ -82,6 +82,7 @@ sass 引用模式自动处理
  `v-bind:src` | `src`
  `href` | `url`
  `@click` | `bindtap`
+ `@click.stop` | `catchtap`
  `v-on:click` | `bindtap`
  `(click)` | `bindtap`
  `@touchstart` | `bindtouchstart`
@@ -99,7 +100,7 @@ sass 引用模式自动处理
 
 支持 `:class` 数组形式及 `{active: true}` 形式自动会合并 `class` 
 
-支持 `@click` 直接赋值及直接传参数  `@click="i = 1"`  `@click="tap(i, a)"`
+支持 `@click` 直接赋值及直接传参数  `@click="i = 1"` 或 `@click="tap(i, a)"`，直接传参数，最后增加一个为 事件原本的值
 
 定义`WxPage` `WxCommpent` `WxApp` 三个类，增强 `setData` 的智能提示，
 

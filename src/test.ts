@@ -12,3 +12,25 @@
 
 // writeFileSync(__dirname + '/index.json', res);
 
+// export type Constructor = {
+//     new (...args: any[]): any
+// }
+
+// export function Prop() {
+//     return (target: Vue, key: string) => {
+//       console.log(target, key);
+//     }
+// }
+
+// export function PropA(): ClassDecorator {
+//     return (target: any) => {
+//       console.log(target);
+//     }
+// }
+
+// @PropA()
+// class Vue {
+//     @Prop() public aa!: boolean;
+// }
+
+// new Vue();

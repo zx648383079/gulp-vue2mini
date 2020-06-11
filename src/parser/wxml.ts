@@ -43,6 +43,7 @@ function createTapCoverterFunc(name: string, target: string, args: string[]): st
     args.forEach(item => {
         lines.push('e.currentTarget.dataset.' + item);
     });
+    lines.push('e');
     const line = lines.join(', ');
     return `    ${name}(e: TouchEvent) {
         this.${target}(${line});
@@ -145,6 +146,17 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             'href': 'url',
             ':key': false,
             '@click': converterTap,
+            '@click.stop': function(value: any) {
+                if (typeof value === 'string') {
+                    return converterTap(value, 'catchtap');
+                }
+                const func = 'catchTaped';
+                if (existFunc.indexOf(func) < 0) {
+                    wxmlFunc.push(`${func}(){}`);
+                    existFunc.push(func);
+                }
+                return ['catchtap', func];
+            },
             'v-on:click': converterTap,
             '(click)': converterTap,
             '@touchstart': 'bindtouchstart',
@@ -193,6 +205,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             'open-data', 'web-view', 'ad', 'official-account', 
             ].indexOf(item.tag + '') >= 0) {
             const attr = parseNodeAttr(item.attribute, item.tag);
+            content = removeIfText(item.children, content);
             return `<${item.tag}${attr}>${content}</${item.tag}>`;
         }
         if (item.tag == 'textarea') {
@@ -202,6 +215,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
         }
         if (item.tag == 'a') {
             let attr = parseNodeAttr(item.attribute, 'navigator');
+            content = removeIfText(item.children, content);
             return `<navigator${attr}>${content}</navigator>`;
         }
         if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0 
@@ -217,6 +231,16 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
         }
         return `<view${attr}>${content}</view>`;
     });
+
+    /**
+     * 抛弃一些不必要的text 标签
+     */
+    function removeIfText(children: Element[] | undefined, content: string): string {
+        if (!children || children.length > 1 || children[0].node != 'text') {
+            return content;
+        }
+        return children[0].text + '';
+    }
 
     function converterSrc(value: string): string[] {
         return ['src', '{{ ' +value + ' }}'];
@@ -249,7 +273,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
         return ['class', '{{ ' + block.join('+') + ' }}'];
     }
 
-    function converterTap(value: string): string[] {
+    function converterTap(value: string, attrKey: string = 'bindtap'): string[] {
+        if (arguments.length > 2) {
+            attrKey = 'bindtap';
+        }
         if (value.indexOf('=') > 0) {
             let [key, val] = value.split('=', 2);
             key = key.trim();
@@ -261,16 +288,16 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
                 wxmlFunc.push(createTapFunc(func, key, dataKey));
                 existFunc.push(func);
             }
-            return ['bindtap', func, `data-${dataKey}="${val}"`];
+            return [attrKey, func, `data-${dataKey}="${val}"`];
         }
         const match = value.match(/^([^\(\)]+)\((.*)\)$/);
         if (!match) {
-            return ['bindtap', value];
+            return [attrKey, value];
         }
         const args = match[2].trim();
         const func = match[1].trim();
         if (args.length < 1) {
-            return ['bindtap', func];
+            return [attrKey, func];
         }
         let ext: string[] = [];
         let lines: string[] = [];
@@ -285,8 +312,9 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
             existFunc.push(func);
         }
-        return ['bindtap', funcTo, ext.join(' ')];
+        return [attrKey, funcTo, ext.join(' ')];
     }
+
     /**
      * 转换成属性值 包含""
      * @param v 

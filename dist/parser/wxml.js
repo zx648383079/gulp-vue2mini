@@ -14,6 +14,7 @@ function createTapCoverterFunc(name, target, args) {
     args.forEach(function (item) {
         lines.push('e.currentTarget.dataset.' + item);
     });
+    lines.push('e');
     var line = lines.join(', ');
     return "    " + name + "(e: TouchEvent) {\n        this." + target + "(" + line + ");\n    }";
 }
@@ -104,6 +105,17 @@ function jsonToWxml(json, exclude) {
         'href': 'url',
         ':key': false,
         '@click': converterTap,
+        '@click.stop': function (value) {
+            if (typeof value === 'string') {
+                return converterTap(value, 'catchtap');
+            }
+            var func = 'catchTaped';
+            if (existFunc.indexOf(func) < 0) {
+                exports.wxmlFunc.push(func + "(){}");
+                existFunc.push(func);
+            }
+            return ['catchtap', func];
+        },
         'v-on:click': converterTap,
         '(click)': converterTap,
         '@touchstart': 'bindtouchstart',
@@ -151,6 +163,7 @@ function jsonToWxml(json, exclude) {
             'open-data', 'web-view', 'ad', 'official-account',
         ].indexOf(item.tag + '') >= 0) {
             var attr_4 = parseNodeAttr(item.attribute, item.tag);
+            content = removeIfText(item.children, content);
             return "<" + item.tag + attr_4 + ">" + content + "</" + item.tag + ">";
         }
         if (item.tag == 'textarea') {
@@ -160,6 +173,7 @@ function jsonToWxml(json, exclude) {
         }
         if (item.tag == 'a') {
             var attr_6 = parseNodeAttr(item.attribute, 'navigator');
+            content = removeIfText(item.children, content);
             return "<navigator" + attr_6 + ">" + content + "</navigator>";
         }
         if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
@@ -174,6 +188,12 @@ function jsonToWxml(json, exclude) {
         }
         return "<view" + attr + ">" + content + "</view>";
     });
+    function removeIfText(children, content) {
+        if (!children || children.length > 1 || children[0].node != 'text') {
+            return content;
+        }
+        return children[0].text + '';
+    }
     function converterSrc(value) {
         return ['src', '{{ ' + value + ' }}'];
     }
@@ -205,7 +225,11 @@ function jsonToWxml(json, exclude) {
         }
         return ['class', '{{ ' + block.join('+') + ' }}'];
     }
-    function converterTap(value) {
+    function converterTap(value, attrKey) {
+        if (attrKey === void 0) { attrKey = 'bindtap'; }
+        if (arguments.length > 2) {
+            attrKey = 'bindtap';
+        }
         if (value.indexOf('=') > 0) {
             var _a = value.split('=', 2), key = _a[0], val = _a[1];
             key = key.trim();
@@ -217,16 +241,16 @@ function jsonToWxml(json, exclude) {
                 exports.wxmlFunc.push(createTapFunc(func_1, key, dataKey));
                 existFunc.push(func_1);
             }
-            return ['bindtap', func_1, "data-" + dataKey + "=\"" + val + "\""];
+            return [attrKey, func_1, "data-" + dataKey + "=\"" + val + "\""];
         }
         var match = value.match(/^([^\(\)]+)\((.*)\)$/);
         if (!match) {
-            return ['bindtap', value];
+            return [attrKey, value];
         }
         var args = match[2].trim();
         var func = match[1].trim();
         if (args.length < 1) {
-            return ['bindtap', func];
+            return [attrKey, func];
         }
         var ext = [];
         var lines = [];
@@ -241,7 +265,7 @@ function jsonToWxml(json, exclude) {
             exports.wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
             existFunc.push(func);
         }
-        return ['bindtap', funcTo, ext.join(' ')];
+        return [attrKey, funcTo, ext.join(' ')];
     }
     function q(v) {
         if (typeof v === 'object' && v instanceof Array) {
