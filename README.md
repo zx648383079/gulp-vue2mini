@@ -38,7 +38,7 @@ gulp.src('src/**/*.{vue,html}')
         .pipe(template('css'))    // 提取css 部分
 
 gulp.src('src/**/*.{vue,html}')
-        .pipe(template('sass'))
+        .pipe(template('scss'))
         .pipe(template('presass'))
         .pipe(sass())
         .pipe(template('endsass'))   // 提取 sass 部分
@@ -51,8 +51,9 @@ gulp.src('src/**/*.{vue,html}')
         .pipe(template('tpl'))   // 提取 html 代码并转化成 wxml 代码
 
 ```
-
 新增 对 vue 编译，但必须保证源目录为 `src` 目标目录为 `dist`
+
+# **推荐** 用下面的方法
 
 ```js
 await gulp.src('src/test.vue')
