@@ -93,14 +93,7 @@ function jsonToWxml(json, exclude) {
             return ['wx:for', '{{ ' + match[4] + ' }}', "wx:for-index=\"" + index + "\" wx:for-item=\"" + item + "\""];
         },
         'v-show': function (value) {
-            value = value.trim();
-            if (value.charAt(0) == '!') {
-                value = value.substr(1);
-            }
-            else {
-                value = '!' + value;
-            }
-            return ['hidden', '{{ ' + value + ' }}'];
+            return ['hidden', '{{ ' + invertIf(value) + ' }}'];
         },
         'href': 'url',
         ':key': false,
@@ -193,6 +186,28 @@ function jsonToWxml(json, exclude) {
             return content;
         }
         return children[0].text + '';
+    }
+    function invertIf(value) {
+        value = value.trim();
+        if (value.charAt(0) == '!') {
+            return value.substr(1);
+        }
+        var maps = [
+            ['<=', '>'],
+            ['=<', '>'],
+            ['>=', '<'],
+            ['=>', '<'],
+            ['==', '!='],
+            ['>', '<='],
+            ['<', '>='],
+        ];
+        for (var _i = 0, maps_1 = maps; _i < maps_1.length; _i++) {
+            var item = maps_1[_i];
+            if (value.indexOf(item[0]) > 0) {
+                return value.replace(item[0], item[1]);
+            }
+        }
+        return "!(" + value + ")";
     }
     function converterSrc(value) {
         return ['src', '{{ ' + value + ' }}'];

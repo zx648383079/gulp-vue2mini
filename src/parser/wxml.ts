@@ -135,13 +135,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
                 return ['wx:for', '{{ ' + match[4] + ' }}', `wx:for-index="${index}" wx:for-item="${item}"`];
             },
             'v-show': function(value: string) {
-                value = value.trim();
-                if (value.charAt(0) == '!') {
-                    value = value.substr(1);
-                } else {
-                    value = '!' + value;
-                }
-                return ['hidden', '{{ ' +value + ' }}'];
+                return ['hidden', '{{ ' + invertIf(value) + ' }}'];
             },
             'href': 'url',
             ':key': false,
@@ -240,6 +234,32 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             return content;
         }
         return children[0].text + '';
+    }
+
+    /**
+     * 取反判断语句
+     * @param value 
+     */
+    function invertIf(value: string): string {
+        value = value.trim();
+        if (value.charAt(0) == '!') {
+            return value.substr(1);
+        }
+        const maps = [
+            ['<=', '>'],
+            ['=<', '>'],
+            ['>=', '<'],
+            ['=>', '<'],
+            ['==', '!='],
+            ['>', '<='],
+            ['<', '>='],
+        ]
+        for (const item of maps) {
+            if (value.indexOf(item[0]) > 0) {
+                return value.replace(item[0], item[1]);
+            }
+        }
+        return `!(${value})`;
     }
 
     function converterSrc(value: string): string[] {

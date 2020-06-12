@@ -52,6 +52,23 @@ gulp.src('src/**/*.{vue,html}')
 
 ```
 
+新增 对 vue 编译，但必须保证源目录为 `src` 目标目录为 `dist`
+
+```js
+await gulp.src('src/test.vue')
+    .pipe(template('js'))
+    .pipe(gulp.dest('dist/'))
+    .pipe(template('css'))
+    .pipe(gulp.dest('dist/'))
+    .pipe(template('json'))
+    .pipe(gulp.dest('dist/'))
+    .pipe(template('tpl'))
+    .pipe(gulp.dest('dist/'))
+    .pipe(template('ts'))
+    .pipe(tsProject())
+    .pipe(gulp.dest('dist/'))
+```
+
 
 [转化核心](src/parser)
 
