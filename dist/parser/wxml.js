@@ -149,7 +149,7 @@ function jsonToWxml(json, exclude) {
             var attr_3 = parseNodeAttr(item.attribute, item.tag);
             return "<" + item.tag + attr_3 + "/>";
         }
-        if (['label', 'slot', 'style',
+        if (['label', 'slot', 'style', 'text',
             'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
             'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
             'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',

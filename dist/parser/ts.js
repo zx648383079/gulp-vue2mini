@@ -1,4 +1,11 @@
 "use strict";
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 exports.__esModule = true;
 exports.LINE_SPLITE = "\r\n";
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
@@ -132,5 +139,5 @@ function appendMethod(content, tplFuns, classLine, isComponent) {
         }
         tplFuns = lines;
     }
-    return [content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]).join(exports.LINE_SPLITE);
+    return __spreadArrays([content.substr(0, pos + 1)], tplFuns, [content.substr(pos + 2)]).join(exports.LINE_SPLITE);
 }
