@@ -93,7 +93,7 @@ export function studly(val: string, isFirstUpper: boolean = true): string {
  * json 转 wxml
  * @param json 
  */
-export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): string {
+export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/): string {
     wxmlFunc = [];
     let existFunc: string[] = [];
     const disallow_attrs: string[] = [],
@@ -203,7 +203,9 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^.+[\-A-Z].+$/): st
             return `<${item.tag}${attr}>${content}</${item.tag}>`;
         }
         if (item.tag == 'textarea') {
-            item.attr('value', content);
+            if (!item.attr('v-model') && !item.attr('value')) {
+                item.attr('value', content);
+            }
             const attr = parseNodeAttr(item.attribute, item.tag);
             return `<textarea${attr}/>`;
         }

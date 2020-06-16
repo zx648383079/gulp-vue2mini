@@ -52,7 +52,7 @@ function studly(val, isFirstUpper) {
 }
 exports.studly = studly;
 function jsonToWxml(json, exclude) {
-    if (exclude === void 0) { exclude = /^.+[\-A-Z].+$/; }
+    if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
     exports.wxmlFunc = [];
     var existFunc = [];
     var disallow_attrs = [], replace_attrs = {
@@ -160,7 +160,9 @@ function jsonToWxml(json, exclude) {
             return "<" + item.tag + attr_4 + ">" + content + "</" + item.tag + ">";
         }
         if (item.tag == 'textarea') {
-            item.attr('value', content);
+            if (!item.attr('v-model') && !item.attr('value')) {
+                item.attr('value', content);
+            }
             var attr_5 = parseNodeAttr(item.attribute, item.tag);
             return "<textarea" + attr_5 + "/>";
         }
