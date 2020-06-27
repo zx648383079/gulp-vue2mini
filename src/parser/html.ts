@@ -2,7 +2,7 @@ import { Element } from "./element";
 /**
  * 单标签
  */
-export const SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr'];
+export const SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr', '!DOCTYPE'];
 /**
  * 不进行深入解析的标签
  */
@@ -352,5 +352,13 @@ export function htmlToJson(content: string): Element {
         }
         return items;
     };
-    return new Element('root', undefined, undefined, parserElements());
+    return Element.nodeElement('root', parserElements());
+}
+
+/**
+ * 还原成html
+ * @param json 
+ */
+export function jsonToHtml(json: Element): string {
+    return json.toString(Element.htmlCallback);
 }

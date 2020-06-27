@@ -57,7 +57,7 @@ function splitFile(content, ext, appendJson) {
     }
     var res = {};
     if (items.style.lines.length > 0) {
-        res.style = { type: ['scss', 'sass'].indexOf(items.style.type) >= 0 ? 'sass' : items.style.type, content: items.style.lines.join(ts_1.LINE_SPLITE) };
+        res.style = { type: items.style.type, content: items.style.lines.join(ts_1.LINE_SPLITE) };
     }
     var tplFuns = [];
     if (items.html.length > 0) {

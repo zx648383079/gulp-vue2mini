@@ -1,4 +1,4 @@
-// import { readFileSync, writeFileSync } from 'fs';
+// import { readFileSync, writeFileSync, statSync } from 'fs';
 // //import { dealTemplateFile } from './gulp-tempate';
 // import { htmlToJson } from './parser/html';
 

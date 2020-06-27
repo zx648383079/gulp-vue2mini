@@ -17,12 +17,10 @@ const cachesFiles = new CacheManger();
 export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string, wantTag: string): Buffer {
     if (wantTag === 'tpl') {
         wantTag = 'wxml';
-    } else if (wantTag == 'scss') {
-        wantTag = 'sass';
     }
     let tplFile = path.replace(ext, '__tmpl.' + wantTag);
     if (cachesFiles.has(tplFile)) {
-        return Buffer.from(cachesFiles.get(tplFile));
+        return Buffer.from(cachesFiles.get(tplFile) as string);
     }
     const fileTag = renameExt(path, '.__tmpl');
     if (cachesFiles.has(fileTag)) {
@@ -49,7 +47,7 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     }
     cachesFiles.set(fileTag, true);
     if (cachesFiles.has(tplFile)) {
-        return Buffer.from(cachesFiles.get(tplFile));
+        return Buffer.from(cachesFiles.get(tplFile) as string);
     }
     return Buffer.from(wantTag === 'json' ? '{}' : '');
 }
@@ -114,7 +112,7 @@ export function template(tag: string, srcFolder: string = 'src', distFolder = 'd
                 }
                 if (tag === 'endsass') {
                     let str = endImport(String(file.contents));
-                    str = replaceTTF(String(file.contents), replacePath(file.base, distFolder, srcFolder));
+                    str = replaceTTF(str, replacePath(file.base, distFolder, srcFolder));
                     file.contents = Buffer.from(str);
                     file.path = renameExt(replacePath(file.path, srcFolder, distFolder), 'wxss');
                     return callback(null, file);

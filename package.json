@@ -1,6 +1,6 @@
 {
   "name": "gulp-vue2mini",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "converter vue to mini program",
   "main": "dist/index.js",
   "scripts": {
@@ -22,16 +22,22 @@
   },
   "homepage": "https://github.com/zx648383079/gulp-vue2mini#readme",
   "files": [
+    "bin",
     "dist"
   ],
   "devDependencies": {
     "@types/node": "^13.9.3",
+    "@types/node-sass": "^4.11.1",
     "@types/readable-stream": "^2.3.5",
     "@types/vinyl": "^2.0.4",
     "gulp": "^4.0.2",
     "gulp-typescript": "^5.0.1",
     "readable-stream": "^3.6.0",
-    "typescript": "^3.8.3",
     "vinyl": "^2.2.0"
+  },
+  "dependencies": {
+    "node-sass": "^4.14.1",
+    "typescript": "^3.8.3",
+    "chokidar": "^3.4.0"
   }
 }

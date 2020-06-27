@@ -74,7 +74,7 @@ export function splitFile(content: string, ext: string = 'vue', appendJson?: any
     }
     let res: IFileTemplate = {};
     if (items.style.lines.length > 0) {
-        res.style = {type: ['scss', 'sass'].indexOf(items.style.type) >= 0 ? 'sass' : items.style.type, content: items.style.lines.join(LINE_SPLITE)}
+        res.style = {type: items.style.type, content: items.style.lines.join(LINE_SPLITE)}
     }
     let tplFuns: string[] = [];
     if (items.html.length > 0) {

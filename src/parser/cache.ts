@@ -1,17 +1,24 @@
+interface ICacheData<T> {
+    data: T;
+    time: number;
+}
 
-export class CacheManger {
-    private data: {[key: string]: any} = {};
+export class CacheManger<T> {
+    private data: {[key: string]: ICacheData<T>} = {};
 
-    public has(key: string): boolean {
-        return this.data.hasOwnProperty(key);
+    public has(key: string, time: number = 0): boolean {
+        return this.data.hasOwnProperty(key) && (time === 0 || this.data[key].time >= time);
     }
 
-    public get(key: string): any {
-        return this.has(key) ? this.data[key] : undefined;
+    public get(key: string): T | undefined {
+        return this.has(key) ? this.data[key].data : undefined;
     }
 
-    public set(key: string, data: any) {
-        this.data[key] = data;
+    public set(key: string, data: T, time = 0) {
+        this.data[key] = {
+            data,
+            time
+        };
         return this;
     }
 
@@ -23,7 +30,7 @@ export class CacheManger {
     }
 
     public clear() {
-        this.data = {}
+        this.data = {};
         return this;
     }
 }

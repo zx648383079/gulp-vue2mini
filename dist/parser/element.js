@@ -10,6 +10,7 @@ var Element = (function () {
         this.node = node;
         this.children = children;
         this.attribute = attribute;
+        this.ignore = false;
     }
     Element.prototype.attr = function (key, value) {
         if (!this.attribute) {
@@ -49,6 +50,9 @@ var Element = (function () {
         }
         this.children.forEach(function (item) {
             item.parent = _this;
+            if (item.ignore) {
+                return;
+            }
             cb(item);
         });
     };
@@ -79,6 +83,9 @@ var Element = (function () {
         }
         return cb(this, children.length < 1 ? undefined : children);
     };
+    Element.prototype.clone = function () {
+        return new Element(this.tag, this.text, this.node, this.children, this.attribute);
+    };
     Element.comment = function (text) {
         return Element.nodeElement('comment', text);
     };
@@ -106,6 +113,9 @@ var Element = (function () {
         }
         if (item.node === 'comment') {
             return "<!-- " + item.text + " -->";
+        }
+        if (item.tag === '!DOCTYPE') {
+            return "<" + item.tag + " " + item.attributeString() + ">";
         }
         if (html_1.SINGLE_TAGS.indexOf(item.tag) >= 0) {
             return "<" + item.tag + " " + item.attributeString() + "/>";

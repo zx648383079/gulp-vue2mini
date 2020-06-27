@@ -1,7 +1,7 @@
 "use strict";
 exports.__esModule = true;
 var element_1 = require("./element");
-exports.SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr'];
+exports.SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr', '!DOCTYPE'];
 var ALLOW_INCLUDE_TAGS = ['style', 'script'];
 var BLOCK_TYPE;
 (function (BLOCK_TYPE) {
@@ -279,6 +279,10 @@ function htmlToJson(content) {
         }
         return items;
     };
-    return new element_1.Element('root', undefined, undefined, parserElements());
+    return element_1.Element.nodeElement('root', parserElements());
 }
 exports.htmlToJson = htmlToJson;
+function jsonToHtml(json) {
+    return json.toString(element_1.Element.htmlCallback);
+}
+exports.jsonToHtml = jsonToHtml;

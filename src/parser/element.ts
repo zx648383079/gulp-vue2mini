@@ -15,6 +15,8 @@ export class Element {
         
     }
 
+    public ignore = false;
+
     public parent?: Element;
 
     public attr(key: string | any, value?: any) {
@@ -57,6 +59,9 @@ export class Element {
         }
         this.children.forEach(item => {
             item.parent = this;
+            if (item.ignore) {
+                return;
+            }
             cb(item);
         });
     }
@@ -99,6 +104,10 @@ export class Element {
         return cb(this, children.length < 1 ? undefined : children);
     }
 
+    public clone() {
+        return new Element(this.tag, this.text, this.node, this.children, this.attribute);
+    }
+
     /**
      * comment
      */
@@ -137,6 +146,9 @@ export class Element {
         }
         if (item.node === 'comment') {
             return `<!-- ${item.text} -->`;
+        }
+        if (item.tag === '!DOCTYPE') {
+            return `<${item.tag} ${item.attributeString()}>`;
         }
         if (SINGLE_TAGS.indexOf(item.tag) >= 0) {
             return `<${item.tag} ${item.attributeString()}/>`;

@@ -10,9 +10,6 @@ function dealTemplateFile(contentBuff, path, ext, wantTag) {
     if (wantTag === 'tpl') {
         wantTag = 'wxml';
     }
-    else if (wantTag == 'scss') {
-        wantTag = 'sass';
-    }
     var tplFile = path.replace(ext, '__tmpl.' + wantTag);
     if (cachesFiles.has(tplFile)) {
         return Buffer.from(cachesFiles.get(tplFile));
@@ -91,7 +88,7 @@ function template(tag, srcFolder, distFolder, tplExt) {
                 }
                 if (tag === 'endsass') {
                     var str = css_1.endImport(String(file.contents));
-                    str = css_1.replaceTTF(String(file.contents), replacePath(file.base, distFolder, srcFolder));
+                    str = css_1.replaceTTF(str, replacePath(file.base, distFolder, srcFolder));
                     file.contents = Buffer.from(str);
                     file.path = renameExt(replacePath(file.path, srcFolder, distFolder), 'wxss');
                     return callback(null, file);
