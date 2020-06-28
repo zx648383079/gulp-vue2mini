@@ -73,7 +73,11 @@ await gulp.src('src/test.vue')
 
 ### 自带命令
 
+必须全局安装
+
 ```
+npm i gulp-vue2mini -g
+
 vue2mini
 ```
 
