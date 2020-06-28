@@ -116,7 +116,8 @@ function mergeStyle(content, file) {
             if ($2.charAt(0) === '/') {
                 return $0;
             }
-            return $0.replace($2, path.relative(currentFolder, $2).replace('\\', '/'));
+            var fileName = path.relative(currentFolder, $2).replace('\\', '/').replace(/\.ts$/, '.js').replace(/\.(scss|sass|less)$/, '.css');
+            return $0.replace($2, fileName);
         });
     };
     var data = html_1.htmlToJson(replacePath(content));
@@ -236,6 +237,9 @@ function converterToken(line) {
     }
     else if (content === '...') {
         type = 'content';
+    }
+    if (type === 'extend' && /[\<\>]/.test(content)) {
+        return;
     }
     return {
         type: type,

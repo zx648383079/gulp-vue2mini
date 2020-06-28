@@ -36,7 +36,7 @@ var eachFile = function (folder, cb) {
 var mode = argv.params.mini;
 var mkIfNotFolder = function (folder) {
     if (!fs.existsSync(folder)) {
-        fs.mkdirSync(folder);
+        fs.mkdirSync(folder, { recursive: true });
     }
 };
 var logFile = function (file) {

@@ -42,7 +42,7 @@ const mode = argv.params.mini;
 
 const mkIfNotFolder = (folder: string) => {
     if (!fs.existsSync(folder)) {
-        fs.mkdirSync(folder);
+        fs.mkdirSync(folder, {recursive: true});
     }
 };
 

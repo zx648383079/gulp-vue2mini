@@ -131,7 +131,8 @@ export function mergeStyle(content: string, file: string): string {
             if ($2.charAt(0) === '/') {
                 return $0;
             }
-            return $0.replace($2, path.relative(currentFolder, $2).replace('\\', '/'));
+            let fileName = path.relative(currentFolder, $2).replace('\\', '/').replace(/\.ts$/, '.js').replace(/\.(scss|sass|less)$/, '.css');
+            return $0.replace($2, fileName);
         });
     };
     const data = htmlToJson(replacePath(content));
@@ -250,6 +251,10 @@ function converterToken(line: string): IToken | undefined {
         type = 'comment';
     } else if (content === '...') {
         type = 'content'
+    }
+    if (type === 'extend' && /[\<\>]/.test(content)) {
+        // 如果包含 <> 字符则不符合规则
+        return;
     }
     return {
         type,
