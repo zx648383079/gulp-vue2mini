@@ -5,11 +5,19 @@ import { renderFile } from "./parser/ui";
 import { Compiler } from "./compiler";
 import { preImport, endImport, replaceTTF } from "./parser/css";
 import { splitFile } from "./parser/vue";
+import { formatArgv } from "./argv";
 
 process.env.INIT_CWD = process.cwd();
 
-const inputFolder = path.resolve(process.cwd(), 'src');
-const outputFolder = path.resolve(process.cwd(), 'dist');
+const argv = formatArgv(process.argv, {
+    mini: false,
+    watch: false,
+    input: 'src',
+    output: 'dist'
+});
+
+const inputFolder = path.resolve(process.cwd(), argv.params.input);
+const outputFolder = path.resolve(process.cwd(), argv.params.output);
 
 const outputFile = (file: string) => {
     return path.resolve(outputFolder, path.relative(inputFolder, file)); 
@@ -28,19 +36,22 @@ const eachFile = (folder: string, cb: (file: string) => void) => {
     });
 }
 
-const mode = process.argv.indexOf('--mini') > 0;
+const mode = argv.params.mini;
+
+const mkIfNotFolder = (folder: string) => {
+    if (!fs.existsSync(folder)) {
+        fs.mkdirSync(folder);
+    }
+};
 
 /**
  * 处理html
  * @param src 
  */
-const compileHtmlFile = (src: string) => {
+export const compileHtmlFile = (src: string) => {
     const ext = path.extname(src);
     let dist = outputFile(src);
     const distFolder = path.dirname(dist);
-    if (!fs.existsSync(distFolder)) {
-        fs.mkdirSync(distFolder);
-    }
     let content = '';
     if (ext === '.ts') {
         content = Compiler.ts(fs.readFileSync(src).toString(), src);
@@ -54,25 +65,24 @@ const compileHtmlFile = (src: string) => {
     } else if (ext === '.html') {
         content = renderFile(src);
     } else {
+        mkIfNotFolder(distFolder);
         fs.copyFileSync(src, dist);
         return;
     }
     if (content.length < 1) {
         return;
     }
+    mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
 };
 /**
  * 处理小程序
  * @param src 
  */
-const compileMiniFile = (src: string) => {
+export const compileMiniFile = (src: string) => {
     const ext = path.extname(src);
     let dist = outputFile(src);
     const distFolder = path.dirname(dist);
-    if (!fs.existsSync(distFolder)) {
-        fs.mkdirSync(distFolder);
-    }
     let content = '';
     if (ext === '.ts') {
         content = Compiler.ts(fs.readFileSync(src).toString(), src);
@@ -95,6 +105,7 @@ const compileMiniFile = (src: string) => {
             data = json.trim().length > 0 ? JSON.parse(json) : {};
         }
         const res: any = splitFile(fs.readFileSync(src).toString(), ext.substr(1).toLowerCase(), data);
+        mkIfNotFolder(distFolder);
         for (const key in res) {
             if (res.hasOwnProperty(key)) {
                 const item = res[key];
@@ -142,20 +153,28 @@ const compileMiniFile = (src: string) => {
         if (ext === '.css') {
             dist = dist.replace(ext, '.wxss');
         }
+        mkIfNotFolder(distFolder);
         fs.copyFileSync(src, dist);
         return;
     }
     if (content.length < 1) {
         return;
     }
+    mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
 };
 
 const compilerFile = mode ? compileMiniFile : compileHtmlFile;
 
-eachFile(inputFolder, compilerFile);
+const inputState = fs.statSync(inputFolder);
 
-if (process.argv.indexOf('--watch') > 0) {
+if (inputState.isFile()) {
+    compilerFile(inputFolder);
+} else {
+    eachFile(inputFolder, compilerFile);
+}
+
+if (argv.params.watch) {
     chokidar.watch(inputFolder).on("unlink", file => {
         fs.unlinkSync(outputFile(file));
     }).on('add', compilerFile).on('change', compilerFile);

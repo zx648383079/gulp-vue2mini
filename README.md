@@ -13,7 +13,7 @@ npm i gulp-vue2mini --save-dev
 
 暂不支持 `gulp watch`
 
-gulpfile.js 使用
+### gulpfile.js 使用
 
 ```js
 var template = require('gulp-vue2mini');
@@ -71,6 +71,18 @@ await gulp.src('src/test.vue')
 ```
 
 
+### 自带命令
+
+```
+vue2mini
+```
+
+    --watch   监听脚本变动
+    --input   源码文件或文件夹，默认 `src` 文件夹
+    --output  目标保存文件夹，默认 `dist` 文件夹
+    --mini    编译小程序，默认为 编译模板
+
+
 [转化核心](src/parser)
 
 支持 ts sass
@@ -105,7 +117,7 @@ sass 引用模式自动处理
 支持 `ts` `sass` 自动编译
 
 ```
-gulp-vue2mini --watch
+vue2mini --watch
 
 ```
 

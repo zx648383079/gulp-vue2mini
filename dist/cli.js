@@ -7,9 +7,16 @@ var ui_1 = require("./parser/ui");
 var compiler_1 = require("./compiler");
 var css_1 = require("./parser/css");
 var vue_1 = require("./parser/vue");
+var argv_1 = require("./argv");
 process.env.INIT_CWD = process.cwd();
-var inputFolder = path.resolve(process.cwd(), 'src');
-var outputFolder = path.resolve(process.cwd(), 'dist');
+var argv = argv_1.formatArgv(process.argv, {
+    mini: false,
+    watch: false,
+    input: 'src',
+    output: 'dist'
+});
+var inputFolder = path.resolve(process.cwd(), argv.params.input);
+var outputFolder = path.resolve(process.cwd(), argv.params.output);
 var outputFile = function (file) {
     return path.resolve(outputFolder, path.relative(inputFolder, file));
 };
@@ -25,14 +32,16 @@ var eachFile = function (folder, cb) {
         cb(location);
     });
 };
-var mode = process.argv.indexOf('--mini') > 0;
-var compileHtmlFile = function (src) {
+var mode = argv.params.mini;
+var mkIfNotFolder = function (folder) {
+    if (!fs.existsSync(folder)) {
+        fs.mkdirSync(folder);
+    }
+};
+exports.compileHtmlFile = function (src) {
     var ext = path.extname(src);
     var dist = outputFile(src);
     var distFolder = path.dirname(dist);
-    if (!fs.existsSync(distFolder)) {
-        fs.mkdirSync(distFolder);
-    }
     var content = '';
     if (ext === '.ts') {
         content = compiler_1.Compiler.ts(fs.readFileSync(src).toString(), src);
@@ -50,21 +59,20 @@ var compileHtmlFile = function (src) {
         content = ui_1.renderFile(src);
     }
     else {
+        mkIfNotFolder(distFolder);
         fs.copyFileSync(src, dist);
         return;
     }
     if (content.length < 1) {
         return;
     }
+    mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
 };
-var compileMiniFile = function (src) {
+exports.compileMiniFile = function (src) {
     var ext = path.extname(src);
     var dist = outputFile(src);
     var distFolder = path.dirname(dist);
-    if (!fs.existsSync(distFolder)) {
-        fs.mkdirSync(distFolder);
-    }
     var content = '';
     if (ext === '.ts') {
         content = compiler_1.Compiler.ts(fs.readFileSync(src).toString(), src);
@@ -90,6 +98,7 @@ var compileMiniFile = function (src) {
             data = json.trim().length > 0 ? JSON.parse(json) : {};
         }
         var res = vue_1.splitFile(fs.readFileSync(src).toString(), ext.substr(1).toLowerCase(), data);
+        mkIfNotFolder(distFolder);
         for (var key in res) {
             if (res.hasOwnProperty(key)) {
                 var item = res[key];
@@ -138,17 +147,25 @@ var compileMiniFile = function (src) {
         if (ext === '.css') {
             dist = dist.replace(ext, '.wxss');
         }
+        mkIfNotFolder(distFolder);
         fs.copyFileSync(src, dist);
         return;
     }
     if (content.length < 1) {
         return;
     }
+    mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
 };
-var compilerFile = mode ? compileMiniFile : compileHtmlFile;
-eachFile(inputFolder, compilerFile);
-if (process.argv.indexOf('--watch') > 0) {
+var compilerFile = mode ? exports.compileMiniFile : exports.compileHtmlFile;
+var inputState = fs.statSync(inputFolder);
+if (inputState.isFile()) {
+    compilerFile(inputFolder);
+}
+else {
+    eachFile(inputFolder, compilerFile);
+}
+if (argv.params.watch) {
     chokidar.watch(inputFolder).on("unlink", function (file) {
         fs.unlinkSync(outputFile(file));
     }).on('add', compilerFile).on('change', compilerFile);
