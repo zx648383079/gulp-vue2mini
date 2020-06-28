@@ -8,6 +8,7 @@ var html_1 = require("./html");
 var element_1 = require("./element");
 var compiler_1 = require("../compiler");
 var cachesFiles = new cache_1.CacheManger();
+var REGEX_ASSET = /(src|href)=["']([^"'\>]+)/g;
 function parseToken(file, content) {
     var time = fs_1.statSync(file).mtimeMs;
     if (cachesFiles.has(file, time)) {
@@ -19,12 +20,24 @@ function parseToken(file, content) {
     var tokens = [];
     var isLayout = false;
     var canRender = true;
+    var currentFolder = path.dirname(file);
+    var replacePath = function (text) {
+        return text.replace(REGEX_ASSET, function ($0, _, $2) {
+            if ($2.indexOf('://') >= 0) {
+                return $0;
+            }
+            if ($2.charAt(0) === '/') {
+                return $0;
+            }
+            return $0.replace($2, path.resolve(currentFolder, $2));
+        });
+    };
     content.split(ts_1.LINE_SPLITE).forEach(function (line, i) {
         var token = converterToken(line);
         if (!token) {
             tokens.push({
                 type: 'text',
-                content: line
+                content: replacePath(line)
             });
             return;
         }
@@ -94,7 +107,19 @@ function renderFile(file, content) {
 }
 exports.renderFile = renderFile;
 function mergeStyle(content, file) {
-    var data = html_1.htmlToJson(content);
+    var currentFolder = path.dirname(file);
+    var replacePath = function (text) {
+        return text.replace(REGEX_ASSET, function ($0, _, $2) {
+            if ($2.indexOf('://') >= 0) {
+                return $0;
+            }
+            if ($2.charAt(0) === '/') {
+                return $0;
+            }
+            return $0.replace($2, path.relative(currentFolder, $2).replace('\\', '/'));
+        });
+    };
+    var data = html_1.htmlToJson(replacePath(content));
     var headers = [];
     var footers = [];
     var styles = [];
@@ -113,11 +138,9 @@ function mergeStyle(content, file) {
         }
         if (root.tag === 'style') {
             root.ignore = true;
-            if (root.attribute) {
-                var lang = root.attribute.get('lang');
-                if (lang && lang !== 'css') {
-                    styleLang = lang;
-                }
+            var lang_1 = root.attr('lang');
+            if (lang_1 && lang_1 !== 'css') {
+                styleLang = lang_1;
             }
             if (root.children) {
                 styles.push.apply(styles, root.children);
@@ -128,16 +151,14 @@ function mergeStyle(content, file) {
             root.map(eachElement);
             return;
         }
-        if (root.attribute && root.attribute.get('src')) {
+        if (root.attr('src')) {
             footers.push(root.clone());
             root.ignore = true;
             return;
         }
-        if (root.attribute) {
-            var lang = root.attribute.get('lang');
-            if (lang && lang !== 'js') {
-                scriptLang = lang;
-            }
+        var lang = root.attr('lang');
+        if (lang && lang !== 'js') {
+            scriptLang = lang;
         }
         root.ignore = true;
         if (root.children) {

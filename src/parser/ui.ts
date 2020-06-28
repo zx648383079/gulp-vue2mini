@@ -20,6 +20,7 @@ interface IToken {
 }
 
 const cachesFiles = new CacheManger<IPage>();
+const REGEX_ASSET = /(src|href)=["']([^"'\>]+)/g;
 
 function parseToken(file: string, content?: string): IPage {
     const time = statSync(file).mtimeMs;
@@ -32,12 +33,24 @@ function parseToken(file: string, content?: string): IPage {
     let tokens:IToken[] = [];
     let isLayout = false;
     let canRender = true;
+    const currentFolder = path.dirname(file);
+    const replacePath = (text: string) => {
+        return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
+            if ($2.indexOf('://') >= 0) {
+                return $0;
+            }
+            if ($2.charAt(0) === '/') {
+                return $0;
+            }
+            return $0.replace($2, path.resolve(currentFolder, $2));
+        });
+    };
     content.split(LINE_SPLITE).forEach((line, i) => {
         const token = converterToken(line);
         if (!token) {
             tokens.push({
                 type: 'text',
-                content: line
+                content: replacePath(line)
             });
             return;
         }
@@ -108,7 +121,20 @@ export function renderFile(file: string, content?: string): string {
 }
 
 export function mergeStyle(content: string, file: string): string {
-    const data = htmlToJson(content);
+    const currentFolder = path.dirname(file);
+    const replacePath = (text: string) => {
+        return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
+            if ($2.indexOf('://') >= 0) {
+                return $0;
+            }
+            // 未考虑linux
+            if ($2.charAt(0) === '/') {
+                return $0;
+            }
+            return $0.replace($2, path.relative(currentFolder, $2).replace('\\', '/'));
+        });
+    };
+    const data = htmlToJson(replacePath(content));
     let headers: Element[] = [];
     let footers: Element[] = [];
     let styles: Element[] = [];
@@ -127,11 +153,9 @@ export function mergeStyle(content: string, file: string): string {
         }
         if (root.tag === 'style') {
             root.ignore = true;
-            if (root.attribute) {
-                const lang = root.attribute.get('lang');
-                if (lang && lang !== 'css') {
-                    styleLang = lang as string;
-                }
+            const lang = root.attr('lang');
+            if (lang && lang !== 'css') {
+                styleLang = lang as string;
             }
             if (root.children) {
                 styles.push(...root.children);
@@ -142,17 +166,15 @@ export function mergeStyle(content: string, file: string): string {
             root.map(eachElement);
             return;
         }
-        if (root.attribute && root.attribute.get('src')) {
+        if (root.attr('src')) {
             footers.push(root.clone());
             root.ignore = true;
             return;
         }
-        if (root.attribute) {
-            const lang = root.attribute.get('lang');
+        const lang = root.attr('lang');
             if (lang && lang !== 'js') {
                 scriptLang = lang as string;
             }
-        }
         root.ignore = true;
         if (root.children) {
             scripts.push(...root.children);

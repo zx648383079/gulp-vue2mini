@@ -19,6 +19,8 @@ const argv = formatArgv(process.argv, {
 const inputFolder = path.resolve(process.cwd(), argv.params.input);
 const outputFolder = path.resolve(process.cwd(), argv.params.output);
 
+const inputState = fs.statSync(inputFolder);
+
 const outputFile = (file: string) => {
     return path.resolve(outputFolder, path.relative(inputFolder, file)); 
 }
@@ -43,6 +45,11 @@ const mkIfNotFolder = (folder: string) => {
         fs.mkdirSync(folder);
     }
 };
+
+const logFile = (file: string) => {
+    const now = new Date();
+    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(outputFolder, file), 'Finished');
+}
 
 /**
  * 处理html
@@ -74,6 +81,7 @@ export const compileHtmlFile = (src: string) => {
     }
     mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
+    logFile(dist);
 };
 /**
  * 处理小程序
@@ -162,11 +170,10 @@ export const compileMiniFile = (src: string) => {
     }
     mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
+    logFile(dist);
 };
 
 const compilerFile = mode ? compileMiniFile : compileHtmlFile;
-
-const inputState = fs.statSync(inputFolder);
 
 if (inputState.isFile()) {
     compilerFile(inputFolder);

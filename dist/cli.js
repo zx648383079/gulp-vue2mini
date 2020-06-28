@@ -17,6 +17,7 @@ var argv = argv_1.formatArgv(process.argv, {
 });
 var inputFolder = path.resolve(process.cwd(), argv.params.input);
 var outputFolder = path.resolve(process.cwd(), argv.params.output);
+var inputState = fs.statSync(inputFolder);
 var outputFile = function (file) {
     return path.resolve(outputFolder, path.relative(inputFolder, file));
 };
@@ -37,6 +38,10 @@ var mkIfNotFolder = function (folder) {
     if (!fs.existsSync(folder)) {
         fs.mkdirSync(folder);
     }
+};
+var logFile = function (file) {
+    var now = new Date();
+    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(outputFolder, file), 'Finished');
 };
 exports.compileHtmlFile = function (src) {
     var ext = path.extname(src);
@@ -68,6 +73,7 @@ exports.compileHtmlFile = function (src) {
     }
     mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
+    logFile(dist);
 };
 exports.compileMiniFile = function (src) {
     var ext = path.extname(src);
@@ -156,9 +162,9 @@ exports.compileMiniFile = function (src) {
     }
     mkIfNotFolder(distFolder);
     fs.writeFileSync(dist, content);
+    logFile(dist);
 };
 var compilerFile = mode ? exports.compileMiniFile : exports.compileHtmlFile;
-var inputState = fs.statSync(inputFolder);
 if (inputState.isFile()) {
     compilerFile(inputFolder);
 }
