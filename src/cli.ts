@@ -46,9 +46,9 @@ const mkIfNotFolder = (folder: string) => {
     }
 };
 
-const logFile = (file: string) => {
+const logFile = (file: string, tip = 'Finished') => {
     const now = new Date();
-    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(outputFolder, file), 'Finished');
+    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(outputFolder, file), tip);
 }
 
 /**
@@ -63,11 +63,12 @@ export const compileHtmlFile = (src: string) => {
     if (ext === '.ts') {
         content = Compiler.ts(fs.readFileSync(src).toString(), src);
         dist = dist.replace(ext, '.js');
-    } else if (ext === '.scss') {
-        content = Compiler.sass(fs.readFileSync(src).toString(), src, 'scss');
-        dist = dist.replace(ext, '.css');
-    } else if (ext === '.sass') {
-        content = Compiler.sass(fs.readFileSync(src).toString(), src, 'scss');
+    } else if (ext === '.scss' || ext === '.sass') {
+        const name = path.basename(src);
+        if (name.indexOf('_') === 0) {
+            return;
+        }
+        content = Compiler.sass(fs.readFileSync(src).toString(), src, ext.substr(1));
         dist = dist.replace(ext, '.css');
     } else if (ext === '.html') {
         content = renderFile(src);
@@ -173,7 +174,13 @@ export const compileMiniFile = (src: string) => {
     logFile(dist);
 };
 
-const compilerFile = mode ? compileMiniFile : compileHtmlFile;
+const compilerFile = (src: string) => {
+    try {
+        mode ? compileMiniFile(src) : compileHtmlFile(src);
+    } catch (error) {
+        logFile(outputFile(src), ' Failure \n' + error.formatted);
+    }
+};
 
 if (inputState.isFile()) {
     compilerFile(inputFolder);
@@ -183,6 +190,9 @@ if (inputState.isFile()) {
 
 if (argv.params.watch) {
     chokidar.watch(inputFolder).on("unlink", file => {
-        fs.unlinkSync(outputFile(file));
+        const dist = outputFile(file);
+        if (fs.existsSync(dist)) {
+            fs.unlinkSync(dist);
+        }
     }).on('add', compilerFile).on('change', compilerFile);
 }

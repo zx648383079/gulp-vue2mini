@@ -39,9 +39,10 @@ var mkIfNotFolder = function (folder) {
         fs.mkdirSync(folder, { recursive: true });
     }
 };
-var logFile = function (file) {
+var logFile = function (file, tip) {
+    if (tip === void 0) { tip = 'Finished'; }
     var now = new Date();
-    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(outputFolder, file), 'Finished');
+    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(outputFolder, file), tip);
 };
 exports.compileHtmlFile = function (src) {
     var ext = path.extname(src);
@@ -52,12 +53,12 @@ exports.compileHtmlFile = function (src) {
         content = compiler_1.Compiler.ts(fs.readFileSync(src).toString(), src);
         dist = dist.replace(ext, '.js');
     }
-    else if (ext === '.scss') {
-        content = compiler_1.Compiler.sass(fs.readFileSync(src).toString(), src, 'scss');
-        dist = dist.replace(ext, '.css');
-    }
-    else if (ext === '.sass') {
-        content = compiler_1.Compiler.sass(fs.readFileSync(src).toString(), src, 'scss');
+    else if (ext === '.scss' || ext === '.sass') {
+        var name_1 = path.basename(src);
+        if (name_1.indexOf('_') === 0) {
+            return;
+        }
+        content = compiler_1.Compiler.sass(fs.readFileSync(src).toString(), src, ext.substr(1));
         dist = dist.replace(ext, '.css');
     }
     else if (ext === '.html') {
@@ -164,7 +165,14 @@ exports.compileMiniFile = function (src) {
     fs.writeFileSync(dist, content);
     logFile(dist);
 };
-var compilerFile = mode ? exports.compileMiniFile : exports.compileHtmlFile;
+var compilerFile = function (src) {
+    try {
+        mode ? exports.compileMiniFile(src) : exports.compileHtmlFile(src);
+    }
+    catch (error) {
+        logFile(outputFile(src), ' Failure \n' + error.formatted);
+    }
+};
 if (inputState.isFile()) {
     compilerFile(inputFolder);
 }
@@ -173,6 +181,9 @@ else {
 }
 if (argv.params.watch) {
     chokidar.watch(inputFolder).on("unlink", function (file) {
-        fs.unlinkSync(outputFile(file));
+        var dist = outputFile(file);
+        if (fs.existsSync(dist)) {
+            fs.unlinkSync(dist);
+        }
     }).on('add', compilerFile).on('change', compilerFile);
 }

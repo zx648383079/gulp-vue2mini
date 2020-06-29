@@ -36,6 +36,9 @@ function parseToken(file: string, content?: string): IPage {
     const currentFolder = path.dirname(file);
     const replacePath = (text: string) => {
         return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
+            if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
+                return $0;
+            }
             if ($2.indexOf('://') >= 0) {
                 return $0;
             }
@@ -124,6 +127,9 @@ export function mergeStyle(content: string, file: string): string {
     const currentFolder = path.dirname(file);
     const replacePath = (text: string) => {
         return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
+            if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
+                return $0;
+            }
             if ($2.indexOf('://') >= 0) {
                 return $0;
             }

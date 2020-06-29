@@ -23,6 +23,9 @@ function parseToken(file, content) {
     var currentFolder = path.dirname(file);
     var replacePath = function (text) {
         return text.replace(REGEX_ASSET, function ($0, _, $2) {
+            if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
+                return $0;
+            }
             if ($2.indexOf('://') >= 0) {
                 return $0;
             }
@@ -110,6 +113,9 @@ function mergeStyle(content, file) {
     var currentFolder = path.dirname(file);
     var replacePath = function (text) {
         return text.replace(REGEX_ASSET, function ($0, _, $2) {
+            if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
+                return $0;
+            }
             if ($2.indexOf('://') >= 0) {
                 return $0;
             }
