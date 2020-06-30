@@ -1,4 +1,4 @@
-interface IArgv<T extends Record<string, any>> {
+export interface IArgv<T extends Record<string, any>> {
     /**
      * 这是执行路径，第一个为node 第二个为脚本名
      */

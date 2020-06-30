@@ -85,6 +85,7 @@ vue2mini
     --input   源码文件或文件夹，默认 `src` 文件夹
     --output  目标保存文件夹，默认 `dist` 文件夹
     --mini    编译小程序，默认为 编译模板
+    --min     压缩ts和sass 生成的文件代码，仅对 模板 有效
 
 
 [转化核心](src/parser)

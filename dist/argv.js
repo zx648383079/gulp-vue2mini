@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.formatArgv = void 0;
 function parseValue(val) {
     var num = +val;
     if (num)

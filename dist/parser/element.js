@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.Element = void 0;
 var attribute_1 = require("./attribute");
 var html_1 = require("./html");
 var Element = (function () {

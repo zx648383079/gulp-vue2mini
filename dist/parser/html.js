@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.jsonToHtml = exports.htmlToJson = exports.SINGLE_TAGS = void 0;
 var element_1 = require("./element");
 exports.SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr', '!DOCTYPE'];
 var ALLOW_INCLUDE_TAGS = ['style', 'script'];

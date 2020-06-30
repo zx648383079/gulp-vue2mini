@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.splitFile = void 0;
 var ts_1 = require("./ts");
 var html_1 = require("./html");
 var wxml_1 = require("./wxml");

@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.endImport = exports.preImport = exports.replaceTTF = exports.ttfToBase64 = void 0;
 var fs = require("fs");
 var path = require("path");
 function ttfToBase64(file) {

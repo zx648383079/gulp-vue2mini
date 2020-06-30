@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.Attribute = void 0;
 var Attribute = (function () {
     function Attribute(items) {
         if (items === void 0) { items = {}; }

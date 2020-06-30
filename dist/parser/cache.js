@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.CacheManger = void 0;
 var CacheManger = (function () {
     function CacheManger() {
         this.data = {};

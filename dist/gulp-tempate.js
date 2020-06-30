@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.template = exports.replacePath = exports.renameExt = exports.dealTemplateFile = void 0;
 var readable_stream_1 = require("readable-stream");
 var fs = require("fs");
 var css_1 = require("./parser/css");

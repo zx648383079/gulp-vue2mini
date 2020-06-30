@@ -7,6 +7,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
     return r;
 };
 exports.__esModule = true;
+exports.parseMethodToObject = exports.parseJson = exports.parsePage = exports.LINE_SPLITE = void 0;
 exports.LINE_SPLITE = "\r\n";
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 function parsePage(content, tplFuns) {

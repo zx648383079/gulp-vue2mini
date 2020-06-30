@@ -1,5 +1,6 @@
 "use strict";
 exports.__esModule = true;
+exports.htmlToWxml = exports.jsonToWxml = exports.studly = exports.firstUpper = exports.wxmlFunc = void 0;
 var html_1 = require("./html");
 var attribute_1 = require("./attribute");
 exports.wxmlFunc = [];
