@@ -289,7 +289,7 @@ var UiCompliper = (function () {
             root.map(pushStyle);
         };
         data.map(pushStyle);
-        return html_1.jsonToHtml(data);
+        return html_1.jsonToHtml(data, this.options && this.options.min ? '' : '    ');
     };
     UiCompliper.prototype.getSassImport = function (content, file) {
         if (content.length < 6) {

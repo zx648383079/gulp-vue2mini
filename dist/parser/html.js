@@ -283,7 +283,8 @@ function htmlToJson(content) {
     return element_1.Element.nodeElement('root', parserElements());
 }
 exports.htmlToJson = htmlToJson;
-function jsonToHtml(json) {
-    return json.toString(element_1.Element.htmlCallback);
+function jsonToHtml(json, indent) {
+    if (indent === void 0) { indent = ''; }
+    return json.toString(element_1.Element.htmlBeautify(indent));
 }
 exports.jsonToHtml = jsonToHtml;

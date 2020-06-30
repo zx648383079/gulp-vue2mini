@@ -1,5 +1,6 @@
 import { Attribute } from "./attribute";
 import { SINGLE_TAGS } from "./html";
+import { LINE_SPLITE } from "./ts";
 
 export class Element {
     /**
@@ -77,6 +78,21 @@ export class Element {
     }
 
     /**
+     * 判断内容是否为text
+     */
+    public isTextChild() {
+        if (!this.children) {
+            return false;
+        }
+        for (const item of this.children) {
+            if (item.node !== 'text') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * toString
      */
     public toString(cb: (item: Element, content: string, level: number) => string, level: number = 0): string {
@@ -135,25 +151,34 @@ export class Element {
     }
 
     /**
-     * strCallback
+     * 美化
+     * @param indent 
      */
-    public static htmlCallback(item: Element, content: string): string {
-        if (item.node === 'root') {
-            return content;
+    public static htmlBeautify(indent: string = '    '):  (item: Element, content: string, level: number) => string {
+        return (item: Element, content: string, level: number) => {
+            if (item.node === 'root') {
+                return content;
+            }
+            if (item.node === 'text') {
+                return item.text + '';
+            }
+            const spaces = indent.length > 0 ?  LINE_SPLITE + indent.repeat(level - 1) : indent;
+            if (item.node === 'comment') {
+                return `${spaces}<!-- ${item.text} -->`;
+            }
+            let attr = item.attributeString();
+            if (attr.length > 0) {
+                attr = ' ' + attr;
+            }
+            if (item.tag === '!DOCTYPE') {
+                return `<${item.tag}${attr}>`;
+            }
+            if (SINGLE_TAGS.indexOf(item.tag) >= 0) {
+                return `${spaces}<${item.tag}${attr}/>`;
+            }
+            const endSpaces = item.children && !item.isTextChild() ? spaces : '';
+            return `${spaces}<${item.tag}${attr}>${content}${endSpaces}</${item.tag}>`
         }
-        if (item.node === 'text') {
-            return item.text + '';
-        }
-        if (item.node === 'comment') {
-            return `<!-- ${item.text} -->`;
-        }
-        if (item.tag === '!DOCTYPE') {
-            return `<${item.tag} ${item.attributeString()}>`;
-        }
-        if (SINGLE_TAGS.indexOf(item.tag) >= 0) {
-            return `<${item.tag} ${item.attributeString()}/>`;
-        }
-        return `<${item.tag} ${item.attributeString()}>${content}</${item.tag}>`
     }
 
     public static jsonCallback(item: Element, children?: any[]): any[] | any {

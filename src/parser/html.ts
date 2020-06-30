@@ -359,6 +359,6 @@ export function htmlToJson(content: string): Element {
  * 还原成html
  * @param json 
  */
-export function jsonToHtml(json: Element): string {
-    return json.toString(Element.htmlCallback);
+export function jsonToHtml(json: Element, indent: string = ''): string {
+    return json.toString(Element.htmlBeautify(indent));
 }

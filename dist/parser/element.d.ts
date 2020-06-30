@@ -12,6 +12,7 @@ export declare class Element {
     push(...items: Element[]): this;
     map(cb: (item: Element) => any): void;
     attributeString(): string;
+    isTextChild(): boolean;
     toString(cb: (item: Element, content: string, level: number) => string, level?: number): string;
     toJson(cb: (item: Element, children?: any[]) => any): any[] | any;
     clone(): Element;
@@ -20,6 +21,6 @@ export declare class Element {
     static nodeElement(node: string, text: string | Element[]): Element;
     static noKid(tag: string, attribute?: any): Element;
     static create(tag: string, children: Element[], attribute?: any): Element;
-    static htmlCallback(item: Element, content: string): string;
+    static htmlBeautify(indent?: string): (item: Element, content: string, level: number) => string;
     static jsonCallback(item: Element, children?: any[]): any[] | any;
 }

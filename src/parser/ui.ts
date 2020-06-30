@@ -333,7 +333,7 @@ export class UiCompliper implements ICompliper {
             root.map(pushStyle);
         };
         data.map(pushStyle);
-        return jsonToHtml(data);
+        return jsonToHtml(data, this.options && this.options.min ? '' : '    ');
     }
 
     /**

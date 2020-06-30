@@ -3,6 +3,7 @@ exports.__esModule = true;
 exports.Element = void 0;
 var attribute_1 = require("./attribute");
 var html_1 = require("./html");
+var ts_1 = require("./ts");
 var Element = (function () {
     function Element(tag, text, node, children, attribute) {
         if (tag === void 0) { tag = ''; }
@@ -63,6 +64,18 @@ var Element = (function () {
         }
         return this.attribute.toString();
     };
+    Element.prototype.isTextChild = function () {
+        if (!this.children) {
+            return false;
+        }
+        for (var _i = 0, _a = this.children; _i < _a.length; _i++) {
+            var item = _a[_i];
+            if (item.node !== 'text') {
+                return false;
+            }
+        }
+        return true;
+    };
     Element.prototype.toString = function (cb, level) {
         if (level === void 0) { level = 0; }
         var str = '';
@@ -105,23 +118,32 @@ var Element = (function () {
     Element.create = function (tag, children, attribute) {
         return new Element(tag, undefined, 'element', children, attribute_1.Attribute.create(attribute));
     };
-    Element.htmlCallback = function (item, content) {
-        if (item.node === 'root') {
-            return content;
-        }
-        if (item.node === 'text') {
-            return item.text + '';
-        }
-        if (item.node === 'comment') {
-            return "<!-- " + item.text + " -->";
-        }
-        if (item.tag === '!DOCTYPE') {
-            return "<" + item.tag + " " + item.attributeString() + ">";
-        }
-        if (html_1.SINGLE_TAGS.indexOf(item.tag) >= 0) {
-            return "<" + item.tag + " " + item.attributeString() + "/>";
-        }
-        return "<" + item.tag + " " + item.attributeString() + ">" + content + "</" + item.tag + ">";
+    Element.htmlBeautify = function (indent) {
+        if (indent === void 0) { indent = '    '; }
+        return function (item, content, level) {
+            if (item.node === 'root') {
+                return content;
+            }
+            if (item.node === 'text') {
+                return item.text + '';
+            }
+            var spaces = indent.length > 0 ? ts_1.LINE_SPLITE + indent.repeat(level - 1) : indent;
+            if (item.node === 'comment') {
+                return spaces + "<!-- " + item.text + " -->";
+            }
+            var attr = item.attributeString();
+            if (attr.length > 0) {
+                attr = ' ' + attr;
+            }
+            if (item.tag === '!DOCTYPE') {
+                return "<" + item.tag + attr + ">";
+            }
+            if (html_1.SINGLE_TAGS.indexOf(item.tag) >= 0) {
+                return spaces + "<" + item.tag + attr + "/>";
+            }
+            var endSpaces = item.children && !item.isTextChild() ? spaces : '';
+            return spaces + "<" + item.tag + attr + ">" + content + endSpaces + "</" + item.tag + ">";
+        };
     };
     Element.jsonCallback = function (item, children) {
         if (item.node === 'root') {
