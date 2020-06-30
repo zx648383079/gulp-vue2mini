@@ -22,7 +22,7 @@ interface IToken {
     amount?: number;
 }
 
-const REGEX_ASSET = /(src|href)=["']([^"'\>]+)/g;
+const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
 const REGEX_SASS_IMPORT = /@import\s+["'](.+?)["'];/g;
 
 export class UiCompliper implements ICompliper {

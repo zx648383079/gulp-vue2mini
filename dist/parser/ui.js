@@ -10,7 +10,7 @@ var element_1 = require("./element");
 var compiler_1 = require("../compiler");
 var UglifyJS = require("uglify-js");
 var CleanCSS = require("clean-css");
-var REGEX_ASSET = /(src|href)=["']([^"'\>]+)/g;
+var REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
 var REGEX_SASS_IMPORT = /@import\s+["'](.+?)["'];/g;
 var UiCompliper = (function () {
     function UiCompliper(inputFolder, outputFolder, options) {
