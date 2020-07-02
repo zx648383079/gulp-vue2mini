@@ -35,7 +35,7 @@ var compilerFile = function (src) {
         compiler.compileFile(src);
     }
     catch (error) {
-        compiler.logFile(src, ' Failure \n' + error.formatted);
+        compiler.logFile(src, ' Failure \n' + error.message);
     }
 };
 if (argv.params.watch) {
@@ -48,7 +48,7 @@ if (argv.params.watch) {
 }
 else {
     if (inputState.isFile()) {
-        compilerFile(inputFolder);
+        compilerFile(input);
     }
     else {
         eachFile(inputFolder, compilerFile);

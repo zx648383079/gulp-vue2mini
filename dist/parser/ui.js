@@ -20,13 +20,13 @@ var UiCompliper = (function () {
         this.linkFiles = {};
         this.cachesFiles = new cache_1.CacheManger();
     }
-    UiCompliper.prototype.triggerLinkFile = function (key) {
+    UiCompliper.prototype.triggerLinkFile = function (key, mtime) {
         var _this = this;
         if (!Object.prototype.hasOwnProperty.call(this.linkFiles, key)) {
             return;
         }
         this.linkFiles[key].forEach(function (file) {
-            _this.compileFile(file);
+            _this.compileAFile(file, mtime);
         });
     };
     UiCompliper.prototype.addLinkFile = function (key, file) {
@@ -64,6 +64,10 @@ var UiCompliper = (function () {
         }
         else if (content === '...') {
             type = 'content';
+        }
+        else if (content.indexOf('~') === 0 && line.indexOf('@@') > 2) {
+            type = 'random';
+            content = line.substr(2);
         }
         if (type === 'extend' && /[\<\>]/.test(content)) {
             return;
@@ -123,6 +127,9 @@ var UiCompliper = (function () {
             if (token.type === 'content') {
                 isLayout = true;
             }
+            if (token.type === 'random') {
+                token.content = replacePath(token.content);
+            }
             if (token.type === 'extend') {
                 if (token.content.indexOf('.') <= 0) {
                     token.content += ext;
@@ -162,6 +169,11 @@ var UiCompliper = (function () {
                     lines.push(token.content);
                     return;
                 }
+                if (token.type === 'random') {
+                    var args = token.content.split('@@');
+                    lines.push(args[Math.floor(Math.random() * args.length)]);
+                    return;
+                }
                 if (token.type !== 'extend') {
                     lines.push(token.content);
                     return;
@@ -172,9 +184,8 @@ var UiCompliper = (function () {
                     return;
                 }
                 var amount = token.amount || 1;
-                var nextStr = renderPage(next);
                 for (; amount > 0; amount--) {
-                    lines.push(nextStr);
+                    lines.push(renderPage(next));
                 }
             });
             return lines.join(ts_1.LINE_SPLITE);
@@ -303,8 +314,22 @@ var UiCompliper = (function () {
         }
     };
     UiCompliper.prototype.compileFile = function (src) {
+        this.compileAFile(src);
+    };
+    UiCompliper.prototype.compileAFile = function (src, mtime) {
         var ext = path.extname(src);
         var dist = this.outputFile(src);
+        var extMaps = {
+            '.ts': '.js',
+            '.scss': '.css',
+            '.sass': '.css'
+        };
+        if (Object.prototype.hasOwnProperty.call(extMaps, ext)) {
+            dist = dist.replace(ext, extMaps[ext]);
+        }
+        if (mtime && mtime > 0 && fs.existsSync(dist) && fs.statSync(dist).mtimeMs >= mtime) {
+            return;
+        }
         var distFolder = path.dirname(dist);
         var content = '';
         if (ext === '.ts') {
@@ -312,10 +337,9 @@ var UiCompliper = (function () {
             if (content && content.length > 0 && this.options && this.options.min) {
                 content = UglifyJS.minify(content).code;
             }
-            dist = dist.replace(ext, '.js');
         }
         else if (ext === '.scss' || ext === '.sass') {
-            this.triggerLinkFile(src);
+            this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
             var name_1 = path.basename(src);
             if (name_1.indexOf('_') === 0) {
                 return;
@@ -326,10 +350,9 @@ var UiCompliper = (function () {
             if (content && content.length > 0 && this.options && this.options.min) {
                 content = new CleanCSS().minify(content).styles;
             }
-            dist = dist.replace(ext, '.css');
         }
         else if (ext === '.html') {
-            this.triggerLinkFile(src);
+            this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
             content = this.renderFile(src);
         }
         else {

@@ -14,6 +14,7 @@ export declare class UiCompliper implements ICompliper {
     private mergeStyle;
     private getSassImport;
     compileFile(src: string): void;
+    compileAFile(src: string, mtime?: number): void;
     mkIfNotFolder(folder: string): void;
     outputFile(file: string): string;
     logFile(file: string, tip?: string): void;

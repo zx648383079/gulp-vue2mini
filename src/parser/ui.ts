@@ -15,8 +15,10 @@ interface IPage {
     tokens: IToken[];
 }
 
+type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random';
+
 interface IToken {
-    type: 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content'
+    type: TYPE_MAP;
     content: string;
     comment?: string;
     amount?: number;
@@ -37,12 +39,17 @@ export class UiCompliper implements ICompliper {
 
     private cachesFiles = new CacheManger<IPage>();
 
-    private triggerLinkFile(key: string) {
+    /**
+     * 触发更新
+     * @param key 
+     * @param mtime 
+     */
+    private triggerLinkFile(key: string, mtime: number) {
         if (!Object.prototype.hasOwnProperty.call(this.linkFiles, key)) {
             return;
         }
         this.linkFiles[key].forEach(file => {
-            this.compileFile(file);
+            this.compileAFile(file, mtime);
         });
     }
     
@@ -84,11 +91,14 @@ export class UiCompliper implements ICompliper {
         if (content.length < 1) {
             return;
         }
-        let type: 'extend' | 'comment' | 'content' = 'extend';
+        let type: TYPE_MAP = 'extend';
         if (content === '@') {
             type = 'comment';
         } else if (content === '...') {
-            type = 'content'
+            type = 'content';
+        } else if (content.indexOf('~') === 0 && line.indexOf('@@') > 2) {
+            type = 'random';
+            content = line.substr(2);
         }
         if (type === 'extend' && /[\<\>]/.test(content)) {
             // 如果包含 <> 字符则不符合规则
@@ -154,6 +164,9 @@ export class UiCompliper implements ICompliper {
             if (token.type === 'content') {
                 isLayout = true;
             }
+            if (token.type === 'random') {
+                token.content = replacePath(token.content);
+            }
             if (token.type === 'extend') {
                 if (token.content.indexOf('.') <= 0) {
                     token.content += ext;
@@ -199,6 +212,11 @@ export class UiCompliper implements ICompliper {
                     lines.push(token.content);
                     return;
                 }
+                if (token.type === 'random') {
+                    const args = token.content.split('@@');
+                    lines.push(args[Math.floor(Math.random() * args.length)]);
+                    return;
+                }
                 if (token.type !== 'extend') {
                     lines.push(token.content);
                     return;
@@ -209,9 +227,8 @@ export class UiCompliper implements ICompliper {
                     return;
                 }
                 let amount = token.amount || 1;
-                const nextStr = renderPage(next);
                 for (; amount > 0; amount --) {
-                    lines.push(nextStr);
+                    lines.push(renderPage(next));
                 }
             });
             return lines.join(LINE_SPLITE);
@@ -353,12 +370,29 @@ export class UiCompliper implements ICompliper {
         }
     }
 
+    public compileFile(src: string) {
+        this.compileAFile(src);
+    }
+
     /**
      * compileFile
+     * @param mtime 更新时间
     */
-    public compileFile(src: string) {
+    public compileAFile(src: string, mtime?: number) {
         const ext = path.extname(src);
         let dist = this.outputFile(src);
+        const extMaps: any = {
+            '.ts': '.js',
+            '.scss': '.css',
+            '.sass': '.css',
+        };
+        if (Object.prototype.hasOwnProperty.call(extMaps, ext)) {
+            dist = dist.replace(ext, extMaps[ext]);
+        }
+        if (mtime && mtime > 0 && fs.existsSync(dist) && fs.statSync(dist).mtimeMs >= mtime) {
+            // 判断时间是否更新
+            return;
+        }
         const distFolder = path.dirname(dist);
         let content = '';
         if (ext === '.ts') {
@@ -366,9 +400,8 @@ export class UiCompliper implements ICompliper {
             if (content && content.length > 0 && this.options && this.options.min) {
                 content = UglifyJS.minify(content).code;
             }
-            dist = dist.replace(ext, '.js');
         } else if (ext === '.scss' || ext === '.sass') {
-            this.triggerLinkFile(src);
+            this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
             const name = path.basename(src);
             if (name.indexOf('_') === 0) {
                 return;
@@ -379,9 +412,8 @@ export class UiCompliper implements ICompliper {
             if (content && content.length > 0 && this.options && this.options.min) {
                 content = new CleanCSS().minify(content).styles;
             }
-            dist = dist.replace(ext, '.css');
         } else if (ext === '.html') {
-            this.triggerLinkFile(src);
+            this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
             content = this.renderFile(src);
         } else {
             this.mkIfNotFolder(distFolder);
