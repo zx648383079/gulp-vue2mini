@@ -49,7 +49,9 @@ export class UiCompliper implements ICompliper {
             return;
         }
         this.linkFiles[key].forEach(file => {
-            this.compileAFile(file, mtime);
+            if (file) {
+                this.compileAFile(file, mtime);
+            }
         });
     }
     

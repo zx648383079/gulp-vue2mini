@@ -26,7 +26,9 @@ var UiCompliper = (function () {
             return;
         }
         this.linkFiles[key].forEach(function (file) {
-            _this.compileAFile(file, mtime);
+            if (file) {
+                _this.compileAFile(file, mtime);
+            }
         });
     };
     UiCompliper.prototype.addLinkFile = function (key, file) {
