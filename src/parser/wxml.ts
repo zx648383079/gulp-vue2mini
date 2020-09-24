@@ -279,10 +279,25 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         }
         value = value.trim();
         if (value.charAt(0) === '{') {
+            // 进行合并
+            const clsObj: {[key: string]: string[]} = {};
             value.substr(1, value.length - 2).split(',').forEach(item => {
-                const [key, con] = item.split(':', 2);
-                block.push('(' + con + '? ' + qStr(key) + ': \'\')');
+                let [key, con] = item.split(':', 2);
+                key = key.trim();
+                con = con.trim();
+                const isNot = con.charAt(0) === '!';
+                const name = isNot ? con.substr(1).trim() : con;
+                
+                if (!Object.prototype.hasOwnProperty.call(clsObj, name)) {
+                    clsObj[name] = ['', ''];
+                }
+                clsObj[name][isNot ? 1 : 0] += ' ' + key.replace(/'"/g, '');
             });
+            for (const key in clsObj) {
+                if (Object.prototype.hasOwnProperty.call(clsObj, key)) {
+                    block.push('(' + key + '?' + qStr(clsObj[key][0].trim()) + ':' + qStr(clsObj[key][1].trim()) +')');
+                }
+            }
         } else if (value.charAt(0) === '[') {
             value.substr(1, value.length - 2).split(',').forEach(item => {
                 block.push('\' \'');
@@ -417,9 +432,12 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 value = value.join(' ');
             };
             if (key.charAt(0) === '@') {
-                key = 'bind:' + key.substr(1);
-                if (value.indexOf('(') > 0) {
-                    value = value.substring(0, value.indexOf('(') - 1);
+                // 修改 @自定义方法的生成
+                const args: string[] = converterTap(value, 'bind:' + key.substr(1));
+                key = args[0];
+                value = args[1];
+                if (args.length > 2) {
+                    ext = ' ' + args[2];
                 }
             } else if (key.charAt(0) === ':') {
                 key = key.substr(1);

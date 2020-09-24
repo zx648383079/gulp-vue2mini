@@ -226,10 +226,23 @@ function jsonToWxml(json, exclude) {
         }
         value = value.trim();
         if (value.charAt(0) === '{') {
+            var clsObj_1 = {};
             value.substr(1, value.length - 2).split(',').forEach(function (item) {
                 var _a = item.split(':', 2), key = _a[0], con = _a[1];
-                block.push('(' + con + '? ' + qStr(key) + ': \'\')');
+                key = key.trim();
+                con = con.trim();
+                var isNot = con.charAt(0) === '!';
+                var name = isNot ? con.substr(1).trim() : con;
+                if (!Object.prototype.hasOwnProperty.call(clsObj_1, name)) {
+                    clsObj_1[name] = ['', ''];
+                }
+                clsObj_1[name][isNot ? 1 : 0] += ' ' + key.replace(/'"/g, '');
             });
+            for (var key in clsObj_1) {
+                if (Object.prototype.hasOwnProperty.call(clsObj_1, key)) {
+                    block.push('(' + key + '?' + qStr(clsObj_1[key][0].trim()) + ':' + qStr(clsObj_1[key][1].trim()) + ')');
+                }
+            }
         }
         else if (value.charAt(0) === '[') {
             value.substr(1, value.length - 2).split(',').forEach(function (item) {
@@ -349,9 +362,11 @@ function jsonToWxml(json, exclude) {
             }
             ;
             if (key.charAt(0) === '@') {
-                key = 'bind:' + key.substr(1);
-                if (value.indexOf('(') > 0) {
-                    value = value.substring(0, value.indexOf('(') - 1);
+                var args = converterTap(value, 'bind:' + key.substr(1));
+                key = args[0];
+                value = args[1];
+                if (args.length > 2) {
+                    ext = ' ' + args[2];
                 }
             }
             else if (key.charAt(0) === ':') {
