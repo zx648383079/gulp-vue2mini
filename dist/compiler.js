@@ -3,7 +3,7 @@ exports.__esModule = true;
 exports.MiniCompliper = exports.Compiler = void 0;
 var path = require("path");
 var ts = require("typescript");
-var sass = require("node-sass");
+var sass = require("sass");
 var fs = require("fs");
 var css_1 = require("./parser/css");
 var vue_1 = require("./parser/vue");

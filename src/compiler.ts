@@ -1,6 +1,6 @@
 import * as path from "path";
 import * as ts from "typescript";
-import * as sass from "node-sass";
+import * as sass from "sass";
 import * as fs from "fs";
 import { preImport, endImport, replaceTTF } from "./parser/css";
 import { splitFile } from "./parser/vue";
