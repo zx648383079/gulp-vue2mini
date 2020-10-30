@@ -1,5 +1,5 @@
 /*! *****************************************************************************
-Copyright (c) 2018 Tencent, Inc. All rights reserved. 
+Copyright (c) 2019 Tencent, Inc. All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -17,7 +17,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 /// <reference path="./lib.vue.d.ts" />
 
 declare namespace WechatMiniprogram {
-  type IAnyObject = Record<string, any>
-  type Optional<F> = F extends (arg: infer P) => infer R ? (arg?: P) => R : F
-  type OptionalInterface<T> = { [K in keyof T]: Optional<T[K]> }
+    type IAnyObject = Record<string, any>
+    type Optional<F> = F extends (arg: infer P) => infer R ? (arg?: P) => R : F
+    type OptionalInterface<T> = { [K in keyof T]: Optional<T[K]> }
 }

@@ -1,12 +1,15 @@
 var gulp = require('gulp'),
     sass = require("gulp-sass"),
     rename = require('gulp-rename'),
-    ts = require("gulp-typescript"),
+    ts = require('gulp-typescript'),
     clean = require('gulp-clean'),
     template = require('gulp-vue2mini'),
+    plumber = require('gulp-plumber'),
     tsProject = ts.createProject('tsconfig.json'),
     tsInstance = undefined,
     sassInstance = undefined;
+
+sass.compiler = require('sass');
 
 function getTs() { 
     if (!tsInstance) {
@@ -78,49 +81,27 @@ gulp.task('sass', async() => {
         .pipe(gulp.dest('dist/'));
 });
 
-gulp.task('vuejs', async() => {
+
+gulp.task('vue', async() => {
     await gulp.src(getSrcPath('src/**/*.{vue,html}'))
-        .pipe(template('js'))
-        .pipe(rename({extname: '.js'}))
-        .pipe(gulp.dest(getDistFolder('dist/')));
-});
-gulp.task('vuets', async() => {
-    await gulp.src(getSrcPath('src/**/*.{vue,html}'))
-        .pipe(template('ts'))
-        .pipe(rename({extname: '.ts'}))
-        .pipe(getTs())
-        .pipe(rename({extname: '.js'}))
-        .pipe(gulp.dest(getDistFolder('dist/')));
-});
-gulp.task('vuecss', async() => {
-    await gulp.src(getSrcPath('src/**/*.{vue,html}'))
-        .pipe(template('css'))
-        .pipe(rename({extname: '.wxss'}))
-        .pipe(gulp.dest(getDistFolder('dist/')));
-});
-gulp.task('vuesass', async() => {
-    await gulp.src(getSrcPath('src/**/*.{vue,html}'))
-        .pipe(template('sass'))
+        // .pipe(plumber({
+        //     errorHandler() {
+        //         this.emit('end');
+        //     }
+        // }))
+        .pipe(template('tpl'))
+        .pipe(gulp.dest(getDistFolder('dist/')))
+        .pipe(template('json'))
+        .pipe(gulp.dest(getDistFolder('dist/')))
+        .pipe(template('scss'))
         .pipe(template('presass'))
         .pipe(getSass())
         .pipe(template('endsass'))
-        .pipe(rename({extname: '.wxss'}))
+        .pipe(gulp.dest(getDistFolder('dist/')))
+        .pipe(template('ts'))
+        .pipe(getTs())
         .pipe(gulp.dest(getDistFolder('dist/')));
 });
-
-gulp.task('vuejson', async() => {
-    await gulp.src(getSrcPath('src/**/*.{vue,html}'))
-        .pipe(template('json'))
-        .pipe(rename({extname: '.json'}))
-        .pipe(gulp.dest(getDistFolder('dist/')));
-});
-
-gulp.task('vue', gulp.series('vuejs', 'vuets', 'vuecss', 'vuesass', 'vuejson', async() => {
-    await gulp.src(getSrcPath('src/**/*.{vue,html}'))
-        .pipe(template('tpl'))
-        .pipe(rename({extname: '.wxml'}))
-        .pipe(gulp.dest(getDistFolder('dist/')));
-}));
 
 gulp.task('test', async() => {
     await gulp.src('src/pages/task/detail.vue')

@@ -29,6 +29,7 @@ export interface IMyApp {
 @WxAppJson({
     pages: [
         "pages/index/index",
+        "pages/browser/index",
     ],
     window: {
         backgroundTextStyle: "light",

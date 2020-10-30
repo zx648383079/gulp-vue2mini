@@ -119,16 +119,17 @@ export function post<T>(url: string, data = {}, option?: IRequestOption): Promis
     return request<T>('POST', {
         url,
         data,
-    });
+    }, option);
 }
 /**
  * 删除请求
  * @param url 
  * @param loading 是否显示加载中
  */
-export function deleteRequest<T>(url: string, option?: IRequestOption): Promise<T> {
+export function deleteRequest<T>(url: string, params = {}, option?: IRequestOption): Promise<T> {
     return request<T>('DELETE', {
         url,
+        params,
     }, option);
 }
 
@@ -182,7 +183,8 @@ export function uploadFile<T>(file: string, requestHandler: IRequest, name: stri
                 'Accept': 'application/json',
             }, headers),
             success(res) {
-                const { data, statusCode } = res;
+                let { data, statusCode } = res;
+                data = typeof data === 'string' ? JSON.parse(data) : data;
                 if (statusCode === 200) {
                     resolve(data as any);
                     return;
@@ -209,6 +211,46 @@ export function uploadFile<T>(file: string, requestHandler: IRequest, name: stri
                 }
                 // 处理数据
                 reject(res)
+            },
+            fail() {
+                reject('Network request failed')
+            },
+            complete() {
+                if (loading && wx.hideLoading) {
+                    wx.hideLoading();
+                }
+            }
+        })
+    });
+}
+
+
+export function downloadFile(requestHandler: IRequest): Promise<WechatMiniprogram.DownloadFileSuccessCallbackResult> {
+    let { url, params, headers, mask, loading } = requestHandler;
+    loading = loading === undefined || loading;
+    if (loading) {
+      wx.showLoading && wx.showLoading({title: 'Loading...', mask: mask ? mask : false})
+    }
+    const configs = util.getAppParams();
+    if (!params) {
+        params = {};
+    }
+    if (!headers) {
+        headers = {};
+    }
+    params.appid = configs.appid;
+    params.timestamp = configs.timestamp;
+    params.sign = configs.sign;
+    const token = wx.getStorageSync(TOKEN_KEY)
+    if (token) {
+        headers.Authorization = 'Bearer ' + token;
+    }
+    return new Promise<WechatMiniprogram.DownloadFileSuccessCallbackResult>((resolve, reject) => {
+        wx.downloadFile({
+            url: util.uriEncode(util.apiEndpoint + url, params),
+            header: headers,
+            success(res) {
+                resolve(res);
             },
             fail() {
                 reject('Network request failed')
