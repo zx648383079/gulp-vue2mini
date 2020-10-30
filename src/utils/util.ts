@@ -1,9 +1,6 @@
 import { Md5 } from 'ts-md5';
-
-export const apiEndpoint = '<请填入API 网址>';
-export const assetUri = '<请填入资源自动补全网址>';
-export const appId = '<请填入APP ID>';
-export const secret = '<请填入SECRET>';
+import { appId, secret } from '../config/config';
+export * from '../config/config';
 
 interface IAppParam {
     appid: string,

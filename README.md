@@ -18,3 +18,7 @@ npm i gulp-vue2mini -g
 
 vue2mini --mini
 ```
+
+# 配置
+
+`src/config/config.ts`
