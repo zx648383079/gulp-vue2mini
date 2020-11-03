@@ -161,7 +161,7 @@ function jsonToWxml(json, exclude) {
             return "<" + item.tag + attr_4 + ">" + content + "</" + item.tag + ">";
         }
         if (item.tag == 'textarea') {
-            if (!item.attr('v-model') && !item.attr('value')) {
+            if (!item.attr('v-model') && !item.attr('value') && content.length > 0) {
                 item.attr('value', content);
             }
             var attr_5 = parseNodeAttr(item.attribute, item.tag);

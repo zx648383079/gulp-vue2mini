@@ -203,7 +203,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             return `<${item.tag}${attr}>${content}</${item.tag}>`;
         }
         if (item.tag == 'textarea') {
-            if (!item.attr('v-model') && !item.attr('value')) {
+            if (!item.attr('v-model') && !item.attr('value') && content.length > 0) {
                 item.attr('value', content);
             }
             const attr = parseNodeAttr(item.attribute, item.tag);

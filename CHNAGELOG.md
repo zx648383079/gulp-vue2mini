@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.1.6
+
+1. 修复小程序 textarea value 的绑定
+
 ## v1.1.4
 
 1. 对 :class object 写法根据 ! 进行合并
