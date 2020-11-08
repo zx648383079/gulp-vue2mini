@@ -1,5 +1,10 @@
 # Change Log
 
+## v1.1.7
+
+1. 支持转化方法合并，不同参数进行合并 tap(1) tap(1, 2)
+2. 支持 v-model 和 bindinput 同时存在
+
 ## v1.1.6
 
 1. 修复小程序 textarea value 的绑定

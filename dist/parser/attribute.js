@@ -9,6 +9,9 @@ var Attribute = (function () {
     Attribute.prototype.get = function (key) {
         return this.items.hasOwnProperty(key) ? this.items[key] : undefined;
     };
+    Attribute.prototype.has = function (key) {
+        return this.items.hasOwnProperty(key);
+    };
     Attribute.prototype.set = function (key, value) {
         if (typeof key === 'object') {
             Object.assign(this.items, key);
@@ -61,7 +64,9 @@ var Attribute = (function () {
         return this;
     };
     Attribute.prototype.map = function (cb) {
-        for (var key in this.items) {
+        var keys = Object.keys(this.items);
+        for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+            var key = keys_1[_i];
             if (this.items.hasOwnProperty(key)) {
                 cb(key, this.items[key]);
             }

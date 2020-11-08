@@ -7,15 +7,34 @@ import { Attribute } from "./attribute";
  */
 export let wxmlFunc: string[] = [];
 
+enum FuncType {
+    BIND,
+    TAP,
+    CONVERTER,
+    FUNC,
+}
+
+interface IConverterFunc {
+    [name: string]: {
+        type: FuncType,
+        properties?: any[];
+        append?: string[];
+        amount?: number;
+    }
+}
+
+type REPLACE_FUNC = (value: any, tag: string, attrs: Attribute) => void;
+
 /**
  * 生成input 绑定值方法
  * @param name 
  * @param property 
  */
-function createInputFunc(name: string, property: string): string {
+function createInputFunc(name: string, property: string, append: string[] = []): string {
+    const line = append.join('');
     return `    ${name}(event: InputEvent) {
         let data = this.data;
-        data.${property} = event.detail.value;
+        data.${property} = event.detail.value;${line}
         this.setData(data);
     }`;
 }
@@ -95,70 +114,106 @@ export function studly(val: string, isFirstUpper: boolean = true): string {
  */
 export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/): string {
     wxmlFunc = [];
-    let existFunc: string[] = [];
+    let existFunc: IConverterFunc = {};
     const disallow_attrs: string[] = [],
-        replace_attrs:{[key: string]: Function | string| boolean} = {
-            'v-if': function(value: string) {
-                return ['wx:if', '{{ ' + value + ' }}'];
+        replace_attrs:{[key: string]: REPLACE_FUNC | string| boolean} = {
+            'v-if': function(value: string, _, attrs: Attribute) {
+                attrs.set('wx:if', '{{ ' + value + ' }}');
             },
-            'v-model': function(value: string, tag: string) {
+            'v-model': function(value: string, tag: string, attrs: Attribute) {
                 const func = studly(value, false) + 'Changed';
-                if (existFunc.indexOf(func) < 0) {
-                    wxmlFunc.push(createInputFunc(func, value));
-                    existFunc.push(func);
+                if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
+                    existFunc[func] = {
+                        type: FuncType.BIND,
+                        properties: [value],
+                    };
                 }
-                let inputFunc = 'bind:input';
+                const getFunc = (keys: string[]) => {
+                    const args: string[] = [];
+                    for (const key of keys) {
+                        const val = attrs.get(key) as string;
+                        if (!val) {
+                            continue;
+                        }
+                        converterTap(val, key, attrs);
+                        args.push('this.' + attrs.get(key) + '(e);');
+                        attrs.delete(key);
+                    }
+                    return args;
+                };
+                let inputFunc: string;
+                let append: string[];
                 if (['picker', 'switch', 'slider'].indexOf(tag) >= 0) {
                     inputFunc = 'bindchange';
+                    append = getFunc([inputFunc, '@change']);
+                } else {
+                    inputFunc = 'bindinput';
+                    append = getFunc([inputFunc, 'bind:input', '@input']);
                 }
-                return ['value', '{{' + value + '}}', `${inputFunc}="${func}"`];
+                existFunc[func].append = append;
+                attrs.set('value', '{{' + value + '}}');
+                attrs.set(inputFunc, func);
             },
-            'v-elseif': function(value: string) {
-                return ['wx:elif', '{{ ' +value + ' }}'];
+            'v-elseif': function(value: string, _, attrs: Attribute) {
+                attrs.set('wx:elif', '{{ ' +value + ' }}');
             },
             'v-else': 'wx:else',
             ':src': converterSrc,
             ':class': converterClass,
             'v-bind:class': converterClass,
             'v-bind:src': converterSrc,
-            'v-for': function(value: string) {
+            'v-for': function(value: string, _, attrs: Attribute) {
                 let index = 'index';
                 let item = 'item';
                 let match = value.match(/\(?([\w_]+)(,\s?([\w_]+)\))?\s+in\s+([\w_\.]+)/);
                 if (match === null) {
-                    return ['wx:for', '{{ ' +value + ' }}'];
+                    attrs.set('wx:for', '{{ ' +value + ' }}');
+                    return;
                 }
                 if (match[3]) {
                     index = match[3];
                 }
                 item = match[1];
-                return ['wx:for', '{{ ' + match[4] + ' }}', `wx:for-index="${index}" wx:for-item="${item}"`];
+                attrs.set('wx:for', '{{ ' + match[4] + ' }}').set('wx:for-index', index).set('wx:for-item', item);
             },
-            'v-show': function(value: string) {
-                return ['hidden', '{{ ' + invertIf(value) + ' }}'];
+            'v-show': function(value: string, _, attrs: Attribute) {
+                attrs.set('hidden', '{{ ' + invertIf(value) + ' }}')
             },
             'href': 'url',
             ':key': false,
-            '@click': converterTap,
-            '@click.stop': function(value: any) {
+            '@click': function(value: any, _: string, attrs: Attribute) {
+                converterTap(value, 'bindtap', attrs);
+            },
+            '@click.stop': function(value: any, _: string, attrs: Attribute) {
                 if (typeof value === 'string') {
-                    return converterTap(value, 'catchtap');
+                    converterTap(value, 'catchtap', attrs);
+                    return;
                 }
                 const func = 'catchTaped';
-                if (existFunc.indexOf(func) < 0) {
-                    wxmlFunc.push(`${func}(){}`);
-                    existFunc.push(func);
+                if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
+                    existFunc[func] = {
+                        type: FuncType.FUNC,
+                    };
                 }
-                return ['catchtap', func];
+                attrs.set('catchtap', func);
             },
-            'v-on:click': converterTap,
-            '(click)': converterTap,
-            '@touchstart': 'bindtouchstart',
-            '@touchmove': 'bindtouchmove',
-            '@touchend': 'bindtouchend',
+            'v-on:click': function(value: any, _: string, attrs: Attribute) {
+                converterTap(value, 'bindtap', attrs);
+            },
+            '(click)': function(value: any, _: string, attrs: Attribute) {
+                converterTap(value, 'bindtap', attrs);
+            },
+            '@touchstart': function(value: any, _: string, attrs: Attribute) {
+                converterTap(value, 'bindtouchstart', attrs);
+            },
+            '@touchmove': function(value: any, _: string, attrs: Attribute) {
+                converterTap(value, 'bindtouchmove', attrs);
+            },
+            '@touchend': function(value: any, _: string, attrs: Attribute) {
+                converterTap(value, 'bindtouchend', attrs);
+            },
         };
-
-    return json.toString((item, content) => {
+    const content = json.toString((item, content) => {
         if (item.node === 'root') {
             return content;
         }
@@ -227,6 +282,30 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         }
         return `<view${attr}>${content}</view>`;
     });
+    for (const key in existFunc) {
+        if (Object.prototype.hasOwnProperty.call(existFunc, key)) {
+            const item = existFunc[key];
+            if (item.type === FuncType.BIND) {
+                wxmlFunc.push(createInputFunc(key, (item.properties as any[])[0], item.append));
+                continue;
+            }
+            if (item.type === FuncType.FUNC) {
+                wxmlFunc.push(`${key}(){}`);
+                continue;
+            }
+            if (item.type === FuncType.TAP) {
+                const properties = item.properties as any[];
+                wxmlFunc.push(createTapFunc(key, properties[0], properties[1]));
+                continue;
+            }
+            if (item.type === FuncType.CONVERTER) {
+                const properties = item.properties as any[];
+                wxmlFunc.push(createTapCoverterFunc(key, properties[0], properties[1]));
+                continue;
+            }
+        }
+    }
+    return content;
 
     /**
      * 抛弃一些不必要的text 标签
@@ -264,11 +343,11 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         return `!(${value})`;
     }
 
-    function converterSrc(value: string): string[] {
-        return ['src', '{{ ' +value + ' }}'];
+    function converterSrc(value: string, _: string, attrs: Attribute) {
+        attrs.set('src', '{{ ' +value + ' }}');
     }
 
-    function converterClass(value: string, _: string, attrs: Attribute): string[] {
+    function converterClass(value: string, _: string, attrs: Attribute) {
         let cls: any = attrs.get('class') || '';
         if (typeof cls === 'object' && cls instanceof Array) {
             cls = cls.join(' ');
@@ -307,11 +386,11 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             block.push('\' \'');
             block.push('(' + value + ')');
         }
-        return ['class', '{{ ' + block.join('+') + ' }}'];
+        attrs.set('class', '{{ ' + block.join('+') + ' }}');
     }
 
-    function converterTap(value: string, attrKey: string = 'bindtap'): string[] {
-        if (arguments.length > 2) {
+    function converterTap(value: string, attrKey: string = 'bindtap', attrs: Attribute): void {
+        if (!attrKey) {
             attrKey = 'bindtap';
         }
         if (value.indexOf('=') > 0) {
@@ -321,35 +400,47 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             let dataKey = studly(key);
             const func = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase(); // 只能接受
-            if (existFunc.indexOf(func) < 0) {
-                wxmlFunc.push(createTapFunc(func, key, dataKey));
-                existFunc.push(func);
+            if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
+                existFunc[func] = {
+                    type: FuncType.TAP,
+                    properties: [key, dataKey],
+                };
             }
-            return [attrKey, func, `data-${dataKey}="${val}"`];
+            attrs.set(attrKey, func).set(`data-${dataKey}`, val);
+            return;
         }
         const match = value.match(/^([^\(\)]+)\((.*)\)$/);
         if (!match) {
-            return [attrKey, value];
+            attrs.set(attrKey, value);
+            return;
         }
         const args = match[2].trim();
         const func = match[1].trim();
         if (args.length < 1) {
-            return [attrKey, func];
+            attrs.set(attrKey, func);
+            return;
         }
-        let ext: string[] = [];
+        let ext: any = {};
         let lines: string[] = [];
         args.split(',').forEach((item, i) => {
             const key = 'arg'+i;
             const val = qv(item.trim());
             lines.push(key);
-            ext.push(`data-${key}="${val}"`)
+            ext[`data-${key}`] = val;
         });
         const funcTo = 'converter' + func;
-        if (existFunc.indexOf(func) < 0) {
-            wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
-            existFunc.push(func);
+        if (!Object.prototype.hasOwnProperty.call(existFunc, funcTo)) {
+            existFunc[funcTo] = {
+                type: FuncType.CONVERTER,
+                properties: [func, lines],
+                amount: lines.length,
+            };
+        } else if ((existFunc[funcTo].amount as number) < lines.length) {
+            existFunc[funcTo].properties = [func, lines];
+            existFunc[funcTo].amount = lines.length;
         }
-        return [attrKey, funcTo, ext.join(' ')];
+        attrs.set(attrKey, funcTo).set(ext);
+        return;
     }
 
     /**
@@ -395,25 +486,20 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
      * @param tag 
      */
     function parseNodeAttr(attrs?: Attribute, tag: string = 'view'): string {
-        let str = '';
         if (!attrs) {
-            return str;
+            return '';
         }
-        let attrsClone = Attribute.create({});
-        attrs.map((key, value) => {
+        const properties = attrs.clone();
+        properties.map((key, value) => {
+            properties.delete(key);
             if (disallow_attrs.indexOf(key) >= 0) {
                 return;
             }
-            let ext = '';
             if (replace_attrs.hasOwnProperty(key)) {
                 const attr: string|Function| boolean = replace_attrs[key];
                 if (typeof attr === 'function') {
-                    const args: string[] = attr(value, tag, attrsClone);
-                    key = args[0];
-                    value = args[1];
-                    if (args.length > 2) {
-                        ext = ' ' + args[2];
-                    }
+                    attr(value, tag, properties);
+                    return;
                 } else if (typeof attr === 'boolean') {
                     return
                 } else {
@@ -425,32 +511,35 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 return
             }
             if (value === true) {
-                attrsClone.set(key, value);
+                properties.set(key, value);
                 return
             }
             if (Array.isArray(value)) {
                 value = value.join(' ');
             };
-            if (key.charAt(0) === '@') {
+            const name = parseEventName(key);
+            if (name) {
                 // 修改 @自定义方法的生成
-                const args: string[] = converterTap(value, 'bind:' + key.substr(1));
-                key = args[0];
-                value = args[1];
-                if (args.length > 2) {
-                    ext = ' ' + args[2];
-                }
+                converterTap(value, name, properties);
+                return;
             } else if (key.charAt(0) === ':') {
                 key = key.substr(1);
                 value = '{{ ' + value +' }}';
             }
-            attrsClone.set(key, value);
-            if (ext.length < 1) {
-                return;
-            }
-            str += ' ' + ext;
+            properties.set(key, value);
         });
-        str = attrsClone.toString() + str;
+        const str = properties.toString();
         return str.trim().length > 0 ? ' ' + str : '';
+    }
+
+    function parseEventName(name: string): string | undefined {
+        if (name.indexOf('bind:') === 0 || name.indexOf('bind') === 0) {
+            return name;
+        }
+        if (name.charAt(0) === '@') {
+            return 'bind:' + name.substr(1);
+        }
+        return undefined;
     }
 
     function parseButton(node: Element, content: string): string {

@@ -14,6 +14,10 @@ export class Attribute {
         return this.items.hasOwnProperty(key) ? this.items[key] : undefined;
     }
 
+    public has(key: string) {
+        return this.items.hasOwnProperty(key);
+    }
+
     /**
      * set
      */
@@ -81,7 +85,8 @@ export class Attribute {
      * map
      */
     public map(cb: (key: string, value: any) => any) {
-        for (const key in this.items) {
+        const keys = Object.keys(this.items);
+        for (const key of keys) {
             if (this.items.hasOwnProperty(key)) {
                 cb(key, this.items[key]);
             }

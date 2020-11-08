@@ -2,6 +2,8 @@
 // //import { dealTemplateFile } from './gulp-tempate';
 // import { htmlToJson } from './parser/html';
 
+// import { splitFile } from "./parser/vue";
+
 // let srcPath = __dirname + '/index.vue';
 
 // const input = readFileSync(srcPath);
@@ -34,3 +36,17 @@
 // }
 
 // new Vue();
+
+// const res = splitFile(`<template>
+//     <div @click="tap(1)"></div>
+//     <div @click="tap(1, 2)"></div>
+//     <input v-model="value" bindinput="onValue(index)"/>
+//     <input v-model="val"/>
+// </template>
+// <script>
+// export class Detail extends WxPage<IPageData> {
+
+// }
+// </script>`);
+
+// console.log(res);

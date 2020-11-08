@@ -6,6 +6,7 @@ export declare class Attribute {
         [key: string]: string | boolean;
     });
     get(key: string): string | boolean | undefined;
+    has(key: string): boolean;
     set(key: string | any, value?: any): this;
     filter(cb: (key: string, value: any) => boolean): this;
     delete(key: string): this;

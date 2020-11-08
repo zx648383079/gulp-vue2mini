@@ -2,10 +2,18 @@
 exports.__esModule = true;
 exports.htmlToWxml = exports.jsonToWxml = exports.studly = exports.firstUpper = exports.wxmlFunc = void 0;
 var html_1 = require("./html");
-var attribute_1 = require("./attribute");
 exports.wxmlFunc = [];
-function createInputFunc(name, property) {
-    return "    " + name + "(event: InputEvent) {\n        let data = this.data;\n        data." + property + " = event.detail.value;\n        this.setData(data);\n    }";
+var FuncType;
+(function (FuncType) {
+    FuncType[FuncType["BIND"] = 0] = "BIND";
+    FuncType[FuncType["TAP"] = 1] = "TAP";
+    FuncType[FuncType["CONVERTER"] = 2] = "CONVERTER";
+    FuncType[FuncType["FUNC"] = 3] = "FUNC";
+})(FuncType || (FuncType = {}));
+function createInputFunc(name, property, append) {
+    if (append === void 0) { append = []; }
+    var line = append.join('');
+    return "    " + name + "(event: InputEvent) {\n        let data = this.data;\n        data." + property + " = event.detail.value;" + line + "\n        this.setData(data);\n    }";
 }
 function createTapFunc(name, property, val) {
     return "    " + name + "(e: TouchEvent) {\n        let data = this.data;\n        data." + property + " = e.currentTarget.dataset." + val + ";\n        this.setData(data);\n    }";
@@ -55,68 +63,107 @@ exports.studly = studly;
 function jsonToWxml(json, exclude) {
     if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
     exports.wxmlFunc = [];
-    var existFunc = [];
+    var existFunc = {};
     var disallow_attrs = [], replace_attrs = {
-        'v-if': function (value) {
-            return ['wx:if', '{{ ' + value + ' }}'];
+        'v-if': function (value, _, attrs) {
+            attrs.set('wx:if', '{{ ' + value + ' }}');
         },
-        'v-model': function (value, tag) {
+        'v-model': function (value, tag, attrs) {
             var func = studly(value, false) + 'Changed';
-            if (existFunc.indexOf(func) < 0) {
-                exports.wxmlFunc.push(createInputFunc(func, value));
-                existFunc.push(func);
+            if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
+                existFunc[func] = {
+                    type: FuncType.BIND,
+                    properties: [value]
+                };
             }
-            var inputFunc = 'bind:input';
+            var getFunc = function (keys) {
+                var args = [];
+                for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+                    var key = keys_1[_i];
+                    var val = attrs.get(key);
+                    if (!val) {
+                        continue;
+                    }
+                    converterTap(val, key, attrs);
+                    args.push('this.' + attrs.get(key) + '(e);');
+                    attrs["delete"](key);
+                }
+                return args;
+            };
+            var inputFunc;
+            var append;
             if (['picker', 'switch', 'slider'].indexOf(tag) >= 0) {
                 inputFunc = 'bindchange';
+                append = getFunc([inputFunc, '@change']);
             }
-            return ['value', '{{' + value + '}}', inputFunc + "=\"" + func + "\""];
+            else {
+                inputFunc = 'bindinput';
+                append = getFunc([inputFunc, 'bind:input', '@input']);
+            }
+            existFunc[func].append = append;
+            attrs.set('value', '{{' + value + '}}');
+            attrs.set(inputFunc, func);
         },
-        'v-elseif': function (value) {
-            return ['wx:elif', '{{ ' + value + ' }}'];
+        'v-elseif': function (value, _, attrs) {
+            attrs.set('wx:elif', '{{ ' + value + ' }}');
         },
         'v-else': 'wx:else',
         ':src': converterSrc,
         ':class': converterClass,
         'v-bind:class': converterClass,
         'v-bind:src': converterSrc,
-        'v-for': function (value) {
+        'v-for': function (value, _, attrs) {
             var index = 'index';
             var item = 'item';
             var match = value.match(/\(?([\w_]+)(,\s?([\w_]+)\))?\s+in\s+([\w_\.]+)/);
             if (match === null) {
-                return ['wx:for', '{{ ' + value + ' }}'];
+                attrs.set('wx:for', '{{ ' + value + ' }}');
+                return;
             }
             if (match[3]) {
                 index = match[3];
             }
             item = match[1];
-            return ['wx:for', '{{ ' + match[4] + ' }}', "wx:for-index=\"" + index + "\" wx:for-item=\"" + item + "\""];
+            attrs.set('wx:for', '{{ ' + match[4] + ' }}').set('wx:for-index', index).set('wx:for-item', item);
         },
-        'v-show': function (value) {
-            return ['hidden', '{{ ' + invertIf(value) + ' }}'];
+        'v-show': function (value, _, attrs) {
+            attrs.set('hidden', '{{ ' + invertIf(value) + ' }}');
         },
         'href': 'url',
         ':key': false,
-        '@click': converterTap,
-        '@click.stop': function (value) {
+        '@click': function (value, _, attrs) {
+            converterTap(value, 'bindtap', attrs);
+        },
+        '@click.stop': function (value, _, attrs) {
             if (typeof value === 'string') {
-                return converterTap(value, 'catchtap');
+                converterTap(value, 'catchtap', attrs);
+                return;
             }
             var func = 'catchTaped';
-            if (existFunc.indexOf(func) < 0) {
-                exports.wxmlFunc.push(func + "(){}");
-                existFunc.push(func);
+            if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
+                existFunc[func] = {
+                    type: FuncType.FUNC
+                };
             }
-            return ['catchtap', func];
+            attrs.set('catchtap', func);
         },
-        'v-on:click': converterTap,
-        '(click)': converterTap,
-        '@touchstart': 'bindtouchstart',
-        '@touchmove': 'bindtouchmove',
-        '@touchend': 'bindtouchend'
+        'v-on:click': function (value, _, attrs) {
+            converterTap(value, 'bindtap', attrs);
+        },
+        '(click)': function (value, _, attrs) {
+            converterTap(value, 'bindtap', attrs);
+        },
+        '@touchstart': function (value, _, attrs) {
+            converterTap(value, 'bindtouchstart', attrs);
+        },
+        '@touchmove': function (value, _, attrs) {
+            converterTap(value, 'bindtouchmove', attrs);
+        },
+        '@touchend': function (value, _, attrs) {
+            converterTap(value, 'bindtouchend', attrs);
+        }
     };
-    return json.toString(function (item, content) {
+    var content = json.toString(function (item, content) {
         if (item.node === 'root') {
             return content;
         }
@@ -184,6 +231,30 @@ function jsonToWxml(json, exclude) {
         }
         return "<view" + attr + ">" + content + "</view>";
     });
+    for (var key in existFunc) {
+        if (Object.prototype.hasOwnProperty.call(existFunc, key)) {
+            var item = existFunc[key];
+            if (item.type === FuncType.BIND) {
+                exports.wxmlFunc.push(createInputFunc(key, item.properties[0], item.append));
+                continue;
+            }
+            if (item.type === FuncType.FUNC) {
+                exports.wxmlFunc.push(key + "(){}");
+                continue;
+            }
+            if (item.type === FuncType.TAP) {
+                var properties = item.properties;
+                exports.wxmlFunc.push(createTapFunc(key, properties[0], properties[1]));
+                continue;
+            }
+            if (item.type === FuncType.CONVERTER) {
+                var properties = item.properties;
+                exports.wxmlFunc.push(createTapCoverterFunc(key, properties[0], properties[1]));
+                continue;
+            }
+        }
+    }
+    return content;
     function removeIfText(children, content) {
         if (!children || children.length > 1 || children[0].node != 'text') {
             return content;
@@ -212,8 +283,8 @@ function jsonToWxml(json, exclude) {
         }
         return "!(" + value + ")";
     }
-    function converterSrc(value) {
-        return ['src', '{{ ' + value + ' }}'];
+    function converterSrc(value, _, attrs) {
+        attrs.set('src', '{{ ' + value + ' }}');
     }
     function converterClass(value, _, attrs) {
         var cls = attrs.get('class') || '';
@@ -254,11 +325,11 @@ function jsonToWxml(json, exclude) {
             block.push('\' \'');
             block.push('(' + value + ')');
         }
-        return ['class', '{{ ' + block.join('+') + ' }}'];
+        attrs.set('class', '{{ ' + block.join('+') + ' }}');
     }
-    function converterTap(value, attrKey) {
+    function converterTap(value, attrKey, attrs) {
         if (attrKey === void 0) { attrKey = 'bindtap'; }
-        if (arguments.length > 2) {
+        if (!attrKey) {
             attrKey = 'bindtap';
         }
         if (value.indexOf('=') > 0) {
@@ -268,35 +339,48 @@ function jsonToWxml(json, exclude) {
             var dataKey = studly(key);
             var func_1 = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
-            if (existFunc.indexOf(func_1) < 0) {
-                exports.wxmlFunc.push(createTapFunc(func_1, key, dataKey));
-                existFunc.push(func_1);
+            if (!Object.prototype.hasOwnProperty.call(existFunc, func_1)) {
+                existFunc[func_1] = {
+                    type: FuncType.TAP,
+                    properties: [key, dataKey]
+                };
             }
-            return [attrKey, func_1, "data-" + dataKey + "=\"" + val + "\""];
+            attrs.set(attrKey, func_1).set("data-" + dataKey, val);
+            return;
         }
         var match = value.match(/^([^\(\)]+)\((.*)\)$/);
         if (!match) {
-            return [attrKey, value];
+            attrs.set(attrKey, value);
+            return;
         }
         var args = match[2].trim();
         var func = match[1].trim();
         if (args.length < 1) {
-            return [attrKey, func];
+            attrs.set(attrKey, func);
+            return;
         }
-        var ext = [];
+        var ext = {};
         var lines = [];
         args.split(',').forEach(function (item, i) {
             var key = 'arg' + i;
             var val = qv(item.trim());
             lines.push(key);
-            ext.push("data-" + key + "=\"" + val + "\"");
+            ext["data-" + key] = val;
         });
         var funcTo = 'converter' + func;
-        if (existFunc.indexOf(func) < 0) {
-            exports.wxmlFunc.push(createTapCoverterFunc(funcTo, func, lines));
-            existFunc.push(func);
+        if (!Object.prototype.hasOwnProperty.call(existFunc, funcTo)) {
+            existFunc[funcTo] = {
+                type: FuncType.CONVERTER,
+                properties: [func, lines],
+                amount: lines.length
+            };
         }
-        return [attrKey, funcTo, ext.join(' ')];
+        else if (existFunc[funcTo].amount < lines.length) {
+            existFunc[funcTo].properties = [func, lines];
+            existFunc[funcTo].amount = lines.length;
+        }
+        attrs.set(attrKey, funcTo).set(ext);
+        return;
     }
     function q(v) {
         if (typeof v === 'object' && v instanceof Array) {
@@ -322,25 +406,20 @@ function jsonToWxml(json, exclude) {
     }
     function parseNodeAttr(attrs, tag) {
         if (tag === void 0) { tag = 'view'; }
-        var str = '';
         if (!attrs) {
-            return str;
+            return '';
         }
-        var attrsClone = attribute_1.Attribute.create({});
-        attrs.map(function (key, value) {
+        var properties = attrs.clone();
+        properties.map(function (key, value) {
+            properties["delete"](key);
             if (disallow_attrs.indexOf(key) >= 0) {
                 return;
             }
-            var ext = '';
             if (replace_attrs.hasOwnProperty(key)) {
                 var attr = replace_attrs[key];
                 if (typeof attr === 'function') {
-                    var args = attr(value, tag, attrsClone);
-                    key = args[0];
-                    value = args[1];
-                    if (args.length > 2) {
-                        ext = ' ' + args[2];
-                    }
+                    attr(value, tag, properties);
+                    return;
                 }
                 else if (typeof attr === 'boolean') {
                     return;
@@ -354,33 +433,35 @@ function jsonToWxml(json, exclude) {
                 return;
             }
             if (value === true) {
-                attrsClone.set(key, value);
+                properties.set(key, value);
                 return;
             }
             if (Array.isArray(value)) {
                 value = value.join(' ');
             }
             ;
-            if (key.charAt(0) === '@') {
-                var args = converterTap(value, 'bind:' + key.substr(1));
-                key = args[0];
-                value = args[1];
-                if (args.length > 2) {
-                    ext = ' ' + args[2];
-                }
+            var name = parseEventName(key);
+            if (name) {
+                converterTap(value, name, properties);
+                return;
             }
             else if (key.charAt(0) === ':') {
                 key = key.substr(1);
                 value = '{{ ' + value + ' }}';
             }
-            attrsClone.set(key, value);
-            if (ext.length < 1) {
-                return;
-            }
-            str += ' ' + ext;
+            properties.set(key, value);
         });
-        str = attrsClone.toString() + str;
+        var str = properties.toString();
         return str.trim().length > 0 ? ' ' + str : '';
+    }
+    function parseEventName(name) {
+        if (name.indexOf('bind:') === 0 || name.indexOf('bind') === 0) {
+            return name;
+        }
+        if (name.charAt(0) === '@') {
+            return 'bind:' + name.substr(1);
+        }
+        return undefined;
     }
     function parseButton(node, content) {
         var attr = parseNodeAttr(node.attribute);
