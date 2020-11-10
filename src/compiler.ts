@@ -123,7 +123,7 @@ export class MiniCompliper implements ICompliper {
                     }
                 }
             }
-
+            this.logFile(src);
             return;
         } else if (['.ttf', '.json'].indexOf(ext) >= 0) {
             return;
@@ -133,6 +133,7 @@ export class MiniCompliper implements ICompliper {
             }
             this.mkIfNotFolder(distFolder);
             fs.copyFileSync(src, dist);
+            this.logFile(src);
             return;
         }
         if (content.length < 1) {

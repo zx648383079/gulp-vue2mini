@@ -110,6 +110,7 @@ var MiniCompliper = (function () {
                     }
                 }
             }
+            this.logFile(src);
             return;
         }
         else if (['.ttf', '.json'].indexOf(ext) >= 0) {
@@ -121,6 +122,7 @@ var MiniCompliper = (function () {
             }
             this.mkIfNotFolder(distFolder);
             fs.copyFileSync(src, dist);
+            this.logFile(src);
             return;
         }
         if (content.length < 1) {
