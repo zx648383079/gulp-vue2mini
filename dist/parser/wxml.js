@@ -332,7 +332,7 @@ function jsonToWxml(json, exclude) {
         if (!attrKey) {
             attrKey = 'bindtap';
         }
-        if (value.indexOf('=') > 0) {
+        if (value.indexOf('=') > 0 && !/['"].*=/.test(value)) {
             var _a = value.split('=', 2), key = _a[0], val = _a[1];
             key = key.trim();
             val = qv(val.trim());

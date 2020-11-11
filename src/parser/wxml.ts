@@ -393,7 +393,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         if (!attrKey) {
             attrKey = 'bindtap';
         }
-        if (value.indexOf('=') > 0) {
+        if (value.indexOf('=') > 0 && !/['"].*=/.test(value)) {
             let [key, val] = value.split('=', 2);
             key = key.trim();
             val = qv(val.trim());

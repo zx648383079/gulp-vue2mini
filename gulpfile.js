@@ -5,5 +5,6 @@ var gulp = require('gulp'),
 gulp.task('default', async() => {
     await gulp.src('src/**/*.ts')
         .pipe(tsProject())
+        .on('error', () => {})
         .pipe(gulp.dest('dist/'));
 });
