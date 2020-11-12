@@ -42,13 +42,13 @@ export class Compiler {
 		return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
     }
 
-    public static sass(input: string, file: string, lang = 'scss'): string {
-        const output = sass.renderSync({
+    public static sass(input: string, file: string, lang = 'scss', options: sass.Options = {}): string {
+        const output = sass.renderSync(Object.assign({}, options, {
             data: input,
             file,
             //includePaths: [],
             indentedSyntax: lang === 'sass'
-        });
+        }));
         return output.css.toString();
     }
 

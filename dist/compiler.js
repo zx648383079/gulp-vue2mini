@@ -32,13 +32,14 @@ var Compiler = (function () {
         });
         return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
     };
-    Compiler.sass = function (input, file, lang) {
+    Compiler.sass = function (input, file, lang, options) {
         if (lang === void 0) { lang = 'scss'; }
-        var output = sass.renderSync({
+        if (options === void 0) { options = {}; }
+        var output = sass.renderSync(Object.assign({}, options, {
             data: input,
             file: file,
             indentedSyntax: lang === 'sass'
-        });
+        }));
         return output.css.toString();
     };
     return Compiler;

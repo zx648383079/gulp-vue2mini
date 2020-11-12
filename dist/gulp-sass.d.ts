@@ -1,2 +1,3 @@
 import { Transform } from "readable-stream";
-export declare function gulpSass(): Transform;
+import * as sass from "sass";
+export declare function gulpSass(options?: sass.Options): Transform;
