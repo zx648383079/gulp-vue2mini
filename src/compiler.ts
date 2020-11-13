@@ -11,7 +11,7 @@ export interface ICompliper {
 
 
 export class Compiler {
-    public static ts(input: string, file: string, tsConfigFileName: string = 'tsconfig.json') {
+    public static ts(input: string, file: string, tsConfigFileName: string = 'tsconfig.json', sourceMap = false) {
         let projectDirectory = process.cwd();
 		let compilerOptions: ts.CompilerOptions;
         tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
@@ -38,7 +38,10 @@ export class Compiler {
 			fileName: file,
 			reportDiagnostics: true,
 			transformers: undefined,
-		});
+        });
+        if (sourceMap) {
+            return output.outputText;
+        }
 		return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
     }
 

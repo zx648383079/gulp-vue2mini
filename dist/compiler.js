@@ -10,8 +10,9 @@ var vue_1 = require("./parser/vue");
 var Compiler = (function () {
     function Compiler() {
     }
-    Compiler.ts = function (input, file, tsConfigFileName) {
+    Compiler.ts = function (input, file, tsConfigFileName, sourceMap) {
         if (tsConfigFileName === void 0) { tsConfigFileName = 'tsconfig.json'; }
+        if (sourceMap === void 0) { sourceMap = false; }
         var projectDirectory = process.cwd();
         var compilerOptions;
         tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
@@ -30,6 +31,9 @@ var Compiler = (function () {
             reportDiagnostics: true,
             transformers: undefined
         });
+        if (sourceMap) {
+            return output.outputText;
+        }
         return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
     };
     Compiler.sass = function (input, file, lang, options) {
