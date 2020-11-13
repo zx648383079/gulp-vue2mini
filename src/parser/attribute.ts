@@ -82,10 +82,17 @@ export class Attribute {
     }
 
     /**
+     * 获取键
+     */
+    public keys(): string[] {
+        return Object.keys(this.items);
+    }
+
+    /**
      * map
      */
     public map(cb: (key: string, value: any) => any) {
-        const keys = Object.keys(this.items);
+        const keys = this.keys();
         for (const key of keys) {
             if (this.items.hasOwnProperty(key)) {
                 cb(key, this.items[key]);

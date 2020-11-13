@@ -63,8 +63,11 @@ var Attribute = (function () {
         this.items = Object.assign(this.items, val);
         return this;
     };
+    Attribute.prototype.keys = function () {
+        return Object.keys(this.items);
+    };
     Attribute.prototype.map = function (cb) {
-        var keys = Object.keys(this.items);
+        var keys = this.keys();
         for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
             var key = keys_1[_i];
             if (this.items.hasOwnProperty(key)) {

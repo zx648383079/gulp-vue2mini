@@ -208,7 +208,7 @@ function jsonToWxml(json, exclude) {
             return "<" + item.tag + attr_4 + ">" + content + "</" + item.tag + ">";
         }
         if (item.tag == 'textarea') {
-            if (!item.attr('v-model') && !item.attr('value') && content.length > 0) {
+            if (content.length > 0) {
                 item.attr('value', content);
             }
             var attr_5 = parseNodeAttr(item.attribute, item.tag);
@@ -410,7 +410,24 @@ function jsonToWxml(json, exclude) {
             return '';
         }
         var properties = attrs.clone();
-        properties.map(function (key, value) {
+        var keys = properties.keys();
+        var sortKey = function (prepare) {
+            keys.sort(function (a, b) {
+                return prepare.indexOf(b) - prepare.indexOf(a);
+            });
+        };
+        if (tag === 'textarea') {
+            sortKey(['value']);
+        }
+        var mapProperty = function (cb) {
+            for (var _i = 0, keys_2 = keys; _i < keys_2.length; _i++) {
+                var key = keys_2[_i];
+                if (properties.has(key)) {
+                    cb(key, properties.get(key));
+                }
+            }
+        };
+        mapProperty(function (key, value) {
             properties["delete"](key);
             if (disallow_attrs.indexOf(key) >= 0) {
                 return;

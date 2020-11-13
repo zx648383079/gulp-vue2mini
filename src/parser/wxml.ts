@@ -258,7 +258,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             return `<${item.tag}${attr}>${content}</${item.tag}>`;
         }
         if (item.tag == 'textarea') {
-            if (!item.attr('v-model') && !item.attr('value') && content.length > 0) {
+            if (content.length > 0) {
                 item.attr('value', content);
             }
             const attr = parseNodeAttr(item.attribute, item.tag);
@@ -490,7 +490,25 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             return '';
         }
         const properties = attrs.clone();
-        properties.map((key, value) => {
+        const keys = properties.keys();
+        // 排序 prepare 中越后越前
+        const sortKey = (prepare: string[]) => {
+            keys.sort((a, b) => {
+                return prepare.indexOf(b) - prepare.indexOf(a)
+            });
+        };
+        if (tag === 'textarea') {
+            sortKey(['value']);
+        }
+        // 循环遍历属性
+        const mapProperty = (cb: (key: string, value: any) => void) => {
+            for (const key of keys) {
+                if (properties.has(key)) {
+                    cb(key, properties.get(key));
+                }
+            }
+        };
+        mapProperty((key, value) => {
             properties.delete(key);
             if (disallow_attrs.indexOf(key) >= 0) {
                 return;

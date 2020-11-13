@@ -11,6 +11,7 @@ export declare class Attribute {
     filter(cb: (key: string, value: any) => boolean): this;
     delete(key: string): this;
     on(keys: string[] | string, cb: (value: any, key: string) => any): this;
+    keys(): string[];
     map(cb: (key: string, value: any) => any): this;
     toString(): string;
     clone(): Attribute;
