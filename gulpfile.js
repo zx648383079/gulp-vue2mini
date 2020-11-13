@@ -1,9 +1,8 @@
 var gulp = require('gulp'),
-    sass = require("gulp-sass"),
     rename = require('gulp-rename'),
     ts = require('gulp-typescript'),
     clean = require('gulp-clean'),
-    template = require('gulp-vue2mini'),
+    vue2mini = require('gulp-vue2mini'),
     plumber = require('gulp-plumber'),
     tsProject = ts.createProject('tsconfig.json'),
     tsInstance = undefined,
@@ -20,7 +19,7 @@ function getTs() {
 
 function getSass() { 
     if (!sassInstance) {
-        sassInstance = sass();
+        sassInstance = vue2mini.gulpSass();
     }
     return sassInstance;
 }
@@ -67,16 +66,16 @@ gulp.task('cleanall', function() {
 
 gulp.task('ts', async() => {
     await gulp.src(getSrcPath('src/**/*.ts'))
-        .pipe(template('ts'))
+        .pipe(vue2mini.template('ts'))
         .pipe(getTs())
         .pipe(gulp.dest(getDistFolder('dist/')));
 });
 
 gulp.task('sass', async() => {
     await gulp.src('src/**/*.{scss,sass}')
-        .pipe(template('presass'))
+        .pipe(vue2mini.template('presass'))
         .pipe(getSass())
-        .pipe(template('endsass'))
+        .pipe(vue2mini.template('endsass'))
         .pipe(rename({extname: '.wxss'}))
         .pipe(gulp.dest('dist/'));
 });
@@ -89,23 +88,23 @@ gulp.task('vue', async() => {
         //         this.emit('end');
         //     }
         // }))
-        .pipe(template('tpl'))
+        .pipe(vue2mini.template('tpl'))
         .pipe(gulp.dest(getDistFolder('dist/')))
-        .pipe(template('json'))
+        .pipe(vue2mini.template('json'))
         .pipe(gulp.dest(getDistFolder('dist/')))
-        .pipe(template('scss'))
-        .pipe(template('presass'))
+        .pipe(vue2mini.template('scss'))
+        .pipe(vue2mini.template('presass'))
         .pipe(getSass())
-        .pipe(template('endsass'))
+        .pipe(vue2mini.template('endsass'))
         .pipe(gulp.dest(getDistFolder('dist/')))
-        .pipe(template('ts'))
+        .pipe(vue2mini.template('ts'))
         .pipe(getTs())
         .pipe(gulp.dest(getDistFolder('dist/')));
 });
 
 gulp.task('test', async() => {
     await gulp.src('src/pages/task/detail.vue')
-        .pipe(template('json'))
+        .pipe(vue2mini.template('json'))
         .pipe(rename({extname: '.json'}))
         .pipe(gulp.dest('dist/'));
 });
@@ -126,7 +125,7 @@ gulp.task('watch', async() => {
     // await gulp.watch('src/**/*.{vue,html}', gulp.series('vue'));
     await gulp.watch(['src/**/*.ts']).on('change', function(path, stats) {
         createTak(path, task => {
-            return task.pipe(template('ts'))
+            return task.pipe(vue2mini.template('ts'))
             .pipe(getTs())
         }).on('end', () => {
             debug('SUCCESS ' + path);
@@ -149,22 +148,22 @@ gulp.task('watch', async() => {
     await gulp.watch(['src/**/*.{vue,html}']).on('change', function(path, stats) {
         const [src, dist] = getDistPath(path);
         gulp.src(src)
-            .pipe(template('ts'))
+            .pipe(vue2mini.template('ts'))
             .pipe(rename({extname: '.ts'}))
             .pipe(getTs())
             .pipe(rename({extname: '.js'}))
             .pipe(gulp.dest(dist));
         gulp.src(src)
-            .pipe(template('sass'))
+            .pipe(vue2mini.template('sass'))
             .pipe(sass())
             .pipe(rename({extname: '.wxss'}))
             .pipe(gulp.dest(dist));
         gulp.src(src)
-            .pipe(template('json'))
+            .pipe(vue2mini.template('json'))
             .pipe(rename({extname: '.json'}))
             .pipe(gulp.dest(dist));
         gulp.src(src)
-            .pipe(template('tpl'))
+            .pipe(vue2mini.template('tpl'))
             .pipe(rename({extname: '.wxml'}))
             .pipe(gulp.dest(dist))
             .on('end', () => {
