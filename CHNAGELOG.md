@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.1.8
+
+1. 增加 gulp-sass 和 gulp-ts 的导出，搭配gulp 使用
+
 ## v1.1.7
 
 1. 支持转化方法合并，不同参数进行合并 tap(1) tap(1, 2)

@@ -2,6 +2,7 @@ import { Transform } from "readable-stream";
 import * as vinyl from "vinyl";
 import { Compiler } from "./compiler";
 import * as sass from "sass";
+import { renameExt } from "./gulp-tempate";
 
 /**
  * 压缩sass代码
@@ -18,6 +19,7 @@ export function gulpSass(options: sass.Options = {}) {
             }
             const content =  Compiler.sass(String(file.contents), file.path, file.extname.substr(1), options);
             file.contents = Buffer.from(content);
+            file.path = renameExt(file.path, 'css');
             return callback(null, file);
         }
     });
