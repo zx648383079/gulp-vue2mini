@@ -2,6 +2,7 @@ import { Transform } from "readable-stream";
 import * as vinyl from "vinyl";
 import { Compiler } from "./compiler";
 import * as sass from "sass";
+import * as path from 'path';
 import { renameExt } from "./gulp-tempate";
 
 /**
@@ -15,6 +16,9 @@ export function gulpSass(options: sass.Options = {}) {
                 return callback();
             }
             if (!file.isBuffer()) {
+                return callback();
+            }
+            if (path.basename(file.path).indexOf('_') === 0) {
                 return callback();
             }
             const content =  Compiler.sass(String(file.contents), file.path, file.extname.substr(1), options);
