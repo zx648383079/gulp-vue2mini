@@ -8,8 +8,6 @@ var gulp = require('gulp'),
     tsInstance = undefined,
     sassInstance = undefined;
 
-sass.compiler = require('sass');
-
 function getTs() { 
     if (!tsInstance) {
         tsInstance = tsProject();
@@ -68,6 +66,7 @@ gulp.task('ts', async() => {
     await gulp.src(getSrcPath('src/**/*.ts'))
         .pipe(vue2mini.template('ts'))
         .pipe(getTs())
+        .on('error', () => {})
         .pipe(gulp.dest(getDistFolder('dist/')));
 });
 
@@ -99,6 +98,7 @@ gulp.task('vue', async() => {
         .pipe(gulp.dest(getDistFolder('dist/')))
         .pipe(vue2mini.template('ts'))
         .pipe(getTs())
+        .on('error', () => {})
         .pipe(gulp.dest(getDistFolder('dist/')));
 });
 
@@ -151,6 +151,7 @@ gulp.task('watch', async() => {
             .pipe(vue2mini.template('ts'))
             .pipe(rename({extname: '.ts'}))
             .pipe(getTs())
+            .on('error', () => {})
             .pipe(rename({extname: '.js'}))
             .pipe(gulp.dest(dist));
         gulp.src(src)
