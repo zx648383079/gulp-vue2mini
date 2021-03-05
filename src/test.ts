@@ -1,5 +1,5 @@
 // import { readFileSync, writeFileSync } from 'fs';
-//import { dealTemplateFile } from './gulp-tempate';
+// import { dealTemplateFile } from './gulp-tempate';
 // import { htmlToJson } from './parser/html';
 
 // import { splitFile } from "./parser/vue";

@@ -97,7 +97,7 @@ export function htmlToJson(content: string): Element {
         let start = pos + 4;
         let end = content.indexOf('-->', start);
         let text = content.substr(start, end - start);
-        pos += end + 3;
+        pos = end + 3;
         return Element.comment(text.trim());
     },
     /**

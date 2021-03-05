@@ -69,7 +69,7 @@ function htmlToJson(content) {
         var start = pos + 4;
         var end = content.indexOf('-->', start);
         var text = content.substr(start, end - start);
-        pos += end + 3;
+        pos = end + 3;
         return element_1.Element.comment(text.trim());
     }, getTextElement = function () {
         var text = '', code;
