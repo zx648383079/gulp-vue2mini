@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.1.10
+
+1. 修复 html 注释的识别 
+
 ## v1.1.8
 
 1. 增加 gulp-sass 和 gulp-ts 的导出，搭配gulp 使用

@@ -85,7 +85,7 @@ export function htmlToJson(content: string): Element {
      * 判断是否是评论
      */
     isComment = function() {
-        if (content.substr(pos, 3) !== '!--') {
+        if (content.substr(pos, 4) !== '<!--') {
             return false;
         }
         return content.indexOf('-->', pos + 3) > 0;
@@ -94,11 +94,11 @@ export function htmlToJson(content: string): Element {
      * 获取评论元素，并移动位置
      */
     getCommentElement = function(): Element {
-        let start = pos + 3;
+        let start = pos + 4;
         let end = content.indexOf('-->', start);
         let text = content.substr(start, end - start);
         pos += end + 3;
-        return Element.comment(text);
+        return Element.comment(text.trim());
     },
     /**
      * 获取文本元素，并移动位置

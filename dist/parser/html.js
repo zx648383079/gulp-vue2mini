@@ -61,16 +61,16 @@ function htmlToJson(content) {
         pos += 2 + tag.length;
         return true;
     }, isComment = function () {
-        if (content.substr(pos, 3) !== '!--') {
+        if (content.substr(pos, 4) !== '<!--') {
             return false;
         }
         return content.indexOf('-->', pos + 3) > 0;
     }, getCommentElement = function () {
-        var start = pos + 3;
+        var start = pos + 4;
         var end = content.indexOf('-->', start);
         var text = content.substr(start, end - start);
         pos += end + 3;
-        return element_1.Element.comment(text);
+        return element_1.Element.comment(text.trim());
     }, getTextElement = function () {
         var text = '', code;
         while (pos < content.length) {
