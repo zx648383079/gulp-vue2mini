@@ -1,6 +1,6 @@
 /// <reference path="./index.d.ts" />
 
-declare interface IPage<T> {
+declare interface IPage<T = any> {
     /** 页面的初始数据
      * 
      * `data` 是页面第一次渲染使用的**初始数据**。
@@ -222,7 +222,7 @@ interface IPageJson {
 
 export declare function WxJson(options: IPageJson): ClassDecorator;
 
-declare interface IComponent<T> extends IPage<T> {
+declare interface IComponent<T = any> extends IPage<T> {
     /**
      * 组件的对外属性，是属性名到属性设置的映射表
      */
@@ -277,7 +277,7 @@ declare interface IComponent<T> extends IPage<T> {
 
 declare const Component: (options: IComponent<any>) => void;
 
-declare class WxPage<T> implements IPage<T> {
+declare class WxPage<T = any> implements IPage<T> {
 
   public data: T;
   public route: string;
@@ -425,7 +425,7 @@ declare class WxPage<T> implements IPage<T> {
       ): WechatMiniprogram.IntersectionObserver;
 }
 
-declare class WxComponent<T> extends WxPage<T> implements IComponent<T> {
+declare class WxComponent<T = any> extends WxPage<T> implements IComponent<T> {
     __wxExparserNodeId__: string;
       /**
      * 组件的对外属性，是属性名到属性设置的映射表
@@ -667,7 +667,7 @@ interface IAppJson {
 
 export declare function WxAppJson(options: IAppJson): ClassDecorator;
 
-declare class WxApp<T> implements WechatMiniprogram.App.Option {
+declare class WxApp<T = any> implements WechatMiniprogram.App.Option {
     public globalData: T;
     /** 生命周期回调—监听小程序初始化
      *
@@ -700,6 +700,18 @@ declare class WxApp<T> implements WechatMiniprogram.App.Option {
      * 最低基础库： 1.9.90
      */
     onPageNotFound(options: WechatMiniprogram.App.PageNotFoundOption): void
+
+    /**
+     * 小程序有未处理的 Promise 拒绝时触发。也可以使用 [wx.onUnhandledRejection](https://developers.weixin.qq.com/miniprogram/dev/api/base/app/app-event/wx.onUnhandledRejection.html) 绑定监听。注意事项请参考 [wx.onUnhandledRejection](https://developers.weixin.qq.com/miniprogram/dev/api/base/app/app-event/wx.onUnhandledRejection.html)。
+     * **参数**：与 [wx.onUnhandledRejection](https://developers.weixin.qq.com/miniprogram/dev/api/base/app/app-event/wx.onUnhandledRejection.html) 一致
+     */
+    onUnhandledRejection: WechatMiniprogram.OnUnhandledRejectionCallback
+    /**
+     * 系统切换主题时触发。也可以使用 wx.onThemeChange 绑定监听。
+     *
+     * 最低基础库： 2.11.0
+     */
+    onThemeChange: WechatMiniprogram.OnThemeChangeCallback
 }
 
 declare interface BaseEvent {

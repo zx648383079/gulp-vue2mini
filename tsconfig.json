@@ -23,7 +23,7 @@
       "./typings",
       "./node_modules/@types"
     ],
-    "lib": ["es5"],
+    "lib": ["es6"],
   },
   "include": [
     "src/**/*.ts"

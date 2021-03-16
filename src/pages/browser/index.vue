@@ -2,7 +2,7 @@
     <web-view :src="url"/>
 </template>
 <script lang="ts">
-import { WxJson, WxPage } from "typings/wx/lib.vue";
+import { WxJson, WxPage } from "../../../typings/wx/lib.vue";
 
 interface IPageData {
     title: string;
