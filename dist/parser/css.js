@@ -166,7 +166,7 @@ function blockToString(items, level, indent) {
                 lines.push(spaces + '// ' + item.text);
                 continue;
             }
-            lines.push(spaces + '/* ' + text.split('\n').map(function (i) { return i.trim(); }).join('\n' + spaces) + ' */');
+            lines.push(spaces + '/* ' + types_1.splitLine(text).map(function (i) { return i.trim(); }).join(types_1.LINE_SPLITE + spaces) + ' */');
             continue;
         }
         if (item.type === BLOCK_TYPE.IMPORT) {

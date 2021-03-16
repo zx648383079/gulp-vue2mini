@@ -1,4 +1,4 @@
-import { LINE_SPLITE } from '../types';
+import { LINE_SPLITE, splitLine } from '../types';
 
 const CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 
@@ -62,7 +62,7 @@ export function parseMethodToObject(content: string, maps: {[key: string]: strin
         }
         return;
     };
-    const lines = content.split('\n');
+    const lines = splitLine(content);
     /**
      * {} 这个符号的未闭合的数
      */

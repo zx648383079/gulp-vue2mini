@@ -113,7 +113,7 @@ var TemplateProject = (function () {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        content.split(types_1.LINE_SPLITE).forEach(function (line, i) {
+        types_1.splitLine(content).forEach(function (line, i) {
             var token = _this.converterToken(line);
             if (!token) {
                 tokens.push({

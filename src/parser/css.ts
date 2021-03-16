@@ -1,4 +1,4 @@
-import { LINE_SPLITE } from './types';
+import { LINE_SPLITE, splitLine } from './types';
 
 enum BLOCK_TYPE {
     COMMENT,
@@ -179,7 +179,7 @@ function blockToString(items: IBlockItem[], level: number = 1, indent: string = 
                 lines.push(spaces + '// ' + item.text);
                 continue;
             }
-            lines.push(spaces + '/* ' + text.split('\n').map(i => i.trim()).join('\n' + spaces) + ' */');
+            lines.push(spaces + '/* ' + splitLine(text).map(i => i.trim()).join(LINE_SPLITE + spaces) + ' */');
             continue;
         }
         if (item.type === BLOCK_TYPE.IMPORT) {

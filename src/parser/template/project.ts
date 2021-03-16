@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { LINE_SPLITE } from '../types';
+import { LINE_SPLITE, splitLine } from '../types';
 import { CacheManger } from '../cache';
 import * as path from 'path';
 import { htmlToJson, jsonToHtml } from '../html';
@@ -151,7 +151,7 @@ export class TemplateProject implements ICompliper {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        content.split(LINE_SPLITE).forEach((line, i) => {
+        splitLine(content).forEach((line, i) => {
             const token = this.converterToken(line);
             if (!token) {
                 tokens.push({
