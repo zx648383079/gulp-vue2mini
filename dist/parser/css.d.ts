@@ -14,5 +14,6 @@ interface IBlockItem {
     children?: IBlockItem[];
 }
 export declare function cssToJson(content: string): IBlockItem[];
+export declare function splitRuleName(name: string): string[];
 export declare function cssToScss(content: string): string;
 export {};

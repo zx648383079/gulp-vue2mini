@@ -1,6 +1,6 @@
 "use strict";
 exports.__esModule = true;
-exports.cssToScss = exports.cssToJson = void 0;
+exports.cssToScss = exports.splitRuleName = exports.cssToJson = void 0;
 var tslib_1 = require("tslib");
 var types_1 = require("./types");
 var BLOCK_TYPE;
@@ -13,6 +13,9 @@ var BLOCK_TYPE;
     BLOCK_TYPE[BLOCK_TYPE["STYLE_GROUP"] = 5] = "STYLE_GROUP";
     BLOCK_TYPE[BLOCK_TYPE["STYLE"] = 6] = "STYLE";
 })(BLOCK_TYPE || (BLOCK_TYPE = {}));
+var isEmptyCode = function (code) {
+    return code === ' ' || code === '\r' || code === '\n' || code === '\t';
+};
 function cssToJson(content) {
     var pos = -1;
     var isComment = function () {
@@ -36,11 +39,8 @@ function cssToJson(content) {
         pos = end + (tag === '//' ? 0 : 2);
         return {
             type: BLOCK_TYPE.COMMENT,
-            content: text.trim()
+            text: text.trim()
         };
-    };
-    var isEmpty = function (code) {
-        return code === ' ' || code === '\r' || code === '\n' || code === '\t';
     };
     var getTextBlock = function (line) {
         if (line.indexOf('@charset') >= 0) {
@@ -102,7 +102,7 @@ function cssToJson(content) {
         var code;
         while (pos < content.length) {
             code = content.charAt(++pos);
-            if (isEmpty(code)) {
+            if (isEmptyCode(code)) {
                 continue;
             }
             if (code === '/' && isComment()) {
@@ -290,25 +290,112 @@ function expandBlock(items) {
     }
     return data;
 }
+function splitRuleName(name) {
+    name = name.trim();
+    if (name.length < 2) {
+        return [name];
+    }
+    var tags = {
+        '[': ']',
+        '(': ')'
+    };
+    var args = [];
+    var tag = '';
+    var pos = 0;
+    if (name.charAt(pos) === '&') {
+        var k = name.charAt(pos + 1);
+        var i = pos + 1;
+        while (i < name.length) {
+            if (name.charAt(++i) !== k) {
+                break;
+            }
+        }
+        tag = name.substring(pos, i);
+        pos = i + 1;
+    }
+    var appendTag = function () {
+        var item = tag.trim();
+        tag = '';
+        if (item.length < 1) {
+            return;
+        }
+        var c = item.charAt(0);
+        if (c === '&') {
+            args.push(item);
+            return;
+        }
+        if (c === '>' || c === '+' || c === '~') {
+            args.push('&' + item);
+            return;
+        }
+        args.push(item);
+    };
+    var startTag = '';
+    var endTag = '';
+    var endCount = 0;
+    while (pos < name.length) {
+        var code = name.charAt(pos);
+        pos++;
+        if (endCount > 0) {
+            tag += code;
+            if (code === startTag) {
+                endCount++;
+            }
+            else if (code === endTag) {
+                endCount--;
+            }
+            continue;
+        }
+        if (Object.prototype.hasOwnProperty.call(tags, code)) {
+            startTag = code;
+            endTag = tags[code];
+            endCount = 1;
+            tag += code;
+            continue;
+        }
+        if (code === '>' || code === '~' || code === '+') {
+            appendTag();
+            var i = pos;
+            while (i < name.length) {
+                if (!isEmptyCode(name.charAt(i))) {
+                    break;
+                }
+                i++;
+            }
+            tag = (args.length > 0 ? '&' : '') + code;
+            pos = i;
+            continue;
+        }
+        if (code === '.') {
+            appendTag();
+            tag = (args.length > 0 ? '&' : '') + code;
+            continue;
+        }
+        if (code === ':') {
+            appendTag();
+            var i = pos;
+            while (i < name.length) {
+                if (name.charAt(++i) !== ':') {
+                    break;
+                }
+            }
+            tag = (args.length > 0 ? '&' : '') + name.substring(pos - 1, i);
+            pos = i;
+            continue;
+        }
+        if (isEmptyCode(code)) {
+            appendTag();
+            tag = '';
+            continue;
+        }
+        tag += code;
+    }
+    appendTag();
+    return args;
+}
+exports.splitRuleName = splitRuleName;
 function splitBlock(items) {
     var data = [];
-    var splitName = function (name) {
-        var args = [name];
-        var splitTag = function (a, tag, replace) {
-            var b = [];
-            a.forEach(function (val) {
-                val.split(tag).forEach(function (v, i) {
-                    b.push(i > 0 ? replace + v.trim() : v.trim());
-                });
-            });
-            return b;
-        };
-        args = splitTag(args, '+', '&+');
-        args = splitTag(args, '~', '&~');
-        args = splitTag(args, '::', '&::');
-        args = splitTag(args, ':', '&:');
-        return splitTag(args, ' ', '');
-    };
     var resetName = function (names) {
         return names.map(function (i) {
             return i.indexOf('&') === 0 ? i.substring(1) : (' ' + i);
@@ -316,7 +403,7 @@ function splitBlock(items) {
     };
     var findTreeName = function (names) {
         if (names.length < 2) {
-            return splitName(names[0]).map(function (i) {
+            return splitRuleName(names[0]).map(function (i) {
                 return [i];
             });
         }
@@ -324,7 +411,7 @@ function splitBlock(items) {
         var cache = [];
         var getName = function (i, j) {
             if (cache.length <= i) {
-                cache.push(splitName(names[i]));
+                cache.push(splitRuleName(names[i]));
             }
             var pos = cache[i].length - 1 - j;
             if (pos < 0) {
@@ -351,7 +438,7 @@ function splitBlock(items) {
             return [names];
         }
         args.push(names.map(function (i, j) {
-            var c = cache.length > j ? cache[j] : splitName(i);
+            var c = cache.length > j ? cache[j] : splitRuleName(i);
             return resetName(c.splice(0, c.length - index));
         }));
         return args.reverse();

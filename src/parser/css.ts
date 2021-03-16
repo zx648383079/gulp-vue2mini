@@ -17,6 +17,15 @@ interface IBlockItem {
     children?: IBlockItem[];
 }
 
+/**
+ * 判断是否是空字符
+ * @param code 字符
+ * @returns true
+ */
+const isEmptyCode = (code: string): boolean => {
+    return code === ' ' || code === '\r' || code === '\n' || code === '\t';
+};
+
 export function cssToJson(content: string) {
     let pos = -1;
     /**
@@ -46,11 +55,8 @@ export function cssToJson(content: string) {
         pos = end + (tag === '//' ? 0 : 2);
         return {
             type: BLOCK_TYPE.COMMENT,
-            content: text.trim(),
+            text: text.trim(),
         };
-    };
-    const isEmpty = (code: string) => {
-        return code === ' ' || code === '\r' || code === '\n' || code === '\t';
     };
     const getTextBlock = (line: string): IBlockItem|boolean => {
         if (line.indexOf('@charset') >= 0) {
@@ -112,7 +118,7 @@ export function cssToJson(content: string) {
         let code: string;
         while (pos < content.length) {
             code = content.charAt(++pos);
-            if (isEmpty(code)) {
+            if (isEmptyCode(code)) {
                 continue;
             }
             if (code === '/' && isComment()) {
@@ -303,28 +309,121 @@ function expandBlock(items: IBlockItem[]): IBlockItem[] {
 }
 
 /**
+ * 拆分css的规则名
+ * @param name 规则名
+ * @returns 分段的规则名
+ */
+export function splitRuleName(name: string): string[] {
+    name = name.trim();
+    if (name.length < 2) {
+        return [name];
+    }
+    const tags: any = {
+        '[': ']',
+        '(': ')',
+    };
+    const args: string[] = [];
+    let tag = '';
+    let pos = 0;
+    if (name.charAt(pos) === '&') {
+        const k = name.charAt(pos + 1);
+        let i = pos + 1;
+        while (i < name.length) {
+            if (name.charAt(++ i) !== k) {
+                break;
+            }
+        }
+        tag = name.substring(pos, i);
+        pos = i + 1;
+    }
+    const appendTag = () => {
+        const item = tag.trim();
+        tag = '';
+        if (item.length < 1) {
+            return;
+        }
+        const c = item.charAt(0);
+        if (c === '&') {
+            args.push(item);
+            return;
+        }
+        if (c === '>' || c === '+' || c === '~') {
+            args.push('&' + item);
+            return;
+        }
+        args.push(item);
+    };
+    let startTag = '';
+    let endTag = '';
+    let endCount = 0;
+    while (pos < name.length) {
+        const code = name.charAt(pos);
+        pos ++;
+        if (endCount > 0) {
+            tag += code;
+            if (code === startTag) {
+                endCount ++;
+            } else if (code === endTag) {
+                endCount --;
+            }
+            continue;
+        }
+        if (Object.prototype.hasOwnProperty.call(tags, code)) {
+            startTag = code;
+            endTag = tags[code];
+            endCount = 1;
+            tag += code;
+            continue;
+        }
+        if (code === '>' || code === '~' || code === '+') {
+            appendTag();
+            // 允许后面跟空格
+            let i = pos;
+            while (i < name.length) {
+                if (!isEmptyCode(name.charAt(i))) {
+                    break;
+                }
+                i ++;
+            }
+            tag =  (args.length > 0 ? '&' : '') + code;
+            pos = i;
+            continue;
+        }
+        if (code === '.') {
+            appendTag();
+            tag = (args.length > 0 ? '&' : '') + code;
+            continue;
+        }
+        if (code === ':') {
+            appendTag();
+            // 判断是否出现连续的 :
+            let i = pos;
+            while (i < name.length) {
+                if (name.charAt(++ i) !== ':') {
+                    break;
+                }
+            }
+            tag =  (args.length > 0 ? '&' : '') + name.substring(pos - 1, i);
+            pos = i;
+            continue;
+        }
+        if (isEmptyCode(code)) {
+            appendTag();
+            tag = '';
+            continue;
+        }
+        tag += code;
+    }
+    appendTag();
+    return args;
+}
+
+/**
  * 拆分标签
  * @param items []
  */
 function splitBlock(items: IBlockItem[]): IBlockItem[] {
     const data: IBlockItem[] = [];
-    const splitName = (name: string): string[] => {
-        let args: string[] = [name];
-        const splitTag = (a: string[], tag: string, replace: string): string[] => {
-            const b: string[] = [];
-            a.forEach(val => {
-                val.split(tag).forEach((v, i) => {
-                    b.push(i > 0 ? replace + v.trim() : v.trim());
-                });
-            });
-            return b;
-        };
-        args = splitTag(args, '+', '&+');
-        args = splitTag(args, '~', '&~');
-        args = splitTag(args, '::', '&::');
-        args = splitTag(args, ':', '&:');
-        return splitTag(args, ' ', '');
-    };
     const resetName = (names: string[]): string => {
         return names.map(i => {
             return i.indexOf('&') === 0 ? i.substring(1) : (' ' + i);
@@ -332,7 +431,7 @@ function splitBlock(items: IBlockItem[]): IBlockItem[] {
     };
     const findTreeName = (names: string[]): string[][] => {
         if (names.length < 2) {
-            return splitName(names[0]).map(i => {
+            return splitRuleName(names[0]).map(i => {
                 return [i];
             });
         }
@@ -340,7 +439,7 @@ function splitBlock(items: IBlockItem[]): IBlockItem[] {
         const cache: string[][] = [];
         const getName = (i: number, j: number): string => {
             if (cache.length <= i) {
-                cache.push(splitName(names[i]));
+                cache.push(splitRuleName(names[i]));
             }
             const pos = cache[i].length - 1 - j;
             if (pos < 0) {
@@ -368,7 +467,7 @@ function splitBlock(items: IBlockItem[]): IBlockItem[] {
             return [names];
         }
         args.push(names.map((i, j) => {
-            const c = cache.length > j ? cache[j] : splitName(i);
+            const c = cache.length > j ? cache[j] : splitRuleName(i);
             return resetName(c.splice(0, c.length - index));
         }));
         return args.reverse();
