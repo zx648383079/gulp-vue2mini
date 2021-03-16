@@ -1,9 +1,10 @@
 "use strict";
 exports.__esModule = true;
-exports.consoleLog = exports.Compiler = void 0;
+exports.fileContent = exports.eachCompileFile = exports.consoleLog = exports.Compiler = void 0;
 var path = require("path");
 var ts = require("typescript");
 var sass = require("sass");
+var fs = require("fs");
 var Compiler = (function () {
     function Compiler() {
     }
@@ -52,3 +53,21 @@ var consoleLog = function (file, tip, rootFolder) {
     console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', rootFolder ? path.relative(rootFolder, file) : file, tip);
 };
 exports.consoleLog = consoleLog;
+var eachCompileFile = function (files, callback) {
+    if (!files) {
+        return;
+    }
+    if (files instanceof Array) {
+        files.forEach(callback);
+        return;
+    }
+    callback(files);
+};
+exports.eachCompileFile = eachCompileFile;
+var fileContent = function (file) {
+    if (typeof file.content !== 'undefined') {
+        return file.content;
+    }
+    return fs.readFileSync(file.src).toString();
+};
+exports.fileContent = fileContent;

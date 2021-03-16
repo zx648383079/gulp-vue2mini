@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { consoleLog, ICompliper } from '../../compiler';
+import { consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
 import { cssToScss } from '../css';
 
 export class StyleProject implements ICompliper {
@@ -12,11 +12,21 @@ export class StyleProject implements ICompliper {
     ) {
     }
 
+    public readyFile(src: string): undefined | ICompliperFile | ICompliperFile[] {
+        return {
+            src,
+            dist: this.outputFile(src),
+            type: 'css'
+        };
+    }
+
     public compileFile(src: string): void {
-        // const ext = path.extname(src);
-        const dist = this.outputFile(src);
-        fs.writeFileSync(dist, cssToScss(fs.readFileSync(src).toString()));
-        this.logFile(src);
+        eachCompileFile(this.readyFile(src), file => {
+            if (file.type === 'css') {
+                fs.writeFileSync(file.dist, cssToScss(fileContent(file)));
+                this.logFile(src);
+            }
+        });
     }
 
     public outputFile(file: string) {

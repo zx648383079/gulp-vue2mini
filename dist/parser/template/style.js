@@ -11,10 +11,21 @@ var StyleProject = (function () {
         this.outputFolder = outputFolder;
         this.options = options;
     }
+    StyleProject.prototype.readyFile = function (src) {
+        return {
+            src: src,
+            dist: this.outputFile(src),
+            type: 'css'
+        };
+    };
     StyleProject.prototype.compileFile = function (src) {
-        var dist = this.outputFile(src);
-        fs.writeFileSync(dist, css_1.cssToScss(fs.readFileSync(src).toString()));
-        this.logFile(src);
+        var _this = this;
+        compiler_1.eachCompileFile(this.readyFile(src), function (file) {
+            if (file.type === 'css') {
+                fs.writeFileSync(file.dist, css_1.cssToScss(compiler_1.fileContent(file)));
+                _this.logFile(src);
+            }
+        });
     };
     StyleProject.prototype.outputFile = function (file) {
         return path.resolve(this.outputFolder, path.relative(this.inputFolder, file));

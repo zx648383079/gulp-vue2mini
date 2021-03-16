@@ -62,7 +62,7 @@ export function parseMethodToObject(content: string, maps: {[key: string]: strin
         }
         return;
     };
-    const lines = content.split(LINE_SPLITE);
+    const lines = content.split('\n');
     /**
      * {} 这个符号的未闭合的数
      */

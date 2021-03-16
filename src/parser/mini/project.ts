@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { preImport, endImport, replaceTTF } from './css';
 import { splitFile } from './vue';
-import { Compiler, consoleLog, ICompliper } from '../../compiler';
+import { Compiler, consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
 
 export class MiniProject implements ICompliper {
     constructor(
@@ -12,86 +12,145 @@ export class MiniProject implements ICompliper {
     ) {
     }
 
+    public readyFile(src: string): undefined | ICompliperFile | ICompliperFile[] {
+        const ext = path.extname(src);
+        const dist = this.outputFile(src);
+        if (ext === '.ts') {
+            return {
+                type: 'ts',
+                src,
+                dist: dist.replace(ext, '.js'),
+            };
+        }
+        if (ext === '.scss' || ext === '.sass') {
+            if (path.basename(src).indexOf('_') === 0) {
+                return undefined;
+            }
+            return {
+                type: ext.substring(1),
+                src,
+                dist: dist.replace(ext, '.wxss'),
+            };
+        }
+        if (['.ttf', '.json'].indexOf(ext) >= 0) {
+            return undefined;
+        }
+        if (ext === '.css') {
+            return {
+                type: 'css',
+                src,
+                dist: dist.replace(ext, '.wxss'),
+            };
+        }
+        if (ext === '.html' || ext === '.vue') {
+            return this.readyVueFile(src, ext, dist);
+        }
+        return undefined;
+    }
+
+    private readyVueFile(src: string, ext: string, dist: string): ICompliperFile[] {
+        let data = {};
+        const jsonPath = src.replace(ext, '.json');
+        if (fs.existsSync(jsonPath)) {
+            const json = fs.readFileSync(jsonPath).toString();
+            data = json.trim().length > 0 ? JSON.parse(json) : {};
+        }
+        const res: any = splitFile(fs.readFileSync(src).toString(), ext.substr(1).toLowerCase(), data);
+        const files: ICompliperFile[] = [];
+        for (const key in res) {
+            if (res.hasOwnProperty(key)) {
+                const item = res[key];
+                if (item.type === 'json') {
+                    files.push({
+                        src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.json'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'wxml') {
+                    files.push({
+                        src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxml'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'css') {
+                    files.push({
+                        src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxss'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'js') {
+                    files.push({
+                        src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.js'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'ts') {
+                    files.push({
+                        src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.js'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'scss' || item.type === 'sass') {
+                    files.push({
+                        src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxss'),
+                        type: item.type
+                    });
+                    continue;
+                }
+            }
+        }
+        return files;
+    }
+
     /**
      * compileFile
      */
     public compileFile(src: string) {
-        const ext = path.extname(src);
-        let dist = this.outputFile(src);
-        const distFolder = path.dirname(dist);
-        let content = '';
-        if (ext === '.ts') {
-            content = Compiler.ts(fs.readFileSync(src).toString(), src);
-            dist = dist.replace(ext, '.js');
-        } else if (ext === '.scss' || ext === '.sass') {
-            const name = path.basename(src);
-            if (name.indexOf('_') === 0) {
+        const compile = (file: ICompliperFile) => {
+            this.mkIfNotFolder(path.dirname(file.dist));
+            if (file.type === 'ts') {
+                fs.writeFileSync(file.dist,
+                    Compiler.ts(fileContent(file), src)
+                );
                 return;
             }
-            content = Compiler.sass(preImport(fs.readFileSync(src).toString()), src, ext.substr(1));
-            content = endImport(content);
-            content = replaceTTF(content, path.dirname(src));
-            dist = dist.replace(ext, '.wxss');
-        } else if (ext === '.html' || ext === '.vue') {
-            let data = {};
-            const jsonPath = src.replace(ext, '.json');
-            if (fs.existsSync(jsonPath)) {
-                const json = fs.readFileSync(jsonPath).toString();
-                data = json.trim().length > 0 ? JSON.parse(json) : {};
+            if (file.type === 'sass' || file.type === 'scss') {
+                let content = Compiler.sass(preImport(fileContent(file)), src, file.type);
+                content = endImport(content);
+                fs.writeFileSync(file.dist,
+                    replaceTTF(content, path.dirname(src))
+                );
+                return;
             }
-            const res: any = splitFile(fs.readFileSync(src).toString(), ext.substr(1).toLowerCase(), data);
-            this.mkIfNotFolder(distFolder);
-            for (const key in res) {
-                if (res.hasOwnProperty(key)) {
-                    const item = res[key];
-                    if (item.type === 'json') {
-                        fs.writeFileSync(dist.replace(ext, '.json'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'wxml') {
-                        fs.writeFileSync(dist.replace(ext, '.wxml'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'css') {
-                        fs.writeFileSync(dist.replace(ext, '.wxss'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'js') {
-                        fs.writeFileSync(dist.replace(ext, '.js'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'ts') {
-                        fs.writeFileSync(dist.replace(ext, '.js'), Compiler.ts(item.content, src));
-                        continue;
-                    }
-                    if (item.type === 'scss' || item.type === 'sass') {
-                        content = Compiler.sass(preImport(item.content), src, item.type);
-                        content = endImport(content);
-                        content = replaceTTF(content, path.dirname(src));
-                        fs.writeFileSync(dist.replace(ext, '.wxss'), content);
-                        continue;
-                    }
-                }
+            if (typeof file.content !== 'undefined') {
+                fs.writeFileSync(file.dist,
+                    file.content
+                );
+                return;
             }
-            this.logFile(src);
-            return;
-        } else if (['.ttf', '.json'].indexOf(ext) >= 0) {
-            return;
-        } else {
-            if (ext === '.css') {
-                dist = dist.replace(ext, '.wxss');
-            }
-            this.mkIfNotFolder(distFolder);
-            fs.copyFileSync(src, dist);
-            this.logFile(src);
-            return;
-        }
-        if (content.length < 1) {
-            return;
-        }
-        this.mkIfNotFolder(distFolder);
-        fs.writeFileSync(dist, content);
-        this.logFile(src);
+            fs.copyFileSync(src, file.dist);
+        };
+        eachCompileFile(this.readyFile(src), file => {
+            compile(file);
+            this.logFile(file.src);
+        });
     }
 
     /**

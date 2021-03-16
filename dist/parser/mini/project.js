@@ -12,87 +12,135 @@ var MiniProject = (function () {
         this.outputFolder = outputFolder;
         this.options = options;
     }
-    MiniProject.prototype.compileFile = function (src) {
+    MiniProject.prototype.readyFile = function (src) {
         var ext = path.extname(src);
         var dist = this.outputFile(src);
-        var distFolder = path.dirname(dist);
-        var content = '';
         if (ext === '.ts') {
-            content = compiler_1.Compiler.ts(fs.readFileSync(src).toString(), src);
-            dist = dist.replace(ext, '.js');
+            return {
+                type: 'ts',
+                src: src,
+                dist: dist.replace(ext, '.js')
+            };
         }
-        else if (ext === '.scss' || ext === '.sass') {
-            var name_1 = path.basename(src);
-            if (name_1.indexOf('_') === 0) {
-                return;
+        if (ext === '.scss' || ext === '.sass') {
+            if (path.basename(src).indexOf('_') === 0) {
+                return undefined;
             }
-            content = compiler_1.Compiler.sass(css_1.preImport(fs.readFileSync(src).toString()), src, ext.substr(1));
-            content = css_1.endImport(content);
-            content = css_1.replaceTTF(content, path.dirname(src));
-            dist = dist.replace(ext, '.wxss');
+            return {
+                type: ext.substring(1),
+                src: src,
+                dist: dist.replace(ext, '.wxss')
+            };
         }
-        else if (ext === '.html' || ext === '.vue') {
-            var data = {};
-            var jsonPath = src.replace(ext, '.json');
-            if (fs.existsSync(jsonPath)) {
-                var json = fs.readFileSync(jsonPath).toString();
-                data = json.trim().length > 0 ? JSON.parse(json) : {};
-            }
-            var res = vue_1.splitFile(fs.readFileSync(src).toString(), ext.substr(1).toLowerCase(), data);
-            this.mkIfNotFolder(distFolder);
-            for (var key in res) {
-                if (res.hasOwnProperty(key)) {
-                    var item = res[key];
-                    if (item.type === 'json') {
-                        fs.writeFileSync(dist.replace(ext, '.json'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'wxml') {
-                        fs.writeFileSync(dist.replace(ext, '.wxml'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'css') {
-                        fs.writeFileSync(dist.replace(ext, '.wxss'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'js') {
-                        fs.writeFileSync(dist.replace(ext, '.js'), item.content);
-                        continue;
-                    }
-                    if (item.type === 'ts') {
-                        fs.writeFileSync(dist.replace(ext, '.js'), compiler_1.Compiler.ts(item.content, src));
-                        continue;
-                    }
-                    if (item.type === 'scss' || item.type === 'sass') {
-                        content = compiler_1.Compiler.sass(css_1.preImport(item.content), src, item.type);
-                        content = css_1.endImport(content);
-                        content = css_1.replaceTTF(content, path.dirname(src));
-                        fs.writeFileSync(dist.replace(ext, '.wxss'), content);
-                        continue;
-                    }
+        if (['.ttf', '.json'].indexOf(ext) >= 0) {
+            return undefined;
+        }
+        if (ext === '.css') {
+            return {
+                type: 'css',
+                src: src,
+                dist: dist.replace(ext, '.wxss')
+            };
+        }
+        if (ext === '.html' || ext === '.vue') {
+            return this.readyVueFile(src, ext, dist);
+        }
+        return undefined;
+    };
+    MiniProject.prototype.readyVueFile = function (src, ext, dist) {
+        var data = {};
+        var jsonPath = src.replace(ext, '.json');
+        if (fs.existsSync(jsonPath)) {
+            var json = fs.readFileSync(jsonPath).toString();
+            data = json.trim().length > 0 ? JSON.parse(json) : {};
+        }
+        var res = vue_1.splitFile(fs.readFileSync(src).toString(), ext.substr(1).toLowerCase(), data);
+        var files = [];
+        for (var key in res) {
+            if (res.hasOwnProperty(key)) {
+                var item = res[key];
+                if (item.type === 'json') {
+                    files.push({
+                        src: src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.json'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'wxml') {
+                    files.push({
+                        src: src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxml'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'css') {
+                    files.push({
+                        src: src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxss'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'js') {
+                    files.push({
+                        src: src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.js'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'ts') {
+                    files.push({
+                        src: src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.js'),
+                        type: item.type
+                    });
+                    continue;
+                }
+                if (item.type === 'scss' || item.type === 'sass') {
+                    files.push({
+                        src: src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxss'),
+                        type: item.type
+                    });
+                    continue;
                 }
             }
-            this.logFile(src);
-            return;
         }
-        else if (['.ttf', '.json'].indexOf(ext) >= 0) {
-            return;
-        }
-        else {
-            if (ext === '.css') {
-                dist = dist.replace(ext, '.wxss');
+        return files;
+    };
+    MiniProject.prototype.compileFile = function (src) {
+        var _this = this;
+        var compile = function (file) {
+            _this.mkIfNotFolder(path.dirname(file.dist));
+            if (file.type === 'ts') {
+                fs.writeFileSync(file.dist, compiler_1.Compiler.ts(compiler_1.fileContent(file), src));
+                return;
             }
-            this.mkIfNotFolder(distFolder);
-            fs.copyFileSync(src, dist);
-            this.logFile(src);
-            return;
-        }
-        if (content.length < 1) {
-            return;
-        }
-        this.mkIfNotFolder(distFolder);
-        fs.writeFileSync(dist, content);
-        this.logFile(src);
+            if (file.type === 'sass' || file.type === 'scss') {
+                var content = compiler_1.Compiler.sass(css_1.preImport(compiler_1.fileContent(file)), src, file.type);
+                content = css_1.endImport(content);
+                fs.writeFileSync(file.dist, css_1.replaceTTF(content, path.dirname(src)));
+                return;
+            }
+            if (typeof file.content !== 'undefined') {
+                fs.writeFileSync(file.dist, file.content);
+                return;
+            }
+            fs.copyFileSync(src, file.dist);
+        };
+        compiler_1.eachCompileFile(this.readyFile(src), function (file) {
+            compile(file);
+            _this.logFile(file.src);
+        });
     };
     MiniProject.prototype.mkIfNotFolder = function (folder) {
         if (!fs.existsSync(folder)) {

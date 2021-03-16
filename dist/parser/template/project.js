@@ -324,8 +324,75 @@ var TemplateProject = (function () {
             this.addLinkFile(path.resolve(folder, res[1].indexOf('.') > 0 ? res[1] : ('_' + res[1] + ext)), file);
         }
     };
+    TemplateProject.prototype.readyFile = function (src) {
+        var ext = path.extname(src);
+        var dist = this.outputFile(src);
+        if (ext === '.ts') {
+            return {
+                src: src,
+                dist: dist.replace(ext, '.js'),
+                type: 'ts'
+            };
+        }
+        if (['.scss', '.sass'].indexOf(ext) >= 0) {
+            if (path.basename(src).indexOf('_') === 0) {
+                return undefined;
+            }
+            return {
+                type: ext.substring(1),
+                src: src,
+                dist: dist.replace(ext, '.css')
+            };
+        }
+        if (ext === '.html') {
+            return {
+                type: 'html',
+                src: src,
+                dist: dist
+            };
+        }
+        return {
+            type: ext.substring(1),
+            src: src,
+            dist: dist
+        };
+    };
     TemplateProject.prototype.compileFile = function (src) {
-        this.compileAFile(src);
+        var _this = this;
+        var compile = function (file) {
+            _this.mkIfNotFolder(path.dirname(file.dist));
+            if (file.type === 'ts') {
+                var content = compiler_1.Compiler.ts(compiler_1.fileContent(file), src);
+                if (content && content.length > 0 && _this.options && _this.options.min) {
+                    content = UglifyJS.minify(content).code;
+                }
+                fs.writeFileSync(file.dist, content);
+                return;
+            }
+            if (file.type === 'scss' || file.type === 'sass') {
+                var content = compiler_1.fileContent(file);
+                _this.getSassImport(content, src);
+                content = compiler_1.Compiler.sass(content, src, file.type);
+                if (content && content.length > 0 && _this.options && _this.options.min) {
+                    content = new CleanCSS().minify(content).styles;
+                }
+                fs.writeFileSync(file.dist, content);
+                return;
+            }
+            if (file.type === 'html') {
+                fs.writeFileSync(file.dist, _this.renderFile(file.src, file.content));
+                return;
+            }
+            if (typeof file.content !== 'undefined') {
+                fs.writeFileSync(file.dist, file.content);
+                return;
+            }
+            fs.copyFileSync(file.src, file.dist);
+        };
+        compiler_1.eachCompileFile(this.readyFile(src), function (file) {
+            compile(file);
+            _this.logFile(file.src);
+        });
     };
     TemplateProject.prototype.compileAFile = function (src, mtime) {
         var ext = path.extname(src);

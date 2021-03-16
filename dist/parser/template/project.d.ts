@@ -1,4 +1,4 @@
-import { ICompliper } from '../../compiler';
+import { ICompliper, ICompliperFile } from '../../compiler';
 export declare class TemplateProject implements ICompliper {
     inputFolder: string;
     outputFolder: string;
@@ -13,6 +13,7 @@ export declare class TemplateProject implements ICompliper {
     renderFile(file: string, content?: string): string;
     private mergeStyle;
     private getSassImport;
+    readyFile(src: string): undefined | ICompliperFile | ICompliperFile[];
     compileFile(src: string): void;
     compileAFile(src: string, mtime?: number): void;
     mkIfNotFolder(folder: string): void;

@@ -4,7 +4,7 @@ import { CacheManger } from '../cache';
 import * as path from 'path';
 import { htmlToJson, jsonToHtml } from '../html';
 import { Element } from '../element';
-import { Compiler, consoleLog, ICompliper } from '../../compiler';
+import { Compiler, consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
 import * as UglifyJS from 'uglify-js';
 import * as CleanCSS from 'clean-css';
 
@@ -381,8 +381,75 @@ export class TemplateProject implements ICompliper {
         }
     }
 
+    public readyFile(src: string): undefined | ICompliperFile | ICompliperFile[] {
+        const ext = path.extname(src);
+        const dist = this.outputFile(src);
+        if (ext === '.ts') {
+            return {
+                src,
+                dist: dist.replace(ext, '.js'),
+                type: 'ts'
+            };
+        }
+        if (['.scss', '.sass'].indexOf(ext) >= 0) {
+            if (path.basename(src).indexOf('_') === 0) {
+                return undefined;
+            }
+            return {
+                type: ext.substring(1),
+                src,
+                dist: dist.replace(ext, '.css'),
+            };
+        }
+        if (ext === '.html') {
+            return {
+                type: 'html',
+                src,
+                dist,
+            };
+        }
+        return {
+            type: ext.substring(1),
+            src,
+            dist,
+        };
+    }
+
     public compileFile(src: string) {
-        this.compileAFile(src);
+        const compile = (file: ICompliperFile) => {
+            this.mkIfNotFolder(path.dirname(file.dist));
+            if (file.type === 'ts') {
+                let content = Compiler.ts(fileContent(file), src);
+                if (content && content.length > 0 && this.options && this.options.min) {
+                    content = UglifyJS.minify(content).code;
+                }
+                fs.writeFileSync(file.dist, content);
+                return;
+            }
+            if (file.type === 'scss' || file.type === 'sass') {
+                let content = fileContent(file);
+                this.getSassImport(content, src);
+                content = Compiler.sass(content, src, file.type);
+                if (content && content.length > 0 && this.options && this.options.min) {
+                    content = new CleanCSS().minify(content).styles;
+                }
+                fs.writeFileSync(file.dist, content);
+                return;
+            }
+            if (file.type === 'html') {
+                fs.writeFileSync(file.dist, this.renderFile(file.src, file.content));
+                return;
+            }
+            if (typeof file.content !== 'undefined') {
+                fs.writeFileSync(file.dist, file.content);
+                return;
+            }
+            fs.copyFileSync(file.src, file.dist);
+        };
+        eachCompileFile(this.readyFile(src), file => {
+            compile(file);
+            this.logFile(file.src);
+        });
     }
 
     /**

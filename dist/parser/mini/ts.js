@@ -45,7 +45,7 @@ function parseMethodToObject(content, maps) {
         }
         return;
     };
-    var lines = content.split(types_1.LINE_SPLITE);
+    var lines = content.split('\n');
     var num = 0;
     var inMethod = 0;
     var method;

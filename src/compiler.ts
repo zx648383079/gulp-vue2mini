@@ -1,14 +1,22 @@
 import * as path from 'path';
 import * as ts from 'typescript';
 import * as sass from 'sass';
+import * as fs from 'fs';
+
+export interface ICompliperFile {
+    src: string;
+    content?: string;
+    dist: string;
+    type?: string;
+}
 
 export interface ICompliper {
+    readyFile(src: string): undefined | ICompliperFile | ICompliperFile[];
     compileFile(src: string): void;
     outputFile(src: string): string;
     unlink(src: string): void;
     logFile(src: string, tip?: string): void;
 }
-
 
 export class Compiler {
     public static ts(input: string, file: string, tsConfigFileName: string = 'tsconfig.json', sourceMap = false) {
@@ -62,3 +70,20 @@ export const consoleLog = (file: string, tip = 'Finished', rootFolder?: string) 
     rootFolder ? path.relative(rootFolder, file) : file, tip);
 };
 
+export const eachCompileFile = (files: undefined | ICompliperFile | ICompliperFile[], callback: (file: ICompliperFile) => void) => {
+    if (!files) {
+        return;
+    }
+    if (files instanceof Array) {
+        files.forEach(callback);
+        return;
+    }
+    callback(files);
+};
+
+export const fileContent = (file: ICompliperFile): string => {
+    if (typeof file.content !== 'undefined') {
+        return file.content;
+    }
+    return fs.readFileSync(file.src).toString();
+};
