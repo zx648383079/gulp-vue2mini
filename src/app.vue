@@ -6,7 +6,7 @@ import {
     IUser, ILogin, IRegister, IDataOne
 } from "./api/model";
 import { getProfile, login, logout, authLogin, register, sendFindEmail } from "./api/user";
-import { WxPage, WxApp, WxAppJson } from "typings/lib.vue";
+import { WxPage, WxApp, WxAppJson } from "typings/wx/lib.vue";
 
 interface IAppData {
     token: string | null,
