@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.1.13
+
+1. 增加 tslint 的依赖
+
 ## v1.1.12
 
 1. 增加 css 转 scss 功能
