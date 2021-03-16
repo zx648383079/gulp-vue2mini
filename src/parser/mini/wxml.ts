@@ -1,6 +1,6 @@
-import { htmlToJson } from "./html";
-import { Element } from "./element";
-import { Attribute } from "./attribute";
+import { htmlToJson } from '../html';
+import { Element } from '../element';
+import { Attribute } from '../attribute';
 
 /**
  * 获取tpl提取的方法
@@ -20,15 +20,15 @@ interface IConverterFunc {
         properties?: any[];
         append?: string[];
         amount?: number;
-    }
+    };
 }
 
 type REPLACE_FUNC = (value: any, tag: string, attrs: Attribute) => void;
 
 /**
  * 生成input 绑定值方法
- * @param name 
- * @param property 
+ * @param name 方法名
+ * @param property 属性名
  */
 function createInputFunc(name: string, property: string, append: string[] = []): string {
     const line = append.join('');
@@ -40,9 +40,9 @@ function createInputFunc(name: string, property: string, append: string[] = []):
 }
 /**
  * 生成tap点击方法
- * @param name 
- * @param property 
- * @param val 
+ * @param name 方法名
+ * @param property 属性名
+ * @param val 参数名
  */
 function createTapFunc(name: string, property: string, val: string): string {
     return `    ${name}(e: TouchEvent) {
@@ -53,12 +53,12 @@ function createTapFunc(name: string, property: string, val: string): string {
 }
 /**
  * 生成直接传多个值func
- * @param name 
- * @param target 
- * @param args 
+ * @param name 方法名
+ * @param target 目标方法
+ * @param args 值
  */
 function createTapCoverterFunc(name: string, target: string, args: string[]): string {
-    let lines: string[] = [];
+    const lines: string[] = [];
     args.forEach(item => {
         lines.push('e.currentTarget.dataset.' + item);
     });
@@ -87,14 +87,14 @@ export function firstUpper(val: string): string {
 
 /**
  * 转化成驼峰
- * @param val 
+ * @param val 字符串
  * @param isFirstUpper 第一个字母是否大写
  */
 export function studly(val: string, isFirstUpper: boolean = true): string {
     if (!val || val.length < 1) {
         return '';
     }
-    let items: string[] = [];
+    const items: string[] = [];
     val.split(/[\.\s_-]+/).forEach(item => {
         if (item.length < 1) {
             return;
@@ -110,17 +110,19 @@ export function studly(val: string, isFirstUpper: boolean = true): string {
 
 /**
  * json 转 wxml
- * @param json 
+ * @param json 页面json
  */
 export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/): string {
     wxmlFunc = [];
-    let existFunc: IConverterFunc = {};
-    const disallow_attrs: string[] = [],
-        replace_attrs:{[key: string]: REPLACE_FUNC | string| boolean} = {
-            'v-if': function(value: string, _, attrs: Attribute) {
+    const existFunc: IConverterFunc = {};
+    const disallowAttrs: string[] = [];
+    const replaceAttrs: {
+        [key: string]: REPLACE_FUNC | string| boolean
+    } = {
+            'v-if': (value: string, _, attrs: Attribute) => {
                 attrs.set('wx:if', '{{ ' + value + ' }}');
             },
-            'v-model': function(value: string, tag: string, attrs: Attribute) {
+            'v-model': (value: string, tag: string, attrs: Attribute) => {
                 const func = studly(value, false) + 'Changed';
                 if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
                     existFunc[func] = {
@@ -154,20 +156,20 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 attrs.set('value', '{{' + value + '}}');
                 attrs.set(inputFunc, func);
             },
-            'v-elseif': function(value: string, _, attrs: Attribute) {
-                attrs.set('wx:elif', '{{ ' +value + ' }}');
+            'v-elseif': (value: string, _, attrs: Attribute) => {
+                attrs.set('wx:elif', '{{ ' + value + ' }}');
             },
             'v-else': 'wx:else',
             ':src': converterSrc,
             ':class': converterClass,
             'v-bind:class': converterClass,
             'v-bind:src': converterSrc,
-            'v-for': function(value: string, _, attrs: Attribute) {
+            'v-for': (value: string, _, attrs: Attribute) => {
                 let index = 'index';
                 let item = 'item';
-                let match = value.match(/\(?([\w_]+)(,\s?([\w_]+)\))?\s+in\s+([\w_\.]+)/);
+                const match = value.match(/\(?([\w_]+)(,\s?([\w_]+)\))?\s+in\s+([\w_\.]+)/);
                 if (match === null) {
-                    attrs.set('wx:for', '{{ ' +value + ' }}');
+                    attrs.set('wx:for', '{{ ' + value + ' }}');
                     return;
                 }
                 if (match[3]) {
@@ -176,15 +178,15 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 item = match[1];
                 attrs.set('wx:for', '{{ ' + match[4] + ' }}').set('wx:for-index', index).set('wx:for-item', item);
             },
-            'v-show': function(value: string, _, attrs: Attribute) {
-                attrs.set('hidden', '{{ ' + invertIf(value) + ' }}')
+            'v-show': (value: string, _, attrs: Attribute) => {
+                attrs.set('hidden', '{{ ' + invertIf(value) + ' }}');
             },
-            'href': 'url',
+            href: 'url',
             ':key': false,
-            '@click': function(value: any, _: string, attrs: Attribute) {
+            '@click': (value: any, _: string, attrs: Attribute) => {
                 converterTap(value, 'bindtap', attrs);
             },
-            '@click.stop': function(value: any, _: string, attrs: Attribute) {
+            '@click.stop': (value: any, _: string, attrs: Attribute) => {
                 if (typeof value === 'string') {
                     converterTap(value, 'catchtap', attrs);
                     return;
@@ -197,25 +199,25 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 }
                 attrs.set('catchtap', func);
             },
-            'v-on:click': function(value: any, _: string, attrs: Attribute) {
+            'v-on:click': (value: any, _: string, attrs: Attribute) => {
                 converterTap(value, 'bindtap', attrs);
             },
-            '(click)': function(value: any, _: string, attrs: Attribute) {
+            '(click)': (value: any, _: string, attrs: Attribute) => {
                 converterTap(value, 'bindtap', attrs);
             },
-            '@touchstart': function(value: any, _: string, attrs: Attribute) {
+            '@touchstart': (value: any, _: string, attrs: Attribute) => {
                 converterTap(value, 'bindtouchstart', attrs);
             },
-            '@touchmove': function(value: any, _: string, attrs: Attribute) {
+            '@touchmove': (value: any, _: string, attrs: Attribute) => {
                 converterTap(value, 'bindtouchmove', attrs);
             },
-            '@touchend': function(value: any, _: string, attrs: Attribute) {
+            '@touchend': (value: any, _: string, attrs: Attribute) => {
                 converterTap(value, 'bindtouchend', attrs);
             },
         };
-    const content = json.toString((item, content) => {
+    const content = json.toString((item, nextStr) => {
         if (item.node === 'root') {
-            return content;
+            return nextStr;
         }
         if (item.node === 'text') {
             if (/^\s+$/.test(item.text + '')) {
@@ -226,61 +228,61 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         if (item.node === 'comment') {
             return `<!-- ${item.text} -->`;
         }
-        if (item.node != 'element') {
-            return content;
+        if (item.node !== 'element') {
+            return nextStr;
         }
-        if(item.tag == 'img') {
-            const attr = parseNodeAttr(item.attribute, 'image');
-            return `<image${attr}></image>`
+        if (item.tag === 'img') {
+            const attrs = parseNodeAttr(item.attribute, 'image');
+            return `<image${attrs}></image>`;
         }
-        if (item.tag == 'input') {
+        if (item.tag === 'input') {
             return parseInput(item);
         }
-        if (item.tag == 'button') {
-            return parseButton(item, content);
+        if (item.tag === 'button') {
+            return parseButton(item, nextStr);
         }
-        if (item.tag == 'form') {
-            const attr = parseNodeAttr(item.attribute, item.tag);
-            return `<form${attr}>${content}</form>`;
+        if (item.tag === 'form') {
+            const attrs = parseNodeAttr(item.attribute, item.tag);
+            return `<form${attrs}>${nextStr}</form>`;
         }
         if (['slider', 'icon', 'progress', 'switch', 'radio', 'checkbox', 'live-player', 'live-pusher'].indexOf(item.tag + '') >= 0) {
-            const attr = parseNodeAttr(item.attribute, item.tag);
-            return `<${item.tag}${attr}/>`;
+            const attrs = parseNodeAttr(item.attribute, item.tag);
+            return `<${item.tag}${attrs}/>`;
         }
         if (['label', 'slot', 'style', 'text',
-            'script', 'template', 'view', 'scroll-view', 'swiper', 'block', 
+            'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
             'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
             'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
-            'open-data', 'web-view', 'ad', 'official-account', 
+            'open-data', 'web-view', 'ad', 'official-account',
             ].indexOf(item.tag + '') >= 0) {
-            const attr = parseNodeAttr(item.attribute, item.tag);
-            content = removeIfText(item.children, content);
-            return `<${item.tag}${attr}>${content}</${item.tag}>`;
+            const attrs = parseNodeAttr(item.attribute, item.tag);
+            nextStr = removeIfText(item.children, nextStr);
+            return `<${item.tag}${attrs}>${nextStr}</${item.tag}>`;
         }
-        if (item.tag == 'textarea') {
-            if (content.length > 0) {
-                item.attr('value', content);
+        if (item.tag === 'textarea') {
+            if (nextStr.length > 0) {
+                item.attr('value', nextStr);
             }
-            const attr = parseNodeAttr(item.attribute, item.tag);
-            return `<textarea${attr}/>`;
+            const attrs = parseNodeAttr(item.attribute, item.tag);
+            return `<textarea${attrs}/>`;
         }
-        if (item.tag == 'a') {
-            let attr = parseNodeAttr(item.attribute, 'navigator');
-            content = removeIfText(item.children, content);
-            return `<navigator${attr}>${content}</navigator>`;
+        if (item.tag === 'a') {
+            const attrs = parseNodeAttr(item.attribute, 'navigator');
+            nextStr = removeIfText(item.children, nextStr);
+            return `<navigator${attrs}>${nextStr}</navigator>`;
         }
-        if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0 
-        && (!item.children || (item.children.length == 1 && item.children[0].node == 'text'))) {
-            const attr = parseNodeAttr(item.attribute, 'text');
-            content =  !item.children ? '' : item.children[0].text + '';
-            return `<text${attr}>${content}</text>`;
+        if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
+        && (!item.children || (item.children.length === 1 && item.children[0].node === 'text'))) {
+            const attrs = parseNodeAttr(item.attribute, 'text');
+            nextStr =  !item.children ? '' : item.children[0].text + '';
+            return `<text${attrs}>${nextStr}</text>`;
         }
         const attr = parseNodeAttr(item.attribute);
         // 默认将有 - 分隔符或含大写的作为自定义部件
         if (item.tag && exclude.test(item.tag)) {
-            return `<${item.tag}${attr}>${content}</${item.tag}>`;
+            return `<${item.tag}${attr}>${nextStr}</${item.tag}>`;
         }
-        return `<view${attr}>${content}</view>`;
+        return `<view${attr}>${nextStr}</view>`;
     });
     for (const key in existFunc) {
         if (Object.prototype.hasOwnProperty.call(existFunc, key)) {
@@ -310,20 +312,20 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
     /**
      * 抛弃一些不必要的text 标签
      */
-    function removeIfText(children: Element[] | undefined, content: string): string {
-        if (!children || children.length > 1 || children[0].node != 'text') {
-            return content;
+    function removeIfText(children: Element[] | undefined, str: string): string {
+        if (!children || children.length > 1 || children[0].node !== 'text') {
+            return str;
         }
         return children[0].text + '';
     }
 
     /**
      * 取反判断语句
-     * @param value 
+     * @param value 值
      */
     function invertIf(value: string): string {
         value = value.trim();
-        if (value.charAt(0) == '!') {
+        if (value.charAt(0) === '!') {
             return value.substr(1);
         }
         const maps = [
@@ -334,7 +336,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             ['==', '!='],
             ['>', '<='],
             ['<', '>='],
-        ]
+        ];
         for (const item of maps) {
             if (value.indexOf(item[0]) > 0) {
                 return value.replace(item[0], item[1]);
@@ -344,7 +346,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
     }
 
     function converterSrc(value: string, _: string, attrs: Attribute) {
-        attrs.set('src', '{{ ' +value + ' }}');
+        attrs.set('src', '{{ ' + value + ' }}');
     }
 
     function converterClass(value: string, _: string, attrs: Attribute) {
@@ -352,7 +354,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         if (typeof cls === 'object' && cls instanceof Array) {
             cls = cls.join(' ');
         }
-        let block = [];
+        const block = [];
         if (cls.length > 1) {
             block.push('\'' + cls + ' \'');
         }
@@ -366,15 +368,14 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 con = con.trim();
                 const isNot = con.charAt(0) === '!';
                 const name = isNot ? con.substr(1).trim() : con;
-                
                 if (!Object.prototype.hasOwnProperty.call(clsObj, name)) {
                     clsObj[name] = ['', ''];
                 }
-                clsObj[name][isNot ? 1 : 0] += ' ' + key.replace(/'"/g, '');
+                clsObj[name][isNot ? 1 : 0] += ' ' + key.replace(/''/g, '');
             });
             for (const key in clsObj) {
                 if (Object.prototype.hasOwnProperty.call(clsObj, key)) {
-                    block.push('(' + key + '?' + qStr(clsObj[key][0].trim()) + ':' + qStr(clsObj[key][1].trim()) +')');
+                    block.push('(' + key + '?' + qStr(clsObj[key][0].trim()) + ':' + qStr(clsObj[key][1].trim()) + ')');
                 }
             }
         } else if (value.charAt(0) === '[') {
@@ -393,20 +394,20 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         if (!attrKey) {
             attrKey = 'bindtap';
         }
-        if (value.indexOf('=') > 0 && !/['"].*=/.test(value)) {
+        if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
             let [key, val] = value.split('=', 2);
             key = key.trim();
             val = qv(val.trim());
             let dataKey = studly(key);
-            const func = 'tapItem' + dataKey;
+            const f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase(); // 只能接受
-            if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
-                existFunc[func] = {
+            if (!Object.prototype.hasOwnProperty.call(existFunc, f)) {
+                existFunc[f] = {
                     type: FuncType.TAP,
                     properties: [key, dataKey],
                 };
             }
-            attrs.set(attrKey, func).set(`data-${dataKey}`, val);
+            attrs.set(attrKey, f).set(`data-${dataKey}`, val);
             return;
         }
         const match = value.match(/^([^\(\)]+)\((.*)\)$/);
@@ -420,10 +421,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             attrs.set(attrKey, func);
             return;
         }
-        let ext: any = {};
-        let lines: string[] = [];
+        const ext: any = {};
+        const lines: string[] = [];
         args.split(',').forEach((item, i) => {
-            const key = 'arg'+i;
+            const key = 'arg' + i;
             const val = qv(item.trim());
             lines.push(key);
             ext[`data-${key}`] = val;
@@ -444,46 +445,46 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
     }
 
     /**
-     * 转换成属性值 包含""
-     * @param v 
+     * 转换成属性值 包含''
+     * @param v 值
      */
     function q(v: any): string {
         if (typeof v === 'object' && v instanceof Array) {
             v = v.join(' ');
         }
-        return '"' + v + '"';
+        return '\'' + v + '\'';
     }
 
     /**
      * 转换成字符串
-     * @param v 
+     * @param v 值
      */
     function qStr(v: any): string {
-        if (/^['"](.+)['"]$/.test(v)) {
+        if (/^[''](.+)['']$/.test(v)) {
             return v;
         }
         return '\'' + v + '\'';
     }
 
     /**
-     * js 转换成 属性值 没有""
-     * @param val 
+     * js 转换成 属性值 没有''
+     * @param val 值
      */
     function qv(val: string): string {
         if (/^[\d\.]+$/.test(val)) {
             return val;
         }
-        const match = val.match(/^['"](.+)['"]$/);
+        const match = val.match(/^[''](.+)['']$/);
         if (match) {
             return match[1];
         }
-        return '{{ ' +val + ' }}';
+        return '{{ ' + val + ' }}';
     }
 
     /**
      * 转化属性
-     * @param attrs 
-     * @param tag 
+     * @param attrs 属性
+     * @param tag 标签
      */
     function parseNodeAttr(attrs?: Attribute, tag: string = 'view'): string {
         if (!attrs) {
@@ -494,7 +495,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         // 排序 prepare 中越后越前
         const sortKey = (prepare: string[]) => {
             keys.sort((a, b) => {
-                return prepare.indexOf(b) - prepare.indexOf(a)
+                return prepare.indexOf(b) - prepare.indexOf(a);
             });
         };
         if (tag === 'textarea') {
@@ -510,31 +511,31 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         };
         mapProperty((key, value) => {
             properties.delete(key);
-            if (disallow_attrs.indexOf(key) >= 0) {
+            if (disallowAttrs.indexOf(key) >= 0) {
                 return;
             }
-            if (replace_attrs.hasOwnProperty(key)) {
-                const attr: string|Function| boolean = replace_attrs[key];
+            if (replaceAttrs.hasOwnProperty(key)) {
+                const attr: string|REPLACE_FUNC| boolean = replaceAttrs[key];
                 if (typeof attr === 'function') {
                     attr(value, tag, properties);
                     return;
                 } else if (typeof attr === 'boolean') {
-                    return
+                    return;
                 } else {
                     key = attr;
                 }
             }
-            if (!key || key.indexOf('@') > 0 
+            if (!key || key.indexOf('@') > 0
                 || (key.charAt(0) === '@' && value === true)) {
-                return
+                return;
             }
             if (value === true) {
                 properties.set(key, value);
-                return
+                return;
             }
             if (Array.isArray(value)) {
                 value = value.join(' ');
-            };
+            }
             const name = parseEventName(key);
             if (name) {
                 // 修改 @自定义方法的生成
@@ -542,7 +543,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 return;
             } else if (key.charAt(0) === ':') {
                 key = key.substr(1);
-                value = '{{ ' + value +' }}';
+                value = '{{ ' + value + ' }}';
             }
             properties.set(key, value);
         });
@@ -560,17 +561,17 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         return undefined;
     }
 
-    function parseButton(node: Element, content: string): string {
+    function parseButton(node: Element, str: string): string {
         let attr = parseNodeAttr(node.attribute);
         if (['reset', 'submit'].indexOf(node.attr('type') + '') >= 0) {
-            attr += ' form-type='+ q(node.attr('type'));
+            attr += ' form-type=' + q(node.attr('type'));
         }
-        return `<button type="default"${attr}>${content}</button>`;
+        return `<button type='default'${attr}>${str}</button>`;
     }
 
     function parseInput(node: Element) {
         let type = node.attr('type') || 'text';
-        if (type == 'password') {
+        if (type === 'password') {
             type = 'text';
             node.attr('password', 'true');
         }
@@ -579,13 +580,13 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             node.tag = 'button';
             return parseButton(node, node.attr('value') + '');
         }
-        if (type == 'checkbox') {
-            const attr = parseNodeAttr(node.attribute, type);
-            return `<checkbox${attr}/>`
+        if (type === 'checkbox') {
+            const attrs = parseNodeAttr(node.attribute, type);
+            return `<checkbox${attrs}/>`;
         }
-        if (type == 'radio') {
-            const attr = parseNodeAttr(node.attribute, type);
-            return `<radio${attr}/>`
+        if (type === 'radio') {
+            const attrs = parseNodeAttr(node.attribute, type);
+            return `<radio${attrs}/>`;
         }
         if (['text', 'number', 'idcard', 'digit'].indexOf(type + '') < 0) {
             type = 'text';
@@ -601,6 +602,6 @@ export function htmlToWxml(content: string): string {
     //     console.log('跳过。。。');
     //     return content;
     // }
-    let element = htmlToJson(content);
+    const element = htmlToJson(content);
     return jsonToWxml(element);
 }

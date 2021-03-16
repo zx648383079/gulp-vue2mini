@@ -6,6 +6,15 @@ var Attribute = (function () {
         if (items === void 0) { items = {}; }
         this.items = items;
     }
+    Attribute.create = function (attribute) {
+        if (!attribute) {
+            return new Attribute();
+        }
+        if (attribute instanceof Attribute) {
+            return attribute;
+        }
+        return new Attribute(attribute);
+    };
     Attribute.prototype.get = function (key) {
         return this.items.hasOwnProperty(key) ? this.items[key] : undefined;
     };
@@ -89,22 +98,12 @@ var Attribute = (function () {
             if (Array.isArray(value)) {
                 value = value.join(' ');
             }
-            ;
             data.push(key + "=\"" + value + "\"");
         });
         return data.join(' ');
     };
     Attribute.prototype.clone = function () {
         return Attribute.create(JSON.parse(JSON.stringify(this.items)));
-    };
-    Attribute.create = function (attribute) {
-        if (!attribute) {
-            return new Attribute();
-        }
-        if (attribute instanceof Attribute) {
-            return attribute;
-        }
-        return new Attribute(attribute);
     };
     return Attribute;
 }());

@@ -1,16 +1,17 @@
-import { Transform } from "readable-stream";
-import * as vinyl from "vinyl";
-import * as fs from "fs";
-import { preImport, endImport, replaceTTF } from "./parser/css";
-import { splitFile } from "./parser/vue";
-import { CacheManger } from "./parser/cache";
+import { Transform } from 'readable-stream';
+import * as vinyl from 'vinyl';
+import * as fs from 'fs';
+import { preImport, endImport, replaceTTF } from '../parser/mini/css';
+import { splitFile } from '../parser/mini/vue';
+import { CacheManger } from '../parser/cache';
+import { transformCallback } from './types';
 
 const cachesFiles = new CacheManger();
 
 /**
  * 处理文件
- * @param contentBuff 
- * @param path 
+ * @param contentBuff 内容
+ * @param path 路径
  * @param ext .js
  * @param wantTag js
  */
@@ -18,7 +19,7 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     if (wantTag === 'tpl') {
         wantTag = 'wxml';
     }
-    let tplFile = path.replace(ext, '__tmpl.' + wantTag);
+    const tplFile = path.replace(ext, '__tmpl.' + wantTag);
     if (cachesFiles.has(tplFile)) {
         return Buffer.from(cachesFiles.get(tplFile) as string);
     }
@@ -28,7 +29,7 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     }
     let data = {};
     if (['scss', 'sass', 'less', 'css', 'wxss'].indexOf(wantTag) < 0 || ext.indexOf('vue') > 0) {
-        let jsonPath = path.replace(ext, '.json');
+        const jsonPath = path.replace(ext, '.json');
         if (fs.existsSync(jsonPath)) {
             const json = fs.readFileSync(jsonPath).toString();
             data = json.trim().length > 0 ? JSON.parse(json) : {};
@@ -54,8 +55,8 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
 
 /**
  * 修改文件后缀
- * @param path 
- * @param ext 
+ * @param path 路径
+ * @param ext 拓展
  */
 export function renameExt(path: string, ext: string): string {
     if (ext.length > 0 && ext.charAt(0) !== '.') {
@@ -92,54 +93,50 @@ export function replacePath(file: string, search: string, value: string): string
 export function template(tag: string, srcFolder: string = 'src', distFolder = 'dist', tplExt = '.vue') {
     return new Transform({
         objectMode: true,
-        transform: function (file: vinyl, _: any, callback: Function) {
+        transform: (file: vinyl, _: any, callback: transformCallback) => {
             if (file.isNull()) {
                 return callback();
             }
-            
-            function doReplace() {
-                if (!file.isBuffer()) {
-                    return callback();
-                }
-                if (/src[\\\/](parser|utils|api)/.test(file.path)) {
-                    return callback(null, file);
-                }
-                if (tag === 'presass') {
-                    let str = preImport(String(file.contents));
-                    file.contents = Buffer.from(str);
-                    file.path = replacePath(file.path, distFolder, srcFolder);
-                    return callback(null, file);
-                }
-                if (tag === 'endsass') {
-                    let str = endImport(String(file.contents));
-                    str = replaceTTF(str, replacePath(file.base, distFolder, srcFolder));
-                    file.contents = Buffer.from(str);
-                    file.path = renameExt(replacePath(file.path, srcFolder, distFolder), 'wxss');
-                    return callback(null, file);
-                }
-                let sourcePath = file.path;
-                let sourceExt = file.extname;
-                if (sourcePath.indexOf(srcFolder) < 0) {
-                    sourceExt = tplExt.indexOf('.') !== 0 ? '.' + tplExt : tplExt;
-                    sourcePath = renameExt(replacePath(sourcePath, distFolder, srcFolder), sourceExt);
-                }
-                file.contents = dealTemplateFile(file.contents, sourcePath, sourceExt, tag);
-                const extMap: {[key: string]: string} = {
-                    tpl: 'wxml',
-                    wxml: 'wxml',
-                    js: 'js',
-                    ts: 'ts',
-                    sass: 'sass',
-                    css: 'wxss',
-                    json: 'json',
-                    scss: 'scss', 
-                    less: 'less', 
-                    wxss: 'wxss'
-                };
-                file.path = renameExt(file.path, extMap[tag]);
-                return callback(null, file);
+            if (!file.isBuffer()) {
+                return callback();
             }
-            doReplace();
+            if (/src[\\\/](parser|utils|api)/.test(file.path)) {
+                return callback(undefined, file);
+            }
+            if (tag === 'presass') {
+                let str = preImport(String(file.contents));
+                file.contents = Buffer.from(str);
+                file.path = replacePath(file.path, distFolder, srcFolder);
+                return callback(undefined, file);
+            }
+            if (tag === 'endsass') {
+                let str = endImport(String(file.contents));
+                str = replaceTTF(str, replacePath(file.base, distFolder, srcFolder));
+                file.contents = Buffer.from(str);
+                file.path = renameExt(replacePath(file.path, srcFolder, distFolder), 'wxss');
+                return callback(undefined, file);
+            }
+            let sourcePath = file.path;
+            let sourceExt = file.extname;
+            if (sourcePath.indexOf(srcFolder) < 0) {
+                sourceExt = tplExt.indexOf('.') !== 0 ? '.' + tplExt : tplExt;
+                sourcePath = renameExt(replacePath(sourcePath, distFolder, srcFolder), sourceExt);
+            }
+            file.contents = dealTemplateFile(file.contents, sourcePath, sourceExt, tag);
+            const extMap: {[key: string]: string} = {
+                tpl: 'wxml',
+                wxml: 'wxml',
+                js: 'js',
+                ts: 'ts',
+                sass: 'sass',
+                css: 'wxss',
+                json: 'json',
+                scss: 'scss',
+                less: 'less',
+                wxss: 'wxss'
+            };
+            file.path = renameExt(file.path, extMap[tag]);
+            return callback(undefined, file);
         }
     });
-};
+}

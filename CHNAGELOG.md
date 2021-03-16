@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.1.12
+
+1. 增加 css 转 scss 功能
+
 ## v1.1.10
 
 1. 修复 html 注释的识别 

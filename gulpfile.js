@@ -1,5 +1,5 @@
 var gulp = require('gulp'),
-    ts = require("gulp-typescript"),
+    ts = require('gulp-typescript'),
     tsProject = ts.createProject('tsconfig.json');
 
 gulp.task('default', async() => {

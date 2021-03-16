@@ -2,6 +2,7 @@ export declare class Attribute {
     items: {
         [key: string]: string | boolean;
     };
+    static create(attribute: Attribute | any): Attribute;
     constructor(items?: {
         [key: string]: string | boolean;
     });
@@ -15,5 +16,4 @@ export declare class Attribute {
     map(cb: (key: string, value: any) => any): this;
     toString(): string;
     clone(): Attribute;
-    static create(attribute: Attribute | any): Attribute;
 }

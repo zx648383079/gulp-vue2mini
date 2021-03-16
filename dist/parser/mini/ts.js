@@ -1,12 +1,7 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from) {
-    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-        to[j] = from[i];
-    return to;
-};
 exports.__esModule = true;
-exports.parseMethodToObject = exports.parseJson = exports.parsePage = exports.LINE_SPLITE = void 0;
-exports.LINE_SPLITE = "\r\n";
+exports.parseMethodToObject = exports.parseJson = exports.parsePage = void 0;
+var types_1 = require("../types");
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 function parsePage(content, tplFuns) {
     content = content.replace(/import.+?from\s+.+?\.vue["'];/, '')
@@ -16,15 +11,15 @@ function parsePage(content, tplFuns) {
         return content;
     }
     content = parseMethodToObject(appendMethod(content, tplFuns, match[0], match[4].indexOf('Component') > 0), {
-        'methods': '@WxMethod',
-        'lifetimes': '@WxLifeTime',
-        'pageLifetimes': '@WxPageLifeTime'
+        methods: '@WxMethod',
+        lifetimes: '@WxLifeTime',
+        pageLifetimes: '@WxPageLifeTime'
     }).replace(match[0], 'class ' + match[3]);
     var reg = new RegExp('(Page|Component)\\(new\\s+' + match[3]);
     if (reg.test(content)) {
         return content;
     }
-    return content + exports.LINE_SPLITE + match[4].substr(2) + '(new ' + match[3] + '());';
+    return content + types_1.LINE_SPLITE + match[4].substr(2) + '(new ' + match[3] + '());';
 }
 exports.parsePage = parsePage;
 function parseJson(content, append) {
@@ -39,20 +34,27 @@ function parseJson(content, append) {
 }
 exports.parseJson = parseJson;
 function parseMethodToObject(content, maps) {
-    var str_count = function (search, line) {
+    var strCount = function (search, line) {
         return line.split(search).length - 1;
-    }, get_tag = function (line) {
+    };
+    var getTag = function (line) {
         for (var key in maps) {
             if (maps.hasOwnProperty(key) && line.indexOf(maps[key]) >= 0) {
                 return key;
             }
         }
         return;
-    }, lines = content.split(exports.LINE_SPLITE), num = 0, inMethod = 0, method, data = {}, block = [];
+    };
+    var lines = content.split(types_1.LINE_SPLITE);
+    var num = 0;
+    var inMethod = 0;
+    var method;
+    var data = {};
+    var block = [];
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
         if (inMethod === 0) {
-            method = get_tag(line);
+            method = getTag(line);
             if (!method) {
                 continue;
             }
@@ -71,14 +73,14 @@ function parseMethodToObject(content, maps) {
         if (inMethod < 1) {
             continue;
         }
-        var leftNum = str_count('{', line);
-        num += leftNum - str_count('}', line);
+        var leftNum = strCount('{', line);
+        num += leftNum - strCount('}', line);
         if (inMethod === 1) {
             block.push(line.replace(/public\s/, ''));
             lines[i] = '';
             if (leftNum > 0) {
                 if (num === 0) {
-                    data[method + ''].items.push(block.join(exports.LINE_SPLITE));
+                    data[method + ''].items.push(block.join(types_1.LINE_SPLITE));
                     inMethod = 0;
                     continue;
                 }
@@ -90,7 +92,7 @@ function parseMethodToObject(content, maps) {
         block.push(line);
         lines[i] = '';
         if (num === 0) {
-            data[method + ''].items.push(block.join(exports.LINE_SPLITE));
+            data[method + ''].items.push(block.join(types_1.LINE_SPLITE));
             inMethod = 0;
             continue;
         }
@@ -105,7 +107,7 @@ function parseMethodToObject(content, maps) {
             delete data[key];
         }
     }
-    content = lines.join(exports.LINE_SPLITE);
+    content = lines.join(types_1.LINE_SPLITE);
     for (var key in data) {
         if (!data.hasOwnProperty(key)) {
             continue;
@@ -122,7 +124,8 @@ function appendMethod(content, tplFuns, classLine, isComponent) {
     if (!tplFuns || tplFuns.length < 1) {
         return content;
     }
-    var pos = content.indexOf(classLine), code = '';
+    var pos = content.indexOf(classLine);
+    var code = '';
     while (pos < content.length) {
         code = content.charAt(++pos);
         if (code === '{') {
@@ -138,5 +141,5 @@ function appendMethod(content, tplFuns, classLine, isComponent) {
         }
         tplFuns = lines;
     }
-    return __spreadArray(__spreadArray([content.substr(0, pos + 1)], tplFuns), [content.substr(pos + 2)]).join(exports.LINE_SPLITE);
+    return [content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]).join(types_1.LINE_SPLITE);
 }

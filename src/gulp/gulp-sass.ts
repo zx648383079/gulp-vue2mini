@@ -1,9 +1,10 @@
-import { Transform } from "readable-stream";
-import * as vinyl from "vinyl";
-import { Compiler } from "./compiler";
-import * as sass from "sass";
+import { Transform } from 'readable-stream';
+import * as vinyl from 'vinyl';
+import { Compiler } from '../compiler';
+import * as sass from 'sass';
 import * as path from 'path';
-import { renameExt } from "./gulp-tempate";
+import { renameExt } from './gulp-tempate';
+import { transformCallback } from './types';
 
 /**
  * 压缩sass代码
@@ -11,7 +12,7 @@ import { renameExt } from "./gulp-tempate";
 export function gulpSass(options: sass.Options = {}) {
     return new Transform({
         objectMode: true,
-        transform: function (file: vinyl, _: any, callback: Function) {
+        transform: (file: vinyl, _: any, callback: transformCallback) => {
             if (file.isNull()) {
                 return callback();
             }
@@ -24,7 +25,7 @@ export function gulpSass(options: sass.Options = {}) {
             const content =  Compiler.sass(String(file.contents), file.path, file.extname.substr(1), options);
             file.contents = Buffer.from(content);
             file.path = renameExt(file.path, 'css');
-            return callback(null, file);
+            return callback(undefined, file);
         }
     });
-};
+}

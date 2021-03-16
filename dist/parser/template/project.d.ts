@@ -1,5 +1,5 @@
-import { ICompliper } from "../compiler";
-export declare class UiCompliper implements ICompliper {
+import { ICompliper } from '../../compiler';
+export declare class TemplateProject implements ICompliper {
     inputFolder: string;
     outputFolder: string;
     options?: any;
@@ -17,5 +17,6 @@ export declare class UiCompliper implements ICompliper {
     compileAFile(src: string, mtime?: number): void;
     mkIfNotFolder(folder: string): void;
     outputFile(file: string): string;
+    unlink(src: string): void;
     logFile(file: string, tip?: string): void;
 }

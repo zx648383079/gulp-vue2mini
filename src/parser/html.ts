@@ -1,4 +1,4 @@
-import { Element } from "./element";
+import { Element } from './element';
 /**
  * 单标签
  */
@@ -18,15 +18,18 @@ enum BLOCK_TYPE {
 
 /**
  * html 转json
- * @param content 
+ * @param content 内容
  */
 export function htmlToJson(content: string): Element {
-    let pos = -1,
+    let pos = -1;
     /**
      * 判断是否是标签的开始
      */
-    isNodeBegin = function() {
-        let po = pos, code: string, status = BLOCK_TYPE.TAG, attrTag: string = '';
+    const isNodeBegin = () => {
+        let po = pos;
+        let code: string;
+        let status = BLOCK_TYPE.TAG;
+        let attrTag = '';
         while (po < content.length) {
             code = content.charAt(++ po);
             if (['\'', '"'].indexOf(code) >= 0) {
@@ -48,12 +51,13 @@ export function htmlToJson(content: string): Element {
             }
         }
         return false;
-    },
+    };
     /**
      * 获取结束标签的tag, 可能包含空格
      */
-    getNodeEndTag = function(i: number): string|boolean {
-        let code: string, tag = '';
+    const getNodeEndTag = (i: number): string|boolean => {
+        let code: string;
+        let tag = '';
         code = content.charAt(++ i);
         if (code !== '/') {
             return false;
@@ -69,42 +73,43 @@ export function htmlToJson(content: string): Element {
             tag += code;
         }
         return false;
-    },
+    };
     /**
      * 判断是否是结束标签，是则移动位置
      */
-    isNodeEnd = function() {
-        let tag = getNodeEndTag(pos);
+    const isNodeEnd = () => {
+        const tag = getNodeEndTag(pos);
         if (typeof tag !== 'string') {
             return false;
         }
         pos += 2 + tag.length;
         return true;
-    },
+    };
     /**
      * 判断是否是评论
      */
-    isComment = function() {
+    const isComment = () => {
         if (content.substr(pos, 4) !== '<!--') {
             return false;
         }
         return content.indexOf('-->', pos + 3) > 0;
-    },
+    };
     /**
      * 获取评论元素，并移动位置
      */
-    getCommentElement = function(): Element {
-        let start = pos + 4;
-        let end = content.indexOf('-->', start);
-        let text = content.substr(start, end - start);
+    const getCommentElement = (): Element => {
+        const start = pos + 4;
+        const end = content.indexOf('-->', start);
+        const text = content.substr(start, end - start);
         pos = end + 3;
         return Element.comment(text.trim());
-    },
+    };
     /**
      * 获取文本元素，并移动位置
      */
-    getTextElement = function(): Element | boolean {
-        let text = '', code: string;
+    const getTextElement = (): Element | boolean => {
+        let text = '';
+        let code: string;
         while (pos < content.length) {
             code = content.charAt(++ pos);
             if (code  === '<' && isNodeBegin()) {
@@ -117,12 +122,14 @@ export function htmlToJson(content: string): Element {
             return false;
         }
         return Element.text(text.trim());
-    },
+    };
     /**
      * 向前获取 \ 的数量
      */
-    backslashedCount = function() {
-        let po = pos, code: string, count = 0;
+    const backslashedCount = () => {
+        let po = pos;
+        let code: string;
+        let count = 0;
         while (po < content.length) {
             code = content.charAt(-- po);
             if (code === '\\') {
@@ -132,18 +139,19 @@ export function htmlToJson(content: string): Element {
             return count;
         }
         return count;
-    },
+    };
     /**
      * 判断字符是否为空
      */
-    isEmpty = function (code: string) {
-        return code === ' ' || code === "\r" || code === "\n" || code === "\t";
-    },
+    const isEmpty = (code: string) => {
+        return code === ' ' || code === '\r' || code === '\n' || code === '\t';
+    };
     /**
-     * 移除为单标签的内容及结束符 例如 <br>123</br> 只获取 br 并移动位置忽略 123</br> 
+     * 移除为单标签的内容及结束符 例如 <br>123</br> 只获取 br 并移动位置忽略 123</br>
      */
-    moveEndTag = function(tag: string) {
-        let po = pos, code: string;
+    const moveEndTag = (tag: string) => {
+        let po = pos;
+        let code: string;
         while (po < content.length) {
             code = content.charAt(++ po);
             if (isEmpty(code)) {
@@ -153,7 +161,7 @@ export function htmlToJson(content: string): Element {
                 break;
             }
         }
-        let endTag = getNodeEndTag(po);
+        const endTag = getNodeEndTag(po);
         if (typeof endTag !== 'string') {
             return;
         }
@@ -161,18 +169,18 @@ export function htmlToJson(content: string): Element {
             return;
         }
         pos = po + 2 + endTag.length;
-    },
+    };
     /**
      * 获取元素
      */
-    getElement = function(): Element {
-        let tag = '', 
-            attrs: {[key: string]: string| boolean} = {}, 
-            code: string,
-            status: BLOCK_TYPE = BLOCK_TYPE.TAG, 
-            name: string = '', 
-            value: string = '', 
-            endAttr: string| undefined; // 属性的结束标记
+    const getElement = (): Element => {
+        let tag = '';
+        const attrs: {[key: string]: string| boolean} = {};
+        let code: string;
+        let status: BLOCK_TYPE = BLOCK_TYPE.TAG;
+        let name = '';
+        let value = '';
+        let endAttr: string| undefined; // 属性的结束标记
         while (pos < content.length) {
             code = content.charAt(++ pos);
             if ((code === '\n' || code === '\r') && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
@@ -203,8 +211,8 @@ export function htmlToJson(content: string): Element {
                     }
                     continue;
                 }
-                if (!endAttr && status == BLOCK_TYPE.ATTR_VALUE) {
-                    if (content.charAt(pos ++) == '>') {
+                if (!endAttr && status === BLOCK_TYPE.ATTR_VALUE) {
+                    if (content.charAt(pos ++) === '>') {
                         status = BLOCK_TYPE.NONE;
                         attrs[name] = value;
                         name = '';
@@ -214,14 +222,14 @@ export function htmlToJson(content: string): Element {
                     }
                 }
             }
-            if (code == ' ') {
+            if (code === ' ') {
                 if (status === BLOCK_TYPE.TAG) {
                     status = BLOCK_TYPE.ATTR;
                     name = '';
                     value = '';
                     continue;
                 }
-                if (status == BLOCK_TYPE.ATTR) {
+                if (status === BLOCK_TYPE.ATTR) {
                     name = name.trim();
                     // 修复为空的属性名
                     if (name.length > 0) {
@@ -242,10 +250,10 @@ export function htmlToJson(content: string): Element {
             if (status === BLOCK_TYPE.TAG) {
                 tag += code;
             }
-            if (code === '=' && status == BLOCK_TYPE.ATTR) {
+            if (code === '=' && status === BLOCK_TYPE.ATTR) {
                 code = content.charAt(pos + 1);
                 status = BLOCK_TYPE.ATTR_VALUE;
-                if (code == '\'' || code == '"') {
+                if (code === '\'' || code === '"') {
                     endAttr = code;
                     pos ++;
                     continue;
@@ -253,8 +261,8 @@ export function htmlToJson(content: string): Element {
                 endAttr = undefined;
                 continue;
             }
-            if (endAttr && code === endAttr && status == BLOCK_TYPE.ATTR_VALUE) {
-                //向前获取反斜杠的数量
+            if (endAttr && code === endAttr && status === BLOCK_TYPE.ATTR_VALUE) {
+                // 向前获取反斜杠的数量
                 if (backslashedCount() % 2 === 0) {
                     status = BLOCK_TYPE.TAG;
                     attrs[name] = value;
@@ -265,20 +273,20 @@ export function htmlToJson(content: string): Element {
                 value += code;
                 continue;
             }
-            if (status == BLOCK_TYPE.ATTR) {
+            if (status === BLOCK_TYPE.ATTR) {
                 name += code;
                 continue;
             }
-            if (status == BLOCK_TYPE.ATTR_VALUE) {
+            if (status === BLOCK_TYPE.ATTR_VALUE) {
                 value += code;
             }
         }
         return Element.noKid(tag.trim(), attrs);
-    },
+    };
     /**
      * 转化根据第一个非空字符获取元素
      */
-    parserElement = function(): Element | boolean {
+    const parserElement = (): Element | boolean => {
         let code: string;
         while (pos < content.length) {
             code = content.charAt(++pos);
@@ -302,14 +310,14 @@ export function htmlToJson(content: string): Element {
             return getElement();
         }
         return false;
-    },
+    };
     /**
      * 获取特殊的内容
      */
-    parserSpecialText = function(blockTag: string): Element[] {
-        let text = '',
-            endTag = '',
-            code = '';
+    const parserSpecialText = (blockTag: string): Element[] => {
+        let text = '';
+        let endTag = '';
+        let code = '';
         while (pos < content.length) {
             code = content.charAt(++pos);
             if (endTag.length > 0) {
@@ -323,7 +331,7 @@ export function htmlToJson(content: string): Element {
                 text += code;
                 continue;
             }
-            let tag = getNodeEndTag(pos);
+            const tag = getNodeEndTag(pos);
             if (tag !== blockTag) {
                 text += code;
                 continue;
@@ -335,14 +343,14 @@ export function htmlToJson(content: string): Element {
             return [];
         }
         return [Element.text(text.trim())];
-    },
+    };
     /**
      * 获取元素集合
      */
-    parserElements = function () {
-        let items: Element[] = [];
+    const parserElements = () => {
+        const items: Element[] = [];
         while (pos < content.length) {
-            let item = parserElement();
+            const item = parserElement();
             if (item === true) {
                 break;
             }
@@ -357,7 +365,7 @@ export function htmlToJson(content: string): Element {
 
 /**
  * 还原成html
- * @param json 
+ * @param json 标签数据
  */
 export function jsonToHtml(json: Element, indent: string = ''): string {
     return json.toString(Element.htmlBeautify(indent));

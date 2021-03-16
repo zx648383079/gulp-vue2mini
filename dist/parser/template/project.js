@@ -1,26 +1,26 @@
 "use strict";
 exports.__esModule = true;
-exports.UiCompliper = void 0;
+exports.TemplateProject = void 0;
 var fs = require("fs");
-var ts_1 = require("./ts");
-var cache_1 = require("./cache");
+var types_1 = require("../types");
+var cache_1 = require("../cache");
 var path = require("path");
-var html_1 = require("./html");
-var element_1 = require("./element");
-var compiler_1 = require("../compiler");
+var html_1 = require("../html");
+var element_1 = require("../element");
+var compiler_1 = require("../../compiler");
 var UglifyJS = require("uglify-js");
 var CleanCSS = require("clean-css");
 var REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
 var REGEX_SASS_IMPORT = /@import\s+["'](.+?)["'];/g;
-var UiCompliper = (function () {
-    function UiCompliper(inputFolder, outputFolder, options) {
+var TemplateProject = (function () {
+    function TemplateProject(inputFolder, outputFolder, options) {
         this.inputFolder = inputFolder;
         this.outputFolder = outputFolder;
         this.options = options;
         this.linkFiles = {};
         this.cachesFiles = new cache_1.CacheManger();
     }
-    UiCompliper.prototype.triggerLinkFile = function (key, mtime) {
+    TemplateProject.prototype.triggerLinkFile = function (key, mtime) {
         var _this = this;
         if (!Object.prototype.hasOwnProperty.call(this.linkFiles, key)) {
             return;
@@ -31,7 +31,7 @@ var UiCompliper = (function () {
             }
         });
     };
-    UiCompliper.prototype.addLinkFile = function (key, file) {
+    TemplateProject.prototype.addLinkFile = function (key, file) {
         if (!Object.prototype.hasOwnProperty.call(this.linkFiles, key)) {
             this.linkFiles[key] = [file];
             return;
@@ -41,7 +41,7 @@ var UiCompliper = (function () {
         }
         this.linkFiles[key].push(file);
     };
-    UiCompliper.prototype.converterToken = function (line) {
+    TemplateProject.prototype.converterToken = function (line) {
         var _a;
         line = line.trim();
         if (line.length < 0) {
@@ -85,7 +85,7 @@ var UiCompliper = (function () {
             amount: parseInt(amount, 10) || 1
         };
     };
-    UiCompliper.prototype.parseToken = function (file, content) {
+    TemplateProject.prototype.parseToken = function (file, content) {
         var _this = this;
         var time = fs.statSync(file).mtimeMs;
         if (this.cachesFiles.has(file, time)) {
@@ -113,7 +113,7 @@ var UiCompliper = (function () {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        content.split(ts_1.LINE_SPLITE).forEach(function (line, i) {
+        content.split(types_1.LINE_SPLITE).forEach(function (line, i) {
             var token = _this.converterToken(line);
             if (!token) {
                 tokens.push({
@@ -150,7 +150,7 @@ var UiCompliper = (function () {
         this.cachesFiles.set(file, page, time);
         return page;
     };
-    UiCompliper.prototype.renderFile = function (file, content) {
+    TemplateProject.prototype.renderFile = function (file, content) {
         var _this = this;
         var page = this.parseToken(file, content);
         if (!page.canRender) {
@@ -160,10 +160,10 @@ var UiCompliper = (function () {
         var renderPage = function (item, data) {
             var lines = [];
             item.tokens.forEach(function (token) {
-                if (token.type == 'comment' || token.type === 'layout') {
+                if (token.type === 'comment' || token.type === 'layout') {
                     return;
                 }
-                if (token.type == 'content') {
+                if (token.type === 'content') {
                     lines.push(data);
                     return;
                 }
@@ -190,12 +190,12 @@ var UiCompliper = (function () {
                     lines.push(renderPage(next));
                 }
             });
-            return lines.join(ts_1.LINE_SPLITE);
+            return lines.join(types_1.LINE_SPLITE);
         };
         content = renderPage(page);
         return this.mergeStyle(layout ? renderPage(layout, content) : content, file);
     };
-    UiCompliper.prototype.mergeStyle = function (content, file) {
+    TemplateProject.prototype.mergeStyle = function (content, file) {
         var currentFolder = path.dirname(file);
         var replacePath = function (text) {
             return text.replace(REGEX_ASSET, function ($0, _, $2) {
@@ -231,12 +231,12 @@ var UiCompliper = (function () {
             }
             if (root.tag === 'style') {
                 root.ignore = true;
-                var lang_1 = root.attr('lang');
-                if (lang_1 && lang_1 !== 'css') {
-                    styleLang = lang_1;
+                var l = root.attr('lang');
+                if (l && l !== 'css') {
+                    styleLang = l;
                 }
-                if (root.children) {
-                    styles.push.apply(styles, root.children);
+                if (root.children && root.children.length > 0) {
+                    styles = styles.concat(root.children);
                 }
                 return;
             }
@@ -254,8 +254,8 @@ var UiCompliper = (function () {
                 scriptLang = lang;
             }
             root.ignore = true;
-            if (root.children) {
-                scripts.push.apply(scripts, root.children);
+            if (root.children && root.children.length > 0) {
+                scripts = scripts.concat(root.children);
             }
         };
         data.map(eachElement);
@@ -265,7 +265,7 @@ var UiCompliper = (function () {
                 lines.push(item.text);
             }
         });
-        var style = lines.join(ts_1.LINE_SPLITE);
+        var style = lines.join(types_1.LINE_SPLITE);
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = compiler_1.Compiler.sass(style, file, styleLang);
         }
@@ -275,28 +275,33 @@ var UiCompliper = (function () {
                 lines.push(item.text);
             }
         });
-        var script = lines.join(ts_1.LINE_SPLITE);
+        var script = lines.join(types_1.LINE_SPLITE);
         if (script.length > 0 && scriptLang === 'ts') {
             script = compiler_1.Compiler.ts(script, file);
         }
         var pushStyle = function (root) {
-            var _a, _b, _c, _d;
+            var _a, _b;
             if (root.node !== 'element') {
                 return;
             }
             if (root.tag === 'head') {
-                (_a = root.children) === null || _a === void 0 ? void 0 : _a.push.apply(_a, headers);
+                if (headers.length > 0) {
+                    root.children = !root.children ? headers : root.children.concat(headers);
+                }
                 if (style.length > 0) {
-                    (_b = root.children) === null || _b === void 0 ? void 0 : _b.push(element_1.Element.create('style', [element_1.Element.text(style)]));
+                    (_a = root.children) === null || _a === void 0 ? void 0 : _a.push(element_1.Element.create('style', [element_1.Element.text(style)]));
                 }
                 headers = [];
                 return;
             }
             if (root.tag === 'body') {
-                (_c = root.children) === null || _c === void 0 ? void 0 : _c.push.apply(_c, footers);
-                if (script.length > 0) {
-                    (_d = root.children) === null || _d === void 0 ? void 0 : _d.push(element_1.Element.create('script', [element_1.Element.text(script)]));
+                if (footers.length > 0) {
+                    root.children = !root.children ? footers : root.children.concat(footers);
                 }
+                if (script.length > 0) {
+                    (_b = root.children) === null || _b === void 0 ? void 0 : _b.push(element_1.Element.create('script', [element_1.Element.text(script)]));
+                }
+                footers = [];
                 return;
             }
             root.map(pushStyle);
@@ -304,21 +309,25 @@ var UiCompliper = (function () {
         data.map(pushStyle);
         return html_1.jsonToHtml(data, this.options && this.options.min ? '' : '    ');
     };
-    UiCompliper.prototype.getSassImport = function (content, file) {
+    TemplateProject.prototype.getSassImport = function (content, file) {
         if (content.length < 6) {
             return;
         }
         var ext = path.extname(file);
         var folder = path.dirname(file);
         var res;
-        while (res = REGEX_SASS_IMPORT.exec(content)) {
+        while (true) {
+            res = REGEX_SASS_IMPORT.exec(content);
+            if (!res) {
+                break;
+            }
             this.addLinkFile(path.resolve(folder, res[1].indexOf('.') > 0 ? res[1] : ('_' + res[1] + ext)), file);
         }
     };
-    UiCompliper.prototype.compileFile = function (src) {
+    TemplateProject.prototype.compileFile = function (src) {
         this.compileAFile(src);
     };
-    UiCompliper.prototype.compileAFile = function (src, mtime) {
+    TemplateProject.prototype.compileAFile = function (src, mtime) {
         var ext = path.extname(src);
         var dist = this.outputFile(src);
         var extMaps = {
@@ -369,19 +378,24 @@ var UiCompliper = (function () {
         fs.writeFileSync(dist, content);
         this.logFile(src);
     };
-    UiCompliper.prototype.mkIfNotFolder = function (folder) {
+    TemplateProject.prototype.mkIfNotFolder = function (folder) {
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder, { recursive: true });
         }
     };
-    UiCompliper.prototype.outputFile = function (file) {
+    TemplateProject.prototype.outputFile = function (file) {
         return path.resolve(this.outputFolder, path.relative(this.inputFolder, file));
     };
-    UiCompliper.prototype.logFile = function (file, tip) {
-        if (tip === void 0) { tip = 'Finished'; }
-        var now = new Date();
-        console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(this.inputFolder, file), tip);
+    TemplateProject.prototype.unlink = function (src) {
+        var dist = this.outputFile(src);
+        if (fs.existsSync(dist)) {
+            fs.unlinkSync(dist);
+        }
     };
-    return UiCompliper;
+    TemplateProject.prototype.logFile = function (file, tip) {
+        if (tip === void 0) { tip = 'Finished'; }
+        compiler_1.consoleLog(file, tip, this.inputFolder);
+    };
+    return TemplateProject;
 }());
-exports.UiCompliper = UiCompliper;
+exports.TemplateProject = TemplateProject;

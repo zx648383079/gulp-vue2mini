@@ -3,12 +3,15 @@ exports.__esModule = true;
 exports.formatArgv = void 0;
 function parseValue(val) {
     var num = +val;
-    if (num)
+    if (num) {
         return num;
-    if (val === 'true')
+    }
+    if (val === 'true') {
         return true;
-    if (val === 'false')
+    }
+    if (val === 'false') {
         return false;
+    }
     return val;
 }
 function formatArgv(argv, defaultParams) {
@@ -29,26 +32,32 @@ function formatArgv(argv, defaultParams) {
     }
     function parse(val) {
         if (val[0] !== '-') {
-            if (prev.length)
+            if (prev.length) {
                 addValueToPrev(val);
-            else
+            }
+            else {
                 args.additional.push(val);
+            }
             return;
         }
-        if (prev.length)
+        if (prev.length) {
             addValueToPrev('true');
+        }
         var _a = val.split('='), names = _a[0], vals = _a[1];
-        if (names[names.length - 1] === '-')
+        if (names[names.length - 1] === '-') {
             return;
+        }
         prev = names.indexOf('--') === 0 ? [names.substr(2)] : names.substr(1).split('');
-        if (vals !== undefined)
+        if (vals !== undefined) {
             parse(vals);
+        }
     }
     for (var i = 2, l = argv.length; i < l; i++) {
         parse(argv[i]);
     }
-    if (prev.length)
+    if (prev.length) {
         addValueToPrev('true');
+    }
     return args;
 }
 exports.formatArgv = formatArgv;

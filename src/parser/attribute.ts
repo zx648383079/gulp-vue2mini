@@ -1,4 +1,13 @@
 export class Attribute {
+    public static create(attribute: Attribute | any): Attribute {
+        if (!attribute) {
+            return new Attribute();
+        }
+        if (attribute instanceof Attribute) {
+            return attribute;
+        }
+        return new Attribute(attribute);
+    }
     /**
      *
      */
@@ -105,18 +114,18 @@ export class Attribute {
      * toString
      */
     public toString() {
-        let data: string[] = [];
+        const data: string[] = [];
         this.map((key, value) => {
             if (typeof value === 'undefined' || value === false) {
-                return
+                return;
             }
             if (value === true) {
                 data.push(key);
-                return 
+                return;
             }
             if (Array.isArray(value)) {
                 value = value.join(' ');
-            };
+            }
             data.push(`${key}="${value}"`);
         });
         return data.join(' ');
@@ -124,15 +133,5 @@ export class Attribute {
 
     public clone(): Attribute {
         return Attribute.create(JSON.parse(JSON.stringify(this.items)));
-    }
-
-    public static create(attribute: Attribute | any): Attribute {
-        if (!attribute) {
-            return new Attribute();
-        }
-        if (attribute instanceof Attribute) {
-            return attribute;
-        }
-        return new Attribute(attribute);
     }
 }

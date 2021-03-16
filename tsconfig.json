@@ -17,6 +17,7 @@
     "removeComments": true,
     "pretty": true,
     "strictPropertyInitialization": true,
+    "importHelpers": true,
     "typeRoots": [
       "./node_modules/@types"
     ]

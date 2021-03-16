@@ -1,10 +1,10 @@
-import * as fs from "fs";
-import { LINE_SPLITE } from "./ts";
-import { CacheManger } from "./cache";
-import * as path from "path";
-import { htmlToJson, jsonToHtml } from "./html";
-import { Element } from "./element";
-import { Compiler, ICompliper } from "../compiler";
+import * as fs from 'fs';
+import { LINE_SPLITE } from '../types';
+import { CacheManger } from '../cache';
+import * as path from 'path';
+import { htmlToJson, jsonToHtml } from '../html';
+import { Element } from '../element';
+import { Compiler, consoleLog, ICompliper } from '../../compiler';
 import * as UglifyJS from 'uglify-js';
 import * as CleanCSS from 'clean-css';
 
@@ -27,7 +27,8 @@ interface IToken {
 const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
 const REGEX_SASS_IMPORT = /@import\s+["'](.+?)["'];/g;
 
-export class UiCompliper implements ICompliper {
+export class TemplateProject implements ICompliper {
+
     constructor(
         public inputFolder: string,
         public outputFolder: string,
@@ -41,8 +42,8 @@ export class UiCompliper implements ICompliper {
 
     /**
      * 触发更新
-     * @param key 
-     * @param mtime 
+     * @param key 触发文件
+     * @param mtime 文件的更改时间
      */
     private triggerLinkFile(key: string, mtime: number) {
         if (!Object.prototype.hasOwnProperty.call(this.linkFiles, key)) {
@@ -54,7 +55,7 @@ export class UiCompliper implements ICompliper {
             }
         });
     }
-    
+
     /**
      * 添加链接文件
      * @param key 触发文件
@@ -73,7 +74,7 @@ export class UiCompliper implements ICompliper {
 
     /**
      * 根据一行内容提取token
-     * @param line 
+     * @param line 内容
      */
     private converterToken(line: string): IToken | undefined {
         line = line.trim();
@@ -85,7 +86,7 @@ export class UiCompliper implements ICompliper {
         }
         let content = line.substr(1);
         let comment = '';
-        const i = content.indexOf(' ')
+        const i = content.indexOf(' ');
         if (i > 0) {
             comment = content.substr(i).trim();
             content = content.substr(0, i);
@@ -120,8 +121,8 @@ export class UiCompliper implements ICompliper {
 
     /**
      * 将文件内容转成功token
-     * @param file 
-     * @param content 
+     * @param file 文件路径
+     * @param content 文件的内容
      */
     private parseToken(file: string, content?: string): IPage {
         const time = fs.statSync(file).mtimeMs;
@@ -131,7 +132,7 @@ export class UiCompliper implements ICompliper {
         if (!content) {
             content = fs.readFileSync(file).toString();
         }
-        let tokens:IToken[] = [];
+        const tokens: IToken[] = [];
         let isLayout = false;
         let canRender = true;
         const currentFolder = path.dirname(file);
@@ -190,23 +191,23 @@ export class UiCompliper implements ICompliper {
 
     /**
      * 编译一个文件
-     * @param file 
-     * @param content 
+     * @param file 文件路径
+     * @param content 内容
      */
     public renderFile(file: string, content?: string): string {
         const page = this.parseToken(file, content);
         if (!page.canRender) {
             return '';
         }
-        
+
         let layout: IPage | null = null;
         const renderPage = (item: IPage, data?: string) => {
-            let lines: string[] = [];
+            const lines: string[] = [];
             item.tokens.forEach(token => {
-                if (token.type == 'comment' || token.type === 'layout') {
+                if (token.type === 'comment' || token.type === 'layout') {
                     return;
                 }
-                if (token.type == 'content') {
+                if (token.type === 'content') {
                     lines.push(data as string);
                     return;
                 }
@@ -239,10 +240,9 @@ export class UiCompliper implements ICompliper {
         return this.mergeStyle(layout ? renderPage(layout, content) : content, file);
     }
     /**
-     * 
      * 合并脚本和样式
-     * @param content 
-     * @param file 
+     * @param content 内容
+     * @param file 文件
      */
     private mergeStyle(content: string, file: string): string {
         const currentFolder = path.dirname(file);
@@ -258,7 +258,7 @@ export class UiCompliper implements ICompliper {
                 if ($2.charAt(0) === '/') {
                     return $0;
                 }
-                let fileName = path.relative(currentFolder, $2).replace('\\', '/').replace(/\.ts$/, '.js').replace(/\.(scss|sass|less)$/, '.css');
+                const fileName = path.relative(currentFolder, $2).replace('\\', '/').replace(/\.ts$/, '.js').replace(/\.(scss|sass|less)$/, '.css');
                 return $0.replace($2, fileName);
             });
         };
@@ -281,12 +281,12 @@ export class UiCompliper implements ICompliper {
             }
             if (root.tag === 'style') {
                 root.ignore = true;
-                const lang = root.attr('lang');
-                if (lang && lang !== 'css') {
-                    styleLang = lang as string;
+                const l = root.attr('lang') as string;
+                if (l && l !== 'css') {
+                    styleLang = l;
                 }
-                if (root.children) {
-                    styles.push(...root.children);
+                if (root.children && root.children.length > 0) {
+                    styles = styles.concat(root.children);
                 }
                 return;
             }
@@ -300,14 +300,14 @@ export class UiCompliper implements ICompliper {
                 return;
             }
             const lang = root.attr('lang');
-                if (lang && lang !== 'js') {
-                    scriptLang = lang as string;
-                }
-            root.ignore = true;
-            if (root.children) {
-                scripts.push(...root.children);
+            if (lang && lang !== 'js') {
+                scriptLang = lang as string;
             }
-        }
+            root.ignore = true;
+            if (root.children && root.children.length > 0) {
+                scripts = scripts.concat(root.children);
+            }
+        };
         data.map(eachElement);
         let lines: string[] = [];
         styles.forEach(item => {
@@ -329,24 +329,29 @@ export class UiCompliper implements ICompliper {
         if (script.length > 0 && scriptLang === 'ts') {
             script = Compiler.ts(script, file);
         }
-        
+
         const pushStyle = (root: Element) => {
             if (root.node !== 'element') {
                 return;
             }
             if (root.tag === 'head') {
-                root.children?.push(...headers);
+                if (headers.length > 0) {
+                    root.children = !root.children ? headers : root.children.concat(headers);
+                }
                 if (style.length > 0) {
-                    root.children?.push(Element.create('style', [Element.text(style)]))
+                    root.children?.push(Element.create('style', [Element.text(style)]));
                 }
                 headers = [];
                 return;
             }
             if (root.tag === 'body') {
-                root.children?.push(...footers);
-                if (script.length > 0) {
-                    root.children?.push(Element.create('script', [Element.text(script)]))
+                if (footers.length > 0) {
+                    root.children = !root.children ? footers : root.children.concat(footers);
                 }
+                if (script.length > 0) {
+                    root.children?.push(Element.create('script', [Element.text(script)]));
+                }
+                footers = [];
                 return;
             }
             root.map(pushStyle);
@@ -357,8 +362,8 @@ export class UiCompliper implements ICompliper {
 
     /**
      * 添加文件绑定
-     * @param content 
-     * @param file 
+     * @param content 内容
+     * @param file 文件
      */
     private getSassImport(content: string, file: string) {
         if (content.length < 6) {
@@ -367,7 +372,11 @@ export class UiCompliper implements ICompliper {
         const ext = path.extname(file);
         const folder = path.dirname(file);
         let res;
-        while (res = REGEX_SASS_IMPORT.exec(content)) {
+        while (true) {
+            res = REGEX_SASS_IMPORT.exec(content);
+            if (!res) {
+                break;
+            }
             this.addLinkFile(path.resolve(folder, res[1].indexOf('.') > 0 ? res[1] : ('_' + res[1] + ext)), file);
         }
     }
@@ -379,7 +388,7 @@ export class UiCompliper implements ICompliper {
     /**
      * compileFile
      * @param mtime 更新时间
-    */
+     */
     public compileAFile(src: string, mtime?: number) {
         const ext = path.extname(src);
         let dist = this.outputFile(src);
@@ -443,15 +452,20 @@ export class UiCompliper implements ICompliper {
      * outputFile
      */
     public outputFile(file: string) {
-        return path.resolve(this.outputFolder, path.relative(this.inputFolder, file)); 
+        return path.resolve(this.outputFolder, path.relative(this.inputFolder, file));
+    }
+
+    public unlink(src: string) {
+        const dist = this.outputFile(src);
+        if (fs.existsSync(dist)) {
+            fs.unlinkSync(dist);
+        }
     }
 
     /**
      * logFile
      */
     public logFile(file: string, tip = 'Finished') {
-        const now = new Date();
-        console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', path.relative(this.inputFolder, file), tip);
+        consoleLog(file, tip, this.inputFolder);
     }
 }
-

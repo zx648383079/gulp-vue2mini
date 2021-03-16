@@ -13,8 +13,12 @@ var BLOCK_TYPE;
     BLOCK_TYPE[BLOCK_TYPE["END_TAG"] = 4] = "END_TAG";
 })(BLOCK_TYPE || (BLOCK_TYPE = {}));
 function htmlToJson(content) {
-    var pos = -1, isNodeBegin = function () {
-        var po = pos, code, status = BLOCK_TYPE.TAG, attrTag = '';
+    var pos = -1;
+    var isNodeBegin = function () {
+        var po = pos;
+        var code;
+        var status = BLOCK_TYPE.TAG;
+        var attrTag = '';
         while (po < content.length) {
             code = content.charAt(++po);
             if (['\'', '"'].indexOf(code) >= 0) {
@@ -36,8 +40,10 @@ function htmlToJson(content) {
             }
         }
         return false;
-    }, getNodeEndTag = function (i) {
-        var code, tag = '';
+    };
+    var getNodeEndTag = function (i) {
+        var code;
+        var tag = '';
         code = content.charAt(++i);
         if (code !== '/') {
             return false;
@@ -53,26 +59,31 @@ function htmlToJson(content) {
             tag += code;
         }
         return false;
-    }, isNodeEnd = function () {
+    };
+    var isNodeEnd = function () {
         var tag = getNodeEndTag(pos);
         if (typeof tag !== 'string') {
             return false;
         }
         pos += 2 + tag.length;
         return true;
-    }, isComment = function () {
+    };
+    var isComment = function () {
         if (content.substr(pos, 4) !== '<!--') {
             return false;
         }
         return content.indexOf('-->', pos + 3) > 0;
-    }, getCommentElement = function () {
+    };
+    var getCommentElement = function () {
         var start = pos + 4;
         var end = content.indexOf('-->', start);
         var text = content.substr(start, end - start);
         pos = end + 3;
         return element_1.Element.comment(text.trim());
-    }, getTextElement = function () {
-        var text = '', code;
+    };
+    var getTextElement = function () {
+        var text = '';
+        var code;
         while (pos < content.length) {
             code = content.charAt(++pos);
             if (code === '<' && isNodeBegin()) {
@@ -85,8 +96,11 @@ function htmlToJson(content) {
             return false;
         }
         return element_1.Element.text(text.trim());
-    }, backslashedCount = function () {
-        var po = pos, code, count = 0;
+    };
+    var backslashedCount = function () {
+        var po = pos;
+        var code;
+        var count = 0;
         while (po < content.length) {
             code = content.charAt(--po);
             if (code === '\\') {
@@ -96,10 +110,13 @@ function htmlToJson(content) {
             return count;
         }
         return count;
-    }, isEmpty = function (code) {
-        return code === ' ' || code === "\r" || code === "\n" || code === "\t";
-    }, moveEndTag = function (tag) {
-        var po = pos, code;
+    };
+    var isEmpty = function (code) {
+        return code === ' ' || code === '\r' || code === '\n' || code === '\t';
+    };
+    var moveEndTag = function (tag) {
+        var po = pos;
+        var code;
         while (po < content.length) {
             code = content.charAt(++po);
             if (isEmpty(code)) {
@@ -117,8 +134,15 @@ function htmlToJson(content) {
             return;
         }
         pos = po + 2 + endTag.length;
-    }, getElement = function () {
-        var tag = '', attrs = {}, code, status = BLOCK_TYPE.TAG, name = '', value = '', endAttr;
+    };
+    var getElement = function () {
+        var tag = '';
+        var attrs = {};
+        var code;
+        var status = BLOCK_TYPE.TAG;
+        var name = '';
+        var value = '';
+        var endAttr;
         while (pos < content.length) {
             code = content.charAt(++pos);
             if ((code === '\n' || code === '\r') && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
@@ -147,8 +171,8 @@ function htmlToJson(content) {
                     }
                     continue;
                 }
-                if (!endAttr && status == BLOCK_TYPE.ATTR_VALUE) {
-                    if (content.charAt(pos++) == '>') {
+                if (!endAttr && status === BLOCK_TYPE.ATTR_VALUE) {
+                    if (content.charAt(pos++) === '>') {
                         status = BLOCK_TYPE.NONE;
                         attrs[name] = value;
                         name = '';
@@ -158,14 +182,14 @@ function htmlToJson(content) {
                     }
                 }
             }
-            if (code == ' ') {
+            if (code === ' ') {
                 if (status === BLOCK_TYPE.TAG) {
                     status = BLOCK_TYPE.ATTR;
                     name = '';
                     value = '';
                     continue;
                 }
-                if (status == BLOCK_TYPE.ATTR) {
+                if (status === BLOCK_TYPE.ATTR) {
                     name = name.trim();
                     if (name.length > 0) {
                         status = BLOCK_TYPE.ATTR;
@@ -185,10 +209,10 @@ function htmlToJson(content) {
             if (status === BLOCK_TYPE.TAG) {
                 tag += code;
             }
-            if (code === '=' && status == BLOCK_TYPE.ATTR) {
+            if (code === '=' && status === BLOCK_TYPE.ATTR) {
                 code = content.charAt(pos + 1);
                 status = BLOCK_TYPE.ATTR_VALUE;
-                if (code == '\'' || code == '"') {
+                if (code === '\'' || code === '"') {
                     endAttr = code;
                     pos++;
                     continue;
@@ -196,7 +220,7 @@ function htmlToJson(content) {
                 endAttr = undefined;
                 continue;
             }
-            if (endAttr && code === endAttr && status == BLOCK_TYPE.ATTR_VALUE) {
+            if (endAttr && code === endAttr && status === BLOCK_TYPE.ATTR_VALUE) {
                 if (backslashedCount() % 2 === 0) {
                     status = BLOCK_TYPE.TAG;
                     attrs[name] = value;
@@ -207,16 +231,17 @@ function htmlToJson(content) {
                 value += code;
                 continue;
             }
-            if (status == BLOCK_TYPE.ATTR) {
+            if (status === BLOCK_TYPE.ATTR) {
                 name += code;
                 continue;
             }
-            if (status == BLOCK_TYPE.ATTR_VALUE) {
+            if (status === BLOCK_TYPE.ATTR_VALUE) {
                 value += code;
             }
         }
         return element_1.Element.noKid(tag.trim(), attrs);
-    }, parserElement = function () {
+    };
+    var parserElement = function () {
         var code;
         while (pos < content.length) {
             code = content.charAt(++pos);
@@ -240,8 +265,11 @@ function htmlToJson(content) {
             return getElement();
         }
         return false;
-    }, parserSpecialText = function (blockTag) {
-        var text = '', endTag = '', code = '';
+    };
+    var parserSpecialText = function (blockTag) {
+        var text = '';
+        var endTag = '';
+        var code = '';
         while (pos < content.length) {
             code = content.charAt(++pos);
             if (endTag.length > 0) {
@@ -267,7 +295,8 @@ function htmlToJson(content) {
             return [];
         }
         return [element_1.Element.text(text.trim())];
-    }, parserElements = function () {
+    };
+    var parserElements = function () {
         var items = [];
         while (pos < content.length) {
             var item = parserElement();

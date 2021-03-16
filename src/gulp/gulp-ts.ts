@@ -1,16 +1,17 @@
-import { Transform } from "readable-stream";
-import * as vinyl from "vinyl";
-import { Compiler } from "./compiler";
-import { renameExt } from "./gulp-tempate";
+import { Transform } from 'readable-stream';
+import * as vinyl from 'vinyl';
+import { Compiler } from '../compiler';
+import { renameExt } from './gulp-tempate';
+import { transformCallback } from './types';
 
 /**
  * 压缩ts代码
- * @param tsConfigFileName 
+ * @param tsConfigFileName ts 配置文件名
  */
 export function gulpTs(tsConfigFileName: string = 'tsconfig.json') {
     return new Transform({
         objectMode: true,
-        transform: function (file: vinyl, _: any, callback: Function) {
+        transform: (file: vinyl, _: any, callback: transformCallback) => {
             if (file.isNull()) {
                 return callback();
             }
@@ -20,7 +21,7 @@ export function gulpTs(tsConfigFileName: string = 'tsconfig.json') {
             const content =  Compiler.ts(String(file.contents), file.path, tsConfigFileName, true);
             file.contents = Buffer.from(content);
             file.path = renameExt(file.path, 'js');
-            return callback(null, file);
+            return callback(undefined, file);
         }
     });
-};
+}

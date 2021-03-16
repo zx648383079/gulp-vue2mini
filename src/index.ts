@@ -1,7 +1,5 @@
-import { template } from './gulp-tempate';
+import { template } from './gulp';
 
-export * from './gulp-sass';
-export * from './gulp-ts';
-export { template } from './gulp-tempate';
+export * from './gulp';
 
 export default template;

@@ -3,7 +3,7 @@ exports.__esModule = true;
 exports.Element = void 0;
 var attribute_1 = require("./attribute");
 var html_1 = require("./html");
-var ts_1 = require("./ts");
+var types_1 = require("./types");
 var Element = (function () {
     function Element(tag, text, node, children, attribute) {
         if (tag === void 0) { tag = ''; }
@@ -14,6 +14,73 @@ var Element = (function () {
         this.attribute = attribute;
         this.ignore = false;
     }
+    Element.comment = function (text) {
+        return Element.nodeElement('comment', text);
+    };
+    Element.text = function (text) {
+        return Element.nodeElement('text', text);
+    };
+    Element.nodeElement = function (node, text) {
+        if (typeof text === 'object') {
+            return new Element(undefined, undefined, node, text);
+        }
+        return new Element(undefined, text, node);
+    };
+    Element.noKid = function (tag, attribute) {
+        return new Element(tag, undefined, 'element', undefined, attribute_1.Attribute.create(attribute));
+    };
+    Element.create = function (tag, children, attribute) {
+        return new Element(tag, undefined, 'element', children, attribute_1.Attribute.create(attribute));
+    };
+    Element.htmlBeautify = function (indent) {
+        if (indent === void 0) { indent = '    '; }
+        return function (item, content, level) {
+            if (item.node === 'root') {
+                return content;
+            }
+            if (item.node === 'text') {
+                return item.text + '';
+            }
+            var spaces = indent.length > 0 ? types_1.LINE_SPLITE + indent.repeat(level - 1) : indent;
+            if (item.node === 'comment') {
+                return spaces + "<!-- " + item.text + " -->";
+            }
+            var attr = item.attributeString();
+            if (attr.length > 0) {
+                attr = ' ' + attr;
+            }
+            if (item.tag === '!DOCTYPE') {
+                return "<" + item.tag + attr + ">";
+            }
+            if (html_1.SINGLE_TAGS.indexOf(item.tag) >= 0) {
+                return spaces + "<" + item.tag + attr + "/>";
+            }
+            var endSpaces = item.children && !item.isTextChild() ? spaces : '';
+            return spaces + "<" + item.tag + attr + ">" + content + endSpaces + "</" + item.tag + ">";
+        };
+    };
+    Element.jsonCallback = function (item, children) {
+        if (item.node === 'root') {
+            return children;
+        }
+        if (item.node === 'text' || item.node === 'comment') {
+            return {
+                node: item.node,
+                text: item.text
+            };
+        }
+        var data = {
+            node: item.node,
+            tag: item.tag
+        };
+        if (children) {
+            data.children = children;
+        }
+        if (item.attribute) {
+            data.attrs = item.attribute;
+        }
+        return data;
+    };
     Element.prototype.attr = function (key, value) {
         if (!this.attribute) {
             this.attribute = new attribute_1.Attribute();
@@ -99,73 +166,6 @@ var Element = (function () {
     };
     Element.prototype.clone = function () {
         return new Element(this.tag, this.text, this.node, this.children, this.attribute);
-    };
-    Element.comment = function (text) {
-        return Element.nodeElement('comment', text);
-    };
-    Element.text = function (text) {
-        return Element.nodeElement('text', text);
-    };
-    Element.nodeElement = function (node, text) {
-        if (typeof text === 'object') {
-            return new Element(undefined, undefined, node, text);
-        }
-        return new Element(undefined, text, node);
-    };
-    Element.noKid = function (tag, attribute) {
-        return new Element(tag, undefined, 'element', undefined, attribute_1.Attribute.create(attribute));
-    };
-    Element.create = function (tag, children, attribute) {
-        return new Element(tag, undefined, 'element', children, attribute_1.Attribute.create(attribute));
-    };
-    Element.htmlBeautify = function (indent) {
-        if (indent === void 0) { indent = '    '; }
-        return function (item, content, level) {
-            if (item.node === 'root') {
-                return content;
-            }
-            if (item.node === 'text') {
-                return item.text + '';
-            }
-            var spaces = indent.length > 0 ? ts_1.LINE_SPLITE + indent.repeat(level - 1) : indent;
-            if (item.node === 'comment') {
-                return spaces + "<!-- " + item.text + " -->";
-            }
-            var attr = item.attributeString();
-            if (attr.length > 0) {
-                attr = ' ' + attr;
-            }
-            if (item.tag === '!DOCTYPE') {
-                return "<" + item.tag + attr + ">";
-            }
-            if (html_1.SINGLE_TAGS.indexOf(item.tag) >= 0) {
-                return spaces + "<" + item.tag + attr + "/>";
-            }
-            var endSpaces = item.children && !item.isTextChild() ? spaces : '';
-            return spaces + "<" + item.tag + attr + ">" + content + endSpaces + "</" + item.tag + ">";
-        };
-    };
-    Element.jsonCallback = function (item, children) {
-        if (item.node === 'root') {
-            return children;
-        }
-        if (item.node === 'text' || item.node === 'comment') {
-            return {
-                node: item.node,
-                text: item.text
-            };
-        }
-        var data = {
-            node: item.node,
-            tag: item.tag
-        };
-        if (children) {
-            data.children = children;
-        }
-        if (item.attribute) {
-            data.attrs = item.attribute;
-        }
-        return data;
     };
     return Element;
 }());

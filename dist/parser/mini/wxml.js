@@ -1,7 +1,7 @@
 "use strict";
 exports.__esModule = true;
 exports.htmlToWxml = exports.jsonToWxml = exports.studly = exports.firstUpper = exports.wxmlFunc = void 0;
-var html_1 = require("./html");
+var html_1 = require("../html");
 exports.wxmlFunc = [];
 var FuncType;
 (function (FuncType) {
@@ -64,7 +64,8 @@ function jsonToWxml(json, exclude) {
     if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
     exports.wxmlFunc = [];
     var existFunc = {};
-    var disallow_attrs = [], replace_attrs = {
+    var disallowAttrs = [];
+    var replaceAttrs = {
         'v-if': function (value, _, attrs) {
             attrs.set('wx:if', '{{ ' + value + ' }}');
         },
@@ -129,7 +130,7 @@ function jsonToWxml(json, exclude) {
         'v-show': function (value, _, attrs) {
             attrs.set('hidden', '{{ ' + invertIf(value) + ' }}');
         },
-        'href': 'url',
+        href: 'url',
         ':key': false,
         '@click': function (value, _, attrs) {
             converterTap(value, 'bindtap', attrs);
@@ -163,9 +164,9 @@ function jsonToWxml(json, exclude) {
             converterTap(value, 'bindtouchend', attrs);
         }
     };
-    var content = json.toString(function (item, content) {
+    var content = json.toString(function (item, nextStr) {
         if (item.node === 'root') {
-            return content;
+            return nextStr;
         }
         if (item.node === 'text') {
             if (/^\s+$/.test(item.text + '')) {
@@ -176,26 +177,26 @@ function jsonToWxml(json, exclude) {
         if (item.node === 'comment') {
             return "<!-- " + item.text + " -->";
         }
-        if (item.node != 'element') {
-            return content;
+        if (item.node !== 'element') {
+            return nextStr;
         }
-        if (item.tag == 'img') {
-            var attr_1 = parseNodeAttr(item.attribute, 'image');
-            return "<image" + attr_1 + "></image>";
+        if (item.tag === 'img') {
+            var attrs = parseNodeAttr(item.attribute, 'image');
+            return "<image" + attrs + "></image>";
         }
-        if (item.tag == 'input') {
+        if (item.tag === 'input') {
             return parseInput(item);
         }
-        if (item.tag == 'button') {
-            return parseButton(item, content);
+        if (item.tag === 'button') {
+            return parseButton(item, nextStr);
         }
-        if (item.tag == 'form') {
-            var attr_2 = parseNodeAttr(item.attribute, item.tag);
-            return "<form" + attr_2 + ">" + content + "</form>";
+        if (item.tag === 'form') {
+            var attrs = parseNodeAttr(item.attribute, item.tag);
+            return "<form" + attrs + ">" + nextStr + "</form>";
         }
         if (['slider', 'icon', 'progress', 'switch', 'radio', 'checkbox', 'live-player', 'live-pusher'].indexOf(item.tag + '') >= 0) {
-            var attr_3 = parseNodeAttr(item.attribute, item.tag);
-            return "<" + item.tag + attr_3 + "/>";
+            var attrs = parseNodeAttr(item.attribute, item.tag);
+            return "<" + item.tag + attrs + "/>";
         }
         if (['label', 'slot', 'style', 'text',
             'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
@@ -203,33 +204,33 @@ function jsonToWxml(json, exclude) {
             'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
             'open-data', 'web-view', 'ad', 'official-account',
         ].indexOf(item.tag + '') >= 0) {
-            var attr_4 = parseNodeAttr(item.attribute, item.tag);
-            content = removeIfText(item.children, content);
-            return "<" + item.tag + attr_4 + ">" + content + "</" + item.tag + ">";
+            var attrs = parseNodeAttr(item.attribute, item.tag);
+            nextStr = removeIfText(item.children, nextStr);
+            return "<" + item.tag + attrs + ">" + nextStr + "</" + item.tag + ">";
         }
-        if (item.tag == 'textarea') {
-            if (content.length > 0) {
-                item.attr('value', content);
+        if (item.tag === 'textarea') {
+            if (nextStr.length > 0) {
+                item.attr('value', nextStr);
             }
-            var attr_5 = parseNodeAttr(item.attribute, item.tag);
-            return "<textarea" + attr_5 + "/>";
+            var attrs = parseNodeAttr(item.attribute, item.tag);
+            return "<textarea" + attrs + "/>";
         }
-        if (item.tag == 'a') {
-            var attr_6 = parseNodeAttr(item.attribute, 'navigator');
-            content = removeIfText(item.children, content);
-            return "<navigator" + attr_6 + ">" + content + "</navigator>";
+        if (item.tag === 'a') {
+            var attrs = parseNodeAttr(item.attribute, 'navigator');
+            nextStr = removeIfText(item.children, nextStr);
+            return "<navigator" + attrs + ">" + nextStr + "</navigator>";
         }
         if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
-            && (!item.children || (item.children.length == 1 && item.children[0].node == 'text'))) {
-            var attr_7 = parseNodeAttr(item.attribute, 'text');
-            content = !item.children ? '' : item.children[0].text + '';
-            return "<text" + attr_7 + ">" + content + "</text>";
+            && (!item.children || (item.children.length === 1 && item.children[0].node === 'text'))) {
+            var attrs = parseNodeAttr(item.attribute, 'text');
+            nextStr = !item.children ? '' : item.children[0].text + '';
+            return "<text" + attrs + ">" + nextStr + "</text>";
         }
         var attr = parseNodeAttr(item.attribute);
         if (item.tag && exclude.test(item.tag)) {
-            return "<" + item.tag + attr + ">" + content + "</" + item.tag + ">";
+            return "<" + item.tag + attr + ">" + nextStr + "</" + item.tag + ">";
         }
-        return "<view" + attr + ">" + content + "</view>";
+        return "<view" + attr + ">" + nextStr + "</view>";
     });
     for (var key in existFunc) {
         if (Object.prototype.hasOwnProperty.call(existFunc, key)) {
@@ -255,15 +256,15 @@ function jsonToWxml(json, exclude) {
         }
     }
     return content;
-    function removeIfText(children, content) {
-        if (!children || children.length > 1 || children[0].node != 'text') {
-            return content;
+    function removeIfText(children, str) {
+        if (!children || children.length > 1 || children[0].node !== 'text') {
+            return str;
         }
         return children[0].text + '';
     }
     function invertIf(value) {
         value = value.trim();
-        if (value.charAt(0) == '!') {
+        if (value.charAt(0) === '!') {
             return value.substr(1);
         }
         var maps = [
@@ -307,7 +308,7 @@ function jsonToWxml(json, exclude) {
                 if (!Object.prototype.hasOwnProperty.call(clsObj_1, name)) {
                     clsObj_1[name] = ['', ''];
                 }
-                clsObj_1[name][isNot ? 1 : 0] += ' ' + key.replace(/'"/g, '');
+                clsObj_1[name][isNot ? 1 : 0] += ' ' + key.replace(/''/g, '');
             });
             for (var key in clsObj_1) {
                 if (Object.prototype.hasOwnProperty.call(clsObj_1, key)) {
@@ -332,20 +333,20 @@ function jsonToWxml(json, exclude) {
         if (!attrKey) {
             attrKey = 'bindtap';
         }
-        if (value.indexOf('=') > 0 && !/['"].*=/.test(value)) {
+        if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
             var _a = value.split('=', 2), key = _a[0], val = _a[1];
             key = key.trim();
             val = qv(val.trim());
             var dataKey = studly(key);
-            var func_1 = 'tapItem' + dataKey;
+            var f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
-            if (!Object.prototype.hasOwnProperty.call(existFunc, func_1)) {
-                existFunc[func_1] = {
+            if (!Object.prototype.hasOwnProperty.call(existFunc, f)) {
+                existFunc[f] = {
                     type: FuncType.TAP,
                     properties: [key, dataKey]
                 };
             }
-            attrs.set(attrKey, func_1).set("data-" + dataKey, val);
+            attrs.set(attrKey, f).set("data-" + dataKey, val);
             return;
         }
         var match = value.match(/^([^\(\)]+)\((.*)\)$/);
@@ -386,10 +387,10 @@ function jsonToWxml(json, exclude) {
         if (typeof v === 'object' && v instanceof Array) {
             v = v.join(' ');
         }
-        return '"' + v + '"';
+        return '\'' + v + '\'';
     }
     function qStr(v) {
-        if (/^['"](.+)['"]$/.test(v)) {
+        if (/^[''](.+)['']$/.test(v)) {
             return v;
         }
         return '\'' + v + '\'';
@@ -398,7 +399,7 @@ function jsonToWxml(json, exclude) {
         if (/^[\d\.]+$/.test(val)) {
             return val;
         }
-        var match = val.match(/^['"](.+)['"]$/);
+        var match = val.match(/^[''](.+)['']$/);
         if (match) {
             return match[1];
         }
@@ -429,11 +430,11 @@ function jsonToWxml(json, exclude) {
         };
         mapProperty(function (key, value) {
             properties["delete"](key);
-            if (disallow_attrs.indexOf(key) >= 0) {
+            if (disallowAttrs.indexOf(key) >= 0) {
                 return;
             }
-            if (replace_attrs.hasOwnProperty(key)) {
-                var attr = replace_attrs[key];
+            if (replaceAttrs.hasOwnProperty(key)) {
+                var attr = replaceAttrs[key];
                 if (typeof attr === 'function') {
                     attr(value, tag, properties);
                     return;
@@ -456,7 +457,6 @@ function jsonToWxml(json, exclude) {
             if (Array.isArray(value)) {
                 value = value.join(' ');
             }
-            ;
             var name = parseEventName(key);
             if (name) {
                 converterTap(value, name, properties);
@@ -480,16 +480,16 @@ function jsonToWxml(json, exclude) {
         }
         return undefined;
     }
-    function parseButton(node, content) {
+    function parseButton(node, str) {
         var attr = parseNodeAttr(node.attribute);
         if (['reset', 'submit'].indexOf(node.attr('type') + '') >= 0) {
             attr += ' form-type=' + q(node.attr('type'));
         }
-        return "<button type=\"default\"" + attr + ">" + content + "</button>";
+        return "<button type='default'" + attr + ">" + str + "</button>";
     }
     function parseInput(node) {
         var type = node.attr('type') || 'text';
-        if (type == 'password') {
+        if (type === 'password') {
             type = 'text';
             node.attr('password', 'true');
         }
@@ -498,13 +498,13 @@ function jsonToWxml(json, exclude) {
             node.tag = 'button';
             return parseButton(node, node.attr('value') + '');
         }
-        if (type == 'checkbox') {
-            var attr_8 = parseNodeAttr(node.attribute, type);
-            return "<checkbox" + attr_8 + "/>";
+        if (type === 'checkbox') {
+            var attrs = parseNodeAttr(node.attribute, type);
+            return "<checkbox" + attrs + "/>";
         }
-        if (type == 'radio') {
-            var attr_9 = parseNodeAttr(node.attribute, type);
-            return "<radio" + attr_9 + "/>";
+        if (type === 'radio') {
+            var attrs = parseNodeAttr(node.attribute, type);
+            return "<radio" + attrs + "/>";
         }
         if (['text', 'number', 'idcard', 'digit'].indexOf(type + '') < 0) {
             type = 'text';
