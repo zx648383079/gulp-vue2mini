@@ -3,7 +3,7 @@ exports.__esModule = true;
 exports.Element = void 0;
 var attribute_1 = require("./attribute");
 var html_1 = require("./html");
-var types_1 = require("./types");
+var util_1 = require("./util");
 var Element = (function () {
     function Element(tag, text, node, children, attribute) {
         if (tag === void 0) { tag = ''; }
@@ -41,7 +41,7 @@ var Element = (function () {
             if (item.node === 'text') {
                 return item.text + '';
             }
-            var spaces = indent.length > 0 ? types_1.LINE_SPLITE + indent.repeat(level - 1) : indent;
+            var spaces = indent.length > 0 ? util_1.LINE_SPLITE + indent.repeat(level - 1) : indent;
             if (item.node === 'comment') {
                 return spaces + "<!-- " + item.text + " -->";
             }

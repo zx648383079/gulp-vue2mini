@@ -394,10 +394,8 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         if (!attrKey) {
             attrKey = 'bindtap';
         }
-        if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
-            let [key, val] = value.split('=', 2);
+        const addFun = (key: string, val: string) => {
             key = key.trim();
-            val = qv(val.trim());
             let dataKey = studly(key);
             const f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase(); // 只能接受
@@ -408,9 +406,23 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 };
             }
             attrs.set(attrKey, f).set(`data-${dataKey}`, val);
+        };
+        let match = value.match(/(([\+\-]{2})|([\+\-\*\/]\=))/);
+        if (match) {
+            let [key, val] = value.split(match[0], 2);
+            if (match[1].charAt(1) !== '=') {
+                val = '1';
+            }
+            key = key.trim();
+            addFun(key, '{{' + key + match[0].charAt(0) + val + '}}');
             return;
         }
-        const match = value.match(/^([^\(\)]+)\((.*)\)$/);
+        if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
+            const [key, val] = value.split('=', 2);
+            addFun(key, qv(val.trim()));
+            return;
+        }
+        match = value.match(/^([^\(\)]+)\((.*)\)$/);
         if (!match) {
             attrs.set(attrKey, value);
             return;

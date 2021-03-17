@@ -45,7 +45,11 @@ var MiniProject = (function () {
         if (ext === '.html' || ext === '.vue') {
             return this.readyVueFile(src, ext, dist);
         }
-        return undefined;
+        return {
+            type: ext.substring(1),
+            src: src,
+            dist: dist
+        };
     };
     MiniProject.prototype.readyVueFile = function (src, ext, dist) {
         var data = {};

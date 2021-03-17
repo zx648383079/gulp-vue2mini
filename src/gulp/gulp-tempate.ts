@@ -104,7 +104,7 @@ export function template(tag: string, srcFolder: string = 'src', distFolder = 'd
                 return callback(undefined, file);
             }
             if (tag === 'presass') {
-                let str = preImport(String(file.contents));
+                const str = preImport(String(file.contents));
                 file.contents = Buffer.from(str);
                 file.path = replacePath(file.path, distFolder, srcFolder);
                 return callback(undefined, file);

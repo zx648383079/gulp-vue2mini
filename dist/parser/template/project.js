@@ -2,7 +2,7 @@
 exports.__esModule = true;
 exports.TemplateProject = void 0;
 var fs = require("fs");
-var types_1 = require("../types");
+var util_1 = require("../util");
 var cache_1 = require("../cache");
 var path = require("path");
 var html_1 = require("../html");
@@ -85,20 +85,17 @@ var TemplateProject = (function () {
             amount: parseInt(amount, 10) || 1
         };
     };
-    TemplateProject.prototype.parseToken = function (file, content) {
+    TemplateProject.prototype.parseToken = function (file) {
         var _this = this;
-        var time = fs.statSync(file).mtimeMs;
-        if (this.cachesFiles.has(file, time)) {
-            return this.cachesFiles.get(file);
-        }
-        if (!content) {
-            content = fs.readFileSync(file).toString();
+        var time = fs.statSync(file.src).mtimeMs;
+        if (this.cachesFiles.has(file.src, time)) {
+            return this.cachesFiles.get(file.src);
         }
         var tokens = [];
         var isLayout = false;
         var canRender = true;
-        var currentFolder = path.dirname(file);
-        var ext = path.extname(file);
+        var currentFolder = path.dirname(file.src);
+        var ext = path.extname(file.src);
         var replacePath = function (text) {
             return text.replace(REGEX_ASSET, function ($0, _, $2) {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
@@ -113,7 +110,7 @@ var TemplateProject = (function () {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        types_1.splitLine(content).forEach(function (line, i) {
+        util_1.splitLine(compiler_1.fileContent(file)).forEach(function (line, i) {
             var token = _this.converterToken(line);
             if (!token) {
                 tokens.push({
@@ -137,22 +134,22 @@ var TemplateProject = (function () {
                     token.content += ext;
                 }
                 token.content = path.resolve(currentFolder, token.content);
-                _this.addLinkFile(token.content, file);
+                _this.addLinkFile(token.content, file.src);
             }
             tokens.push(token);
         });
         var page = {
             tokens: tokens,
             isLayout: isLayout,
-            file: file,
+            file: file.src,
             canRender: canRender
         };
-        this.cachesFiles.set(file, page, time);
+        this.cachesFiles.set(file.src, page, time);
         return page;
     };
-    TemplateProject.prototype.renderFile = function (file, content) {
+    TemplateProject.prototype.renderFile = function (file) {
         var _this = this;
-        var page = this.parseToken(file, content);
+        var page = this.parseToken(file);
         if (!page.canRender) {
             return '';
         }
@@ -180,7 +177,10 @@ var TemplateProject = (function () {
                     lines.push(token.content);
                     return;
                 }
-                var next = _this.parseToken(token.content);
+                var next = _this.parseToken({
+                    src: token.content,
+                    dist: ''
+                });
                 if (next.isLayout) {
                     layout = next;
                     return;
@@ -190,10 +190,10 @@ var TemplateProject = (function () {
                     lines.push(renderPage(next));
                 }
             });
-            return lines.join(types_1.LINE_SPLITE);
+            return util_1.joinLine(lines);
         };
-        content = renderPage(page);
-        return this.mergeStyle(layout ? renderPage(layout, content) : content, file);
+        var content = renderPage(page);
+        return this.mergeStyle(layout ? renderPage(layout, content) : content, file.src);
     };
     TemplateProject.prototype.mergeStyle = function (content, file) {
         var currentFolder = path.dirname(file);
@@ -265,7 +265,7 @@ var TemplateProject = (function () {
                 lines.push(item.text);
             }
         });
-        var style = lines.join(types_1.LINE_SPLITE);
+        var style = util_1.joinLine(lines);
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = compiler_1.Compiler.sass(style, file, styleLang);
         }
@@ -275,7 +275,7 @@ var TemplateProject = (function () {
                 lines.push(item.text);
             }
         });
-        var script = lines.join(types_1.LINE_SPLITE);
+        var script = util_1.joinLine(lines);
         if (script.length > 0 && scriptLang === 'ts') {
             script = compiler_1.Compiler.ts(script, file);
         }
@@ -345,11 +345,15 @@ var TemplateProject = (function () {
             };
         }
         if (ext === '.html') {
-            return {
+            var file = {
                 type: 'html',
                 src: src,
                 dist: dist
             };
+            if (!this.parseToken(file).canRender) {
+                return undefined;
+            }
+            return file;
         }
         return {
             type: ext.substring(1),
@@ -358,6 +362,9 @@ var TemplateProject = (function () {
         };
     };
     TemplateProject.prototype.compileFile = function (src) {
+        this.compileAFile(src);
+    };
+    TemplateProject.prototype.compileAFile = function (src, mtime) {
         var _this = this;
         var compile = function (file) {
             _this.mkIfNotFolder(path.dirname(file.dist));
@@ -380,7 +387,7 @@ var TemplateProject = (function () {
                 return;
             }
             if (file.type === 'html') {
-                fs.writeFileSync(file.dist, _this.renderFile(file.src, file.content));
+                fs.writeFileSync(file.dist, _this.renderFile(file));
                 return;
             }
             if (typeof file.content !== 'undefined') {
@@ -390,60 +397,13 @@ var TemplateProject = (function () {
             fs.copyFileSync(file.src, file.dist);
         };
         compiler_1.eachCompileFile(this.readyFile(src), function (file) {
+            if (mtime && mtime > 0 && fs.existsSync(file.dist) && fs.statSync(file.dist).mtimeMs >= mtime) {
+                return;
+            }
             compile(file);
             _this.logFile(file.src);
         });
-    };
-    TemplateProject.prototype.compileAFile = function (src, mtime) {
-        var ext = path.extname(src);
-        var dist = this.outputFile(src);
-        var extMaps = {
-            '.ts': '.js',
-            '.scss': '.css',
-            '.sass': '.css'
-        };
-        if (Object.prototype.hasOwnProperty.call(extMaps, ext)) {
-            dist = dist.replace(ext, extMaps[ext]);
-        }
-        if (mtime && mtime > 0 && fs.existsSync(dist) && fs.statSync(dist).mtimeMs >= mtime) {
-            return;
-        }
-        var distFolder = path.dirname(dist);
-        var content = '';
-        if (ext === '.ts') {
-            content = compiler_1.Compiler.ts(fs.readFileSync(src).toString(), src);
-            if (content && content.length > 0 && this.options && this.options.min) {
-                content = UglifyJS.minify(content).code;
-            }
-        }
-        else if (ext === '.scss' || ext === '.sass') {
-            this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
-            var name_1 = path.basename(src);
-            if (name_1.indexOf('_') === 0) {
-                return;
-            }
-            content = fs.readFileSync(src).toString();
-            this.getSassImport(content, src);
-            content = compiler_1.Compiler.sass(content, src, ext.substr(1));
-            if (content && content.length > 0 && this.options && this.options.min) {
-                content = new CleanCSS().minify(content).styles;
-            }
-        }
-        else if (ext === '.html') {
-            this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
-            content = this.renderFile(src);
-        }
-        else {
-            this.mkIfNotFolder(distFolder);
-            fs.copyFileSync(src, dist);
-            return;
-        }
-        if (content.length < 1) {
-            return;
-        }
-        this.mkIfNotFolder(distFolder);
-        fs.writeFileSync(dist, content);
-        this.logFile(src);
+        this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
     };
     TemplateProject.prototype.mkIfNotFolder = function (folder) {
         if (!fs.existsSync(folder)) {

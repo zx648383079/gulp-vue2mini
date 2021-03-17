@@ -2,7 +2,7 @@
 exports.__esModule = true;
 exports.cssToScss = exports.splitRuleName = exports.cssToJson = void 0;
 var tslib_1 = require("tslib");
-var types_1 = require("./types");
+var util_1 = require("./util");
 var BLOCK_TYPE;
 (function (BLOCK_TYPE) {
     BLOCK_TYPE[BLOCK_TYPE["COMMENT"] = 0] = "COMMENT";
@@ -166,7 +166,7 @@ function blockToString(items, level, indent) {
                 lines.push(spaces + '// ' + item.text);
                 continue;
             }
-            lines.push(spaces + '/* ' + types_1.splitLine(text).map(function (i) { return i.trim(); }).join(types_1.LINE_SPLITE + spaces) + ' */');
+            lines.push(spaces + '/* ' + util_1.splitLine(text).map(function (i) { return i.trim(); }).join(util_1.LINE_SPLITE + spaces) + ' */');
             continue;
         }
         if (item.type === BLOCK_TYPE.IMPORT) {
@@ -181,12 +181,12 @@ function blockToString(items, level, indent) {
             lines.push(spaces + item.name + ': ' + item.value + ';');
         }
         if (item.type === BLOCK_TYPE.STYLE_GROUP) {
-            lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + types_1.LINE_SPLITE + spaces) : item.name) + ' {');
+            lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + util_1.LINE_SPLITE + spaces) : item.name) + ' {');
             lines.push(blockToString(item.children, level + 1, indent));
             lines.push(spaces + '}');
         }
     }
-    return lines.join(types_1.LINE_SPLITE);
+    return util_1.joinLine(lines);
 }
 function expandBlock(items) {
     var mergeName = function (name, prefix) {

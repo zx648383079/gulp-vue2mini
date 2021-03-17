@@ -2,7 +2,7 @@ import { parseJson, parsePage } from './ts';
 import { htmlToJson } from '../html';
 import { jsonToWxml, wxmlFunc } from './wxml';
 import { Element } from '../element';
-import { LINE_SPLITE } from '../types';
+import { joinLine } from '../util';
 
 interface ITemplate {
     type: string;
@@ -75,7 +75,7 @@ export function splitFile(content: string, ext: string = 'vue', appendJson?: any
     }
     const res: IFileTemplate = {};
     if (items.style.lines.length > 0) {
-        res.style = {type: items.style.type, content: items.style.lines.join(LINE_SPLITE)};
+        res.style = {type: items.style.type, content: joinLine(items.style.lines)};
     }
     let tplFuns: string[] = [];
     if (items.html.length > 0) {
@@ -84,7 +84,7 @@ export function splitFile(content: string, ext: string = 'vue', appendJson?: any
         res.html = {type: 'wxml', content: wxml};
     }
     if (items.script.lines.length > 0) {
-        const json = splitTsFile(items.script.lines.join(LINE_SPLITE), tplFuns, appendJson);
+        const json = splitTsFile(joinLine(items.script.lines), tplFuns, appendJson);
         res.script = {type: items.script.type, content: json.script ? json.script.content : ''};
         res.json = json.json;
     }

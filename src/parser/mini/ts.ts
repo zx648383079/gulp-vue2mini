@@ -1,4 +1,4 @@
-import { LINE_SPLITE, splitLine } from '../types';
+import { joinLine, LINE_SPLITE, splitLine } from '../util';
 
 const CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 
@@ -109,7 +109,7 @@ export function parseMethodToObject(content: string, maps: {[key: string]: strin
             lines[i] = '';
             if (leftNum > 0) {
                 if (num === 0) {
-                    data[method + ''].items.push(block.join(LINE_SPLITE));
+                    data[method + ''].items.push(joinLine(block));
                     inMethod = 0;
                     continue;
                 }
@@ -121,7 +121,7 @@ export function parseMethodToObject(content: string, maps: {[key: string]: strin
         block.push(line);
         lines[i] = '';
         if (num === 0) {
-            data[method + ''].items.push(block.join(LINE_SPLITE));
+            data[method + ''].items.push(joinLine(block));
             inMethod = 0;
             continue;
         }
@@ -137,7 +137,7 @@ export function parseMethodToObject(content: string, maps: {[key: string]: strin
             delete data[key];
         }
     }
-    content = lines.join(LINE_SPLITE);
+    content = joinLine(lines);
     // 如果有就进行替换
     for (const key in data) {
         if (!data.hasOwnProperty(key)) {
@@ -169,5 +169,5 @@ function appendMethod(content: string, tplFuns?: string[], classLine: string = '
         }
         tplFuns = lines;
     }
-    return [content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]).join(LINE_SPLITE);
+    return joinLine([content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]));
 }

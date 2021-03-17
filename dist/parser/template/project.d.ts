@@ -10,7 +10,7 @@ export declare class TemplateProject implements ICompliper {
     private addLinkFile;
     private converterToken;
     private parseToken;
-    renderFile(file: string, content?: string): string;
+    renderFile(file: ICompliperFile): string;
     private mergeStyle;
     private getSassImport;
     readyFile(src: string): undefined | ICompliperFile | ICompliperFile[];

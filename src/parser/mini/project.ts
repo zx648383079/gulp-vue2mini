@@ -45,7 +45,11 @@ export class MiniProject implements ICompliper {
         if (ext === '.html' || ext === '.vue') {
             return this.readyVueFile(src, ext, dist);
         }
-        return undefined;
+        return {
+            type: ext.substring(1),
+            src,
+            dist,
+        };
     }
 
     private readyVueFile(src: string, ext: string, dist: string): ICompliperFile[] {

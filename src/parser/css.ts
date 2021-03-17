@@ -1,4 +1,4 @@
-import { LINE_SPLITE, splitLine } from './types';
+import { joinLine, LINE_SPLITE, splitLine } from './util';
 
 enum BLOCK_TYPE {
     COMMENT,
@@ -199,7 +199,7 @@ function blockToString(items: IBlockItem[], level: number = 1, indent: string = 
             lines.push(spaces + '}');
         }
     }
-    return lines.join(LINE_SPLITE);
+    return joinLine(lines);
 }
 
 /**

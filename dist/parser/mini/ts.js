@@ -1,7 +1,7 @@
 "use strict";
 exports.__esModule = true;
 exports.parseMethodToObject = exports.parseJson = exports.parsePage = void 0;
-var types_1 = require("../types");
+var util_1 = require("../util");
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 function parsePage(content, tplFuns) {
     content = content.replace(/import.+?from\s+.+?\.vue["'];/, '')
@@ -19,7 +19,7 @@ function parsePage(content, tplFuns) {
     if (reg.test(content)) {
         return content;
     }
-    return content + types_1.LINE_SPLITE + match[4].substr(2) + '(new ' + match[3] + '());';
+    return content + util_1.LINE_SPLITE + match[4].substr(2) + '(new ' + match[3] + '());';
 }
 exports.parsePage = parsePage;
 function parseJson(content, append) {
@@ -45,7 +45,7 @@ function parseMethodToObject(content, maps) {
         }
         return;
     };
-    var lines = types_1.splitLine(content);
+    var lines = util_1.splitLine(content);
     var num = 0;
     var inMethod = 0;
     var method;
@@ -80,7 +80,7 @@ function parseMethodToObject(content, maps) {
             lines[i] = '';
             if (leftNum > 0) {
                 if (num === 0) {
-                    data[method + ''].items.push(block.join(types_1.LINE_SPLITE));
+                    data[method + ''].items.push(util_1.joinLine(block));
                     inMethod = 0;
                     continue;
                 }
@@ -92,7 +92,7 @@ function parseMethodToObject(content, maps) {
         block.push(line);
         lines[i] = '';
         if (num === 0) {
-            data[method + ''].items.push(block.join(types_1.LINE_SPLITE));
+            data[method + ''].items.push(util_1.joinLine(block));
             inMethod = 0;
             continue;
         }
@@ -107,7 +107,7 @@ function parseMethodToObject(content, maps) {
             delete data[key];
         }
     }
-    content = lines.join(types_1.LINE_SPLITE);
+    content = util_1.joinLine(lines);
     for (var key in data) {
         if (!data.hasOwnProperty(key)) {
             continue;
@@ -141,5 +141,5 @@ function appendMethod(content, tplFuns, classLine, isComponent) {
         }
         tplFuns = lines;
     }
-    return [content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]).join(types_1.LINE_SPLITE);
+    return util_1.joinLine([content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]));
 }

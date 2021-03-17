@@ -5,7 +5,7 @@ var ts_1 = require("./ts");
 var html_1 = require("../html");
 var wxml_1 = require("./wxml");
 var element_1 = require("../element");
-var types_1 = require("../types");
+var util_1 = require("../util");
 function splitFile(content, ext, appendJson) {
     if (ext === void 0) { ext = 'vue'; }
     if (ext === 'json') {
@@ -59,7 +59,7 @@ function splitFile(content, ext, appendJson) {
     }
     var res = {};
     if (items.style.lines.length > 0) {
-        res.style = { type: items.style.type, content: items.style.lines.join(types_1.LINE_SPLITE) };
+        res.style = { type: items.style.type, content: util_1.joinLine(items.style.lines) };
     }
     var tplFuns = [];
     if (items.html.length > 0) {
@@ -68,7 +68,7 @@ function splitFile(content, ext, appendJson) {
         res.html = { type: 'wxml', content: wxml };
     }
     if (items.script.lines.length > 0) {
-        var json = splitTsFile(items.script.lines.join(types_1.LINE_SPLITE), tplFuns, appendJson);
+        var json = splitTsFile(util_1.joinLine(items.script.lines), tplFuns, appendJson);
         res.script = { type: items.script.type, content: json.script ? json.script.content : '' };
         res.json = json.json;
     }

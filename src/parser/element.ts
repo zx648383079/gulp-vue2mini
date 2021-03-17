@@ -1,6 +1,6 @@
 import { Attribute } from './attribute';
 import { SINGLE_TAGS } from './html';
-import { LINE_SPLITE } from './types';
+import { LINE_SPLITE } from './util';
 
 export class Element {
     public ignore = false;

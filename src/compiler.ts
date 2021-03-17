@@ -85,5 +85,6 @@ export const fileContent = (file: ICompliperFile): string => {
     if (typeof file.content !== 'undefined') {
         return file.content;
     }
-    return fs.readFileSync(file.src).toString();
+    file.content = fs.readFileSync(file.src).toString();
+    return file.content;
 };

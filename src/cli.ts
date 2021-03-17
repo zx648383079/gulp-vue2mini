@@ -27,6 +27,8 @@ Usage: vue2mini <command>
     --help 帮助
     --input 源码文件或文件夹，默认为src
     --output 编译后保存的文件夹，默认为dist
+    --min 压缩ts和sass 生成的文件代码，仅对模板有效
+    --watch 监听脚本变动，自动处理
 
 Example:
     vue2mini --mini --input=src --output=dist

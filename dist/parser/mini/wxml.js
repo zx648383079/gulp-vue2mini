@@ -333,10 +333,8 @@ function jsonToWxml(json, exclude) {
         if (!attrKey) {
             attrKey = 'bindtap';
         }
-        if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
-            var _a = value.split('=', 2), key = _a[0], val = _a[1];
+        var addFun = function (key, val) {
             key = key.trim();
-            val = qv(val.trim());
             var dataKey = studly(key);
             var f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
@@ -347,9 +345,23 @@ function jsonToWxml(json, exclude) {
                 };
             }
             attrs.set(attrKey, f).set("data-" + dataKey, val);
+        };
+        var match = value.match(/(([\+\-]{2})|([\+\-\*\/]\=))/);
+        if (match) {
+            var _a = value.split(match[0], 2), key = _a[0], val = _a[1];
+            if (match[1].charAt(1) !== '=') {
+                val = '1';
+            }
+            key = key.trim();
+            addFun(key, '{{' + key + match[0].charAt(0) + val + '}}');
             return;
         }
-        var match = value.match(/^([^\(\)]+)\((.*)\)$/);
+        if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
+            var _b = value.split('=', 2), key = _b[0], val = _b[1];
+            addFun(key, qv(val.trim()));
+            return;
+        }
+        match = value.match(/^([^\(\)]+)\((.*)\)$/);
         if (!match) {
             attrs.set(attrKey, value);
             return;

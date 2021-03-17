@@ -82,11 +82,13 @@ vue2mini
 ```
 
     --watch   监听脚本变动
-    --input   源码文件或文件夹，默认 `src` 文件夹
-    --output  目标保存文件夹，默认 `dist` 文件夹
-    --mini    编译小程序，默认为 编译模板
-    --min     压缩ts和sass 生成的文件代码，仅对 模板 有效
-
+    --mini    编译小程序
+    --theme   编译模板
+    --css     转css为scss
+    --help    帮助
+    --input   源码文件或文件夹，默认为`src`文件夹
+    --output  编译后保存的文件夹，默认为`dist`
+    --min     压缩ts和sass 生成的文件代码，仅对模板有效
 
 [转化核心](src/parser)
 
@@ -304,10 +306,4 @@ var plumber = require('gulp-plumber');
     }
 }))
 ```
-
-## 已知问题
-
-使用 `--watch` 会出现未知报错
-
-`node-sass` 可能会出现文件无法读取的错误
 
