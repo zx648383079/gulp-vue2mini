@@ -1,7 +1,17 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 exports.__esModule = true;
 exports.cssToScss = exports.splitRuleName = exports.cssToJson = void 0;
-var tslib_1 = require("tslib");
 var util_1 = require("./util");
 var BLOCK_TYPE;
 (function (BLOCK_TYPE) {
@@ -85,13 +95,19 @@ function cssToJson(content) {
             pos = endIndex;
             return getTextBlock(line);
         }
+        var blockEnd = content.indexOf('}', pos);
+        if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
+            var line = content.substring(pos, blockEnd);
+            pos = blockEnd - 1;
+            return getTextBlock(line);
+        }
         if (blockStart < 0) {
             var line = content.substring(pos);
             pos = content.length;
             return getTextBlock(line);
         }
         var name = content.substring(pos, blockStart);
-        pos = blockStart + 1;
+        pos = blockStart;
         return {
             type: BLOCK_TYPE.STYLE_GROUP,
             name: name.split(',').map(function (i) { return i.trim(); }).filter(function (i) { return i.length > 0; }),
@@ -264,7 +280,7 @@ function expandBlock(items) {
             var _a;
             var block = nameBlcok(name);
             var children = (_a = item.children) === null || _a === void 0 ? void 0 : _a.map(function (i) {
-                return tslib_1.__assign({}, i);
+                return __assign({}, i);
             });
             if (block) {
                 mergeBlock(block, children);
@@ -368,7 +384,7 @@ function splitRuleName(name) {
         }
         if (code === '.') {
             appendTag();
-            tag = (args.length > 0 ? '&' : '') + code;
+            tag = (args.length > 0 && !isEmptyCode(name.charAt(pos - 2)) ? '&' : '') + code;
             continue;
         }
         if (code === ':') {
