@@ -52,7 +52,7 @@ export function cssToJson(content: string) {
             end = content.length;
         }
         const text = content.substring(start, end);
-        pos = end + (tag === '//' ? 0 : 2);
+        pos = end + (tag === '//' ? 0 : 1);
         return {
             type: BLOCK_TYPE.COMMENT,
             text: text.trim(),
