@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
 exports.LINE_SPLITE = '\r\n';
 var splitLine = function (content) {

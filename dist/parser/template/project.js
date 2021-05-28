@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.TemplateProject = void 0;
 var fs = require("fs");
 var util_1 = require("../util");
@@ -10,6 +10,7 @@ var element_1 = require("../element");
 var compiler_1 = require("../../compiler");
 var UglifyJS = require("uglify-js");
 var CleanCSS = require("clean-css");
+var css_1 = require("../css");
 var REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
 var REGEX_SASS_IMPORT = /@import\s+["'](.+?)["'];/g;
 var TemplateProject = (function () {
@@ -60,6 +61,9 @@ var TemplateProject = (function () {
         if (content.length < 1) {
             return;
         }
+        if (content === 'theme') {
+            return;
+        }
         var type = 'extend';
         if (content === '@') {
             type = 'comment';
@@ -82,7 +86,7 @@ var TemplateProject = (function () {
             type: type,
             content: content,
             comment: comment,
-            amount: parseInt(amount, 10) || 1
+            amount: parseInt(amount, 10) || 1,
         };
     };
     TemplateProject.prototype.parseToken = function (file) {
@@ -265,7 +269,7 @@ var TemplateProject = (function () {
                 lines.push(item.text);
             }
         });
-        var style = util_1.joinLine(lines);
+        var style = this.formatThemeStyle(util_1.joinLine(lines));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = compiler_1.Compiler.sass(style, file, styleLang);
         }
@@ -341,14 +345,14 @@ var TemplateProject = (function () {
             return {
                 type: ext.substring(1),
                 src: src,
-                dist: dist.replace(ext, '.css')
+                dist: dist.replace(ext, '.css'),
             };
         }
         if (ext === '.html') {
             var file = {
                 type: 'html',
                 src: src,
-                dist: dist
+                dist: dist,
             };
             if (!this.parseToken(file).canRender) {
                 return undefined;
@@ -358,11 +362,17 @@ var TemplateProject = (function () {
         return {
             type: ext.substring(1),
             src: src,
-            dist: dist
+            dist: dist,
         };
     };
     TemplateProject.prototype.compileFile = function (src) {
         this.compileAFile(src);
+    };
+    TemplateProject.prototype.formatThemeStyle = function (content) {
+        if (content.indexOf('@theme ') < 0) {
+            return content;
+        }
+        return css_1.formatThemeCss(content);
     };
     TemplateProject.prototype.compileAFile = function (src, mtime) {
         var _this = this;
@@ -377,7 +387,7 @@ var TemplateProject = (function () {
                 return;
             }
             if (file.type === 'scss' || file.type === 'sass') {
-                var content = compiler_1.fileContent(file);
+                var content = _this.formatThemeStyle(compiler_1.fileContent(file));
                 _this.getSassImport(content, src);
                 content = compiler_1.Compiler.sass(content, src, file.type);
                 if (content && content.length > 0 && _this.options && _this.options.min) {

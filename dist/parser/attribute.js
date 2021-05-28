@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.Attribute = void 0;
 var Attribute = (function () {
     function Attribute(items) {
@@ -27,7 +27,7 @@ var Attribute = (function () {
             return this;
         }
         if (typeof value === 'undefined') {
-            return this["delete"](key);
+            return this.delete(key);
         }
         this.items[key] = value;
         return this;
@@ -40,7 +40,7 @@ var Attribute = (function () {
         }
         return this;
     };
-    Attribute.prototype["delete"] = function (key) {
+    Attribute.prototype.delete = function (key) {
         delete this.items[key];
         return this;
     };

@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.MiniProject = void 0;
 var path = require("path");
 var fs = require("fs");
@@ -19,7 +19,7 @@ var MiniProject = (function () {
             return {
                 type: 'ts',
                 src: src,
-                dist: dist.replace(ext, '.js')
+                dist: dist.replace(ext, '.js'),
             };
         }
         if (ext === '.scss' || ext === '.sass') {
@@ -29,7 +29,7 @@ var MiniProject = (function () {
             return {
                 type: ext.substring(1),
                 src: src,
-                dist: dist.replace(ext, '.wxss')
+                dist: dist.replace(ext, '.wxss'),
             };
         }
         if (['.ttf', '.json'].indexOf(ext) >= 0) {
@@ -39,7 +39,7 @@ var MiniProject = (function () {
             return {
                 type: 'css',
                 src: src,
-                dist: dist.replace(ext, '.wxss')
+                dist: dist.replace(ext, '.wxss'),
             };
         }
         if (ext === '.html' || ext === '.vue') {
@@ -48,7 +48,7 @@ var MiniProject = (function () {
         return {
             type: ext.substring(1),
             src: src,
-            dist: dist
+            dist: dist,
         };
     };
     MiniProject.prototype.readyVueFile = function (src, ext, dist) {

@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.CacheManger = void 0;
 var CacheManger = (function () {
     function CacheManger() {
@@ -20,7 +20,7 @@ var CacheManger = (function () {
         };
         return this;
     };
-    CacheManger.prototype["delete"] = function () {
+    CacheManger.prototype.delete = function () {
         var keys = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             keys[_i] = arguments[_i];

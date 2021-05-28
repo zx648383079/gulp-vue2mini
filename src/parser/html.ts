@@ -1,4 +1,5 @@
 import { Element } from './element';
+import { CharIterator } from './iterator';
 /**
  * 单标签
  */
@@ -21,36 +22,36 @@ enum BLOCK_TYPE {
  * @param content 内容
  */
 export function htmlToJson(content: string): Element {
-    let pos = -1;
+    const reader = new CharIterator(content);
     /**
      * 判断是否是标签的开始
      */
     const isNodeBegin = () => {
-        let po = pos;
-        let code: string;
         let status = BLOCK_TYPE.TAG;
         let attrTag = '';
-        while (po < content.length) {
-            code = content.charAt(++ po);
+        let success = false;
+        reader.each(code => {
             if (['\'', '"'].indexOf(code) >= 0) {
                 if (status !== BLOCK_TYPE.ATTR_VALUE) {
                     attrTag = code;
                     status = BLOCK_TYPE.ATTR_VALUE;
-                    continue;
+                    return;
                 }
                 if (attrTag === code) {
                     status = BLOCK_TYPE.TAG;
-                    continue;
+                    return;
                 }
             }
             if (code === '>') {
-                return true;
+                success = true;
+                return false;
             }
             if (status !== BLOCK_TYPE.ATTR_VALUE && code === '<') {
                 return false;
             }
-        }
-        return false;
+            return;
+        });
+        return success;
     };
     /**
      * 获取结束标签的tag, 可能包含空格
@@ -58,12 +59,12 @@ export function htmlToJson(content: string): Element {
     const getNodeEndTag = (i: number): string|boolean => {
         let code: string;
         let tag = '';
-        code = content.charAt(++ i);
+        code = reader.readSeek(++ i) as string;
         if (code !== '/') {
             return false;
         }
-        while (i < content.length) {
-            code = content.charAt(++ i);
+        while (i < reader.length) {
+            code = reader.readSeek(++ i) as string;
             if (code === '>') {
                 return tag;
             }
@@ -78,30 +79,30 @@ export function htmlToJson(content: string): Element {
      * 判断是否是结束标签，是则移动位置
      */
     const isNodeEnd = () => {
-        const tag = getNodeEndTag(pos);
+        const tag = getNodeEndTag(reader.index);
         if (typeof tag !== 'string') {
             return false;
         }
-        pos += 2 + tag.length;
+        reader.move(2 + tag.length);
         return true;
     };
     /**
      * 判断是否是评论
      */
     const isComment = () => {
-        if (content.substr(pos, 4) !== '<!--') {
+        if (reader.read(4) !== '<!--') {
             return false;
         }
-        return content.indexOf('-->', pos + 3) > 0;
+        return reader.indexOf('-->', 3) > 0;
     };
     /**
      * 获取评论元素，并移动位置
      */
     const getCommentElement = (): Element => {
-        const start = pos + 4;
-        const end = content.indexOf('-->', start);
-        const text = content.substr(start, end - start);
-        pos = end + 3;
+        const start = reader.index + 4;
+        const end = reader.indexOf('-->', 4);
+        const text = reader.read(end - start, 4) as string;
+        reader.index = end + 2;
         return Element.comment(text.trim());
     };
     /**
@@ -110,10 +111,10 @@ export function htmlToJson(content: string): Element {
     const getTextElement = (): Element | boolean => {
         let text = '';
         let code: string;
-        while (pos < content.length) {
-            code = content.charAt(++ pos);
-            if (code  === '<' && isNodeBegin()) {
-                pos --;
+        while (reader.canNext) {
+            code = reader.next() as string;
+            if (code === '<' && isNodeBegin()) {
+                reader.move(-1);
                 break;
             }
             text += code;
@@ -127,17 +128,14 @@ export function htmlToJson(content: string): Element {
      * 向前获取 \ 的数量
      */
     const backslashedCount = () => {
-        let po = pos;
-        let code: string;
         let count = 0;
-        while (po < content.length) {
-            code = content.charAt(-- po);
-            if (code === '\\') {
-                count ++;
-                continue;
+        reader.reverse(code => {
+            if (code !== '\\') {
+                return false;
             }
-            return count;
-        }
+            count ++;
+            return;
+        });
         return count;
     };
     /**
@@ -150,16 +148,19 @@ export function htmlToJson(content: string): Element {
      * 移除为单标签的内容及结束符 例如 <br>123</br> 只获取 br 并移动位置忽略 123</br>
      */
     const moveEndTag = (tag: string) => {
-        let po = pos;
-        let code: string;
-        while (po < content.length) {
-            code = content.charAt(++ po);
+        let po = -1;
+        reader.each((code, i) => {
             if (isEmpty(code)) {
-                continue;
+                return;
             }
             if (code === '<') {
-                break;
+                po = i;
+                return false;
             }
+            return;
+        });
+        if (po < 0) {
+            return;
         }
         const endTag = getNodeEndTag(po);
         if (typeof endTag !== 'string') {
@@ -168,7 +169,7 @@ export function htmlToJson(content: string): Element {
         if (endTag.trim() !== tag) {
             return;
         }
-        pos = po + 2 + endTag.length;
+        reader.index = po + 2 + endTag.length;
     };
     /**
      * 获取元素
@@ -181,8 +182,8 @@ export function htmlToJson(content: string): Element {
         let name = '';
         let value = '';
         let endAttr: string| undefined; // 属性的结束标记
-        while (pos < content.length) {
-            code = content.charAt(++ pos);
+        while (reader.canNext) {
+            code = reader.next() as string;
             if ((code === '\n' || code === '\r') && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
                 code = ' ';
             }
@@ -205,19 +206,19 @@ export function htmlToJson(content: string): Element {
             }
             if (code === '/') {
                 if (status === BLOCK_TYPE.ATTR || status === BLOCK_TYPE.TAG) {
-                    if (content.charAt(pos + 1) === '>') {
-                        pos ++;
+                    if (reader.nextIs('>')) {
+                        reader.move();
                         break;
                     }
                     continue;
                 }
                 if (!endAttr && status === BLOCK_TYPE.ATTR_VALUE) {
-                    if (content.charAt(pos ++) === '>') {
+                    if (reader.nextIs('>')) {
                         status = BLOCK_TYPE.NONE;
                         attrs[name] = value;
                         name = '';
                         value = '';
-                        pos ++;
+                        reader.move();
                         break;
                     }
                 }
@@ -251,11 +252,9 @@ export function htmlToJson(content: string): Element {
                 tag += code;
             }
             if (code === '=' && status === BLOCK_TYPE.ATTR) {
-                code = content.charAt(pos + 1);
                 status = BLOCK_TYPE.ATTR_VALUE;
-                if (code === '\'' || code === '"') {
-                    endAttr = code;
-                    pos ++;
+                if (reader.nextIs('\'', '"')) {
+                    endAttr = reader.next();
                     continue;
                 }
                 endAttr = undefined;
@@ -288,13 +287,13 @@ export function htmlToJson(content: string): Element {
      */
     const parserElement = (): Element | boolean => {
         let code: string;
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next() as string;
             if (isEmpty(code)) {
                 continue;
             }
             if (code !== '<') {
-                pos --;
+                reader.move(-1);
                 return getTextElement();
             }
             if (isNodeEnd()) {
@@ -304,7 +303,7 @@ export function htmlToJson(content: string): Element {
                 return getCommentElement();
             }
             if (!isNodeBegin()) {
-                pos --;
+                reader.move(-1);
                 return getTextElement();
             }
             return getElement();
@@ -318,8 +317,8 @@ export function htmlToJson(content: string): Element {
         let text = '';
         let endTag = '';
         let code = '';
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next() as string;
             if (endTag.length > 0) {
                 if (code === endTag && backslashedCount() % 2 === 0) {
                     endTag = '';
@@ -331,12 +330,12 @@ export function htmlToJson(content: string): Element {
                 text += code;
                 continue;
             }
-            const tag = getNodeEndTag(pos);
+            const tag = getNodeEndTag(reader.index);
             if (tag !== blockTag) {
                 text += code;
                 continue;
             }
-            pos += 2 + tag.length;
+            reader.move(2 + tag.length);
             break;
         }
         if (text.length < 1) {
@@ -349,7 +348,7 @@ export function htmlToJson(content: string): Element {
      */
     const parserElements = () => {
         const items: Element[] = [];
-        while (pos < content.length) {
+        while (reader.canNext) {
             const item = parserElement();
             if (item === true) {
                 break;

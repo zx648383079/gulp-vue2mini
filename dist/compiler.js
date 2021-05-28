@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.fileContent = exports.eachCompileFile = exports.consoleLog = exports.Compiler = void 0;
 var path = require("path");
 var ts = require("typescript");
@@ -27,7 +27,7 @@ var Compiler = (function () {
             compilerOptions: compilerOptions,
             fileName: file,
             reportDiagnostics: true,
-            transformers: undefined
+            transformers: undefined,
         });
         if (sourceMap) {
             return output.outputText;

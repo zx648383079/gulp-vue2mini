@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatArgv = void 0;
 function parseValue(val) {
     var num = +val;

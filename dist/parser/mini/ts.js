@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseMethodToObject = exports.parseJson = exports.parsePage = void 0;
 var util_1 = require("../util");
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
@@ -13,7 +13,7 @@ function parsePage(content, tplFuns) {
     content = parseMethodToObject(appendMethod(content, tplFuns, match[0], match[4].indexOf('Component') > 0), {
         methods: '@WxMethod',
         lifetimes: '@WxLifeTime',
-        pageLifetimes: '@WxPageLifeTime'
+        pageLifetimes: '@WxPageLifeTime',
     }).replace(match[0], 'class ' + match[3]);
     var reg = new RegExp('(Page|Component)\\(new\\s+' + match[3]);
     if (reg.test(content)) {

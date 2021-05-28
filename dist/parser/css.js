@@ -10,8 +10,14 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-exports.__esModule = true;
-exports.cssToScss = exports.splitRuleName = exports.cssToJson = void 0;
+var __spreadArray = (this && this.__spreadArray) || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+        to[j] = from[i];
+    return to;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.formatThemeCss = exports.themeCss = exports.cssToScss = exports.splitRuleName = exports.cssToJson = void 0;
+var iterator_1 = require("./iterator");
 var util_1 = require("./util");
 var BLOCK_TYPE;
 (function (BLOCK_TYPE) {
@@ -27,29 +33,29 @@ var isEmptyCode = function (code) {
     return code === ' ' || code === '\r' || code === '\n' || code === '\t';
 };
 function cssToJson(content) {
-    var pos = -1;
+    var reader = new iterator_1.CharIterator(content);
     var isComment = function () {
-        var tag = content.substr(pos, 2);
+        var tag = reader.read(2);
         if (tag === '//') {
             return true;
         }
         if (tag !== '//' && tag !== '/*') {
             return false;
         }
-        return content.indexOf('*/', pos + 2) > 0;
+        return reader.indexOf('*/', 2) > 0;
     };
     var getCommentBock = function () {
-        var tag = content.substr(pos, 2);
-        var start = pos + 2;
-        var end = content.indexOf(tag === '//' ? '\n' : '*/', start);
+        var tag = reader.read(2);
+        var start = reader.index + 2;
+        var end = reader.indexOf(tag === '//' ? '\n' : '*/', 2);
         if (tag !== '//' && end < 0) {
             end = content.length;
         }
-        var text = content.substring(start, end);
-        pos = end + (tag === '//' ? 0 : 1);
+        var text = reader.read(end - start, 2);
+        reader.index = end + (tag === '//' ? 0 : 1);
         return {
             type: BLOCK_TYPE.COMMENT,
-            text: text.trim()
+            text: text.trim(),
         };
     };
     var getTextBlock = function (line) {
@@ -76,7 +82,7 @@ function cssToJson(content) {
             return {
                 type: BLOCK_TYPE.STYLE,
                 name: args[0].trim(),
-                value: args[1].trim()
+                value: args[1].trim(),
             };
         }
         if (line.trim().length < 1) {
@@ -84,30 +90,31 @@ function cssToJson(content) {
         }
         return {
             type: BLOCK_TYPE.TEXT,
-            text: line
+            text: line,
         };
     };
     var getBlock = function () {
-        var endIndex = content.indexOf(';', pos);
-        var blockStart = content.indexOf('{', pos);
+        var endIndex = reader.indexOf(';');
+        var blockStart = reader.indexOf('{');
         if (endIndex > 0 && (blockStart < 0 || blockStart > endIndex)) {
-            var line = content.substring(pos, endIndex);
-            pos = endIndex;
+            var line = reader.readRange(endIndex);
+            reader.index = endIndex;
             return getTextBlock(line);
         }
-        var blockEnd = content.indexOf('}', pos);
+        var endMap = [reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(function (i) { return i > 0; });
+        var blockEnd = endMap.length < 1 ? -1 : Math.min.apply(Math, endMap);
         if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
-            var line = content.substring(pos, blockEnd);
-            pos = blockEnd - 1;
+            var line = reader.readRange(blockEnd);
+            reader.index = blockEnd - 1;
             return getTextBlock(line);
         }
         if (blockStart < 0) {
-            var line = content.substring(pos);
-            pos = content.length;
+            var line = reader.readRange();
+            reader.moveEnd();
             return getTextBlock(line);
         }
-        var name = content.substring(pos, blockStart);
-        pos = blockStart;
+        var name = reader.readRange(blockStart);
+        reader.index = blockStart;
         return {
             type: BLOCK_TYPE.STYLE_GROUP,
             name: name.split(',').map(function (i) { return i.trim(); }).filter(function (i) { return i.length > 0; }),
@@ -116,8 +123,8 @@ function cssToJson(content) {
     };
     var parserBlock = function () {
         var code;
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next();
             if (isEmptyCode(code)) {
                 continue;
             }
@@ -133,7 +140,7 @@ function cssToJson(content) {
     };
     var parserBlocks = function () {
         var items = [];
-        while (pos < content.length) {
+        while (reader.canNext) {
             var item = parserBlock();
             if (item === true) {
                 break;
@@ -204,108 +211,6 @@ function blockToString(items, level, indent) {
     }
     return util_1.joinLine(lines);
 }
-function expandBlock(items) {
-    var mergeName = function (name, prefix) {
-        if (prefix.length < 1) {
-            return name;
-        }
-        var args = [];
-        prefix.forEach(function (i) {
-            name.forEach(function (j) {
-                args.push(j.indexOf('&') === 0 ? i + j.substring(1) : (i + ' ' + j));
-            });
-        });
-        return args;
-    };
-    var mergeChildren = function (prefix, item) {
-        var _a;
-        if (!item.children || item.children.length < 1) {
-            return [];
-        }
-        var block = {
-            type: item.type,
-            name: mergeName(item.name, prefix),
-            children: []
-        };
-        var children = [];
-        for (var _i = 0, _b = item.children; _i < _b.length; _i++) {
-            var line = _b[_i];
-            if (line.type !== BLOCK_TYPE.STYLE_GROUP) {
-                (_a = block.children) === null || _a === void 0 ? void 0 : _a.push(line);
-                continue;
-            }
-            children = children.concat(mergeChildren(block.name, line));
-        }
-        return [block].concat(children);
-    };
-    var data = [];
-    var nameBlcok = function (name) {
-        for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
-            var item = data_1[_i];
-            if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
-                continue;
-            }
-            if (item.name === name) {
-                return item;
-            }
-        }
-        return undefined;
-    };
-    var mergeBlock = function (item, children) {
-        if (!item.children) {
-            item.children = children;
-            return;
-        }
-        children.forEach(function (i) {
-            var _a, _b;
-            if (i.type !== BLOCK_TYPE.STYLE) {
-                (_a = item.children) === null || _a === void 0 ? void 0 : _a.push(i);
-                return;
-            }
-            for (var _i = 0, _c = item.children; _i < _c.length; _i++) {
-                var j = _c[_i];
-                if (j.type === BLOCK_TYPE.STYLE && j.name === i.name) {
-                    j.value = i.value;
-                    return;
-                }
-            }
-            (_b = item.children) === null || _b === void 0 ? void 0 : _b.push(i);
-        });
-    };
-    var appendBlock = function (item) {
-        if (item.name || item.name.length < 0) {
-            return;
-        }
-        item.name.forEach(function (name) {
-            var _a;
-            var block = nameBlcok(name);
-            var children = (_a = item.children) === null || _a === void 0 ? void 0 : _a.map(function (i) {
-                return __assign({}, i);
-            });
-            if (block) {
-                mergeBlock(block, children);
-                return;
-            }
-            data.push({
-                type: item.type,
-                name: name,
-                children: children
-            });
-        });
-    };
-    for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
-        var item = items_2[_i];
-        if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
-            data.push(item);
-            continue;
-        }
-        if (!item.children || item.children.length < 1) {
-            continue;
-        }
-        mergeChildren([], item).forEach(appendBlock);
-    }
-    return data;
-}
 function splitRuleName(name) {
     name = name.trim();
     if (name.length < 2) {
@@ -313,7 +218,7 @@ function splitRuleName(name) {
     }
     var tags = {
         '[': ']',
-        '(': ')'
+        '(': ')',
     };
     var args = [];
     var tag = '';
@@ -523,8 +428,8 @@ function splitBlock(items) {
         var name = findTreeName(typeof item.name === 'object' ? item.name : [item.name]);
         appendBlock(name, item.children, parent);
     };
-    for (var _i = 0, items_3 = items; _i < items_3.length; _i++) {
-        var item = items_3[_i];
+    for (var _i = 0, items_2 = items; _i < items_2.length; _i++) {
+        var item = items_2[_i];
         createTree(item, data);
     }
     return data;
@@ -535,3 +440,113 @@ function cssToScss(content) {
     return blockToString(blocks);
 }
 exports.cssToScss = cssToScss;
+function themeCss(items) {
+    var themeOption = {};
+    var isThemeDef = function (item) {
+        return item.type === BLOCK_TYPE.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
+    };
+    var appendTheme = function (item) {
+        var _a;
+        var name = item.name[0].substr(7).trim();
+        if (!themeOption[name]) {
+            themeOption[name] = {};
+        }
+        (_a = item.children) === null || _a === void 0 ? void 0 : _a.forEach(function (i) {
+            if (i.type === BLOCK_TYPE.STYLE) {
+                themeOption[name][i.name] = i.value;
+            }
+        });
+    };
+    var sourceItems = [];
+    for (var _i = 0, items_3 = items; _i < items_3.length; _i++) {
+        var item = items_3[_i];
+        if (isThemeDef(item)) {
+            appendTheme(item);
+            continue;
+        }
+        sourceItems.push(item);
+    }
+    var isThemeStyle = function (item) {
+        return item.type === BLOCK_TYPE.STYLE && item.value.indexOf('@') === 0;
+    };
+    var themeStyle = function (item, theme) {
+        if (theme === void 0) { theme = 'default'; }
+        var name = item.value.substr(1).trim();
+        if (!themeOption[theme][name]) {
+            throw "[" + theme + "]." + name + " is error value";
+        }
+        return themeOption[theme][name];
+    };
+    var defaultStyle = function (item) {
+        return themeStyle(item);
+    };
+    var splitThemeStyle = function (data) {
+        var source = [];
+        var append = [];
+        for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
+            var item = data_1[_i];
+            if (isThemeStyle(item)) {
+                append.push(__assign({}, item));
+                item.value = defaultStyle(item);
+            }
+            if (item.type !== BLOCK_TYPE.STYLE_GROUP || !item.children || item.children.length < 1) {
+                source.push(item);
+                continue;
+            }
+            var _a = splitThemeStyle(item.children), s = _a[0], a = _a[1];
+            if (a.length > 0) {
+                append.push(__assign(__assign({}, item), { children: a }));
+            }
+            source.push(__assign(__assign({}, item), { children: s }));
+        }
+        return [source, append];
+    };
+    var _a = splitThemeStyle(sourceItems), finishItems = _a[0], appendItems = _a[1];
+    if (appendItems.length < 1) {
+        return finishItems;
+    }
+    var cloneStyle = function (data, theme) {
+        var children = [];
+        for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
+            var item = data_2[_i];
+            if (isThemeStyle(item)) {
+                children.push(__assign(__assign({}, item), { value: themeStyle(item, theme) }));
+                continue;
+            }
+            if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
+                children.push(item);
+                continue;
+            }
+            children.push(__assign(__assign({}, item), { name: __spreadArray([], item.name), children: cloneStyle(item.children, theme) }));
+        }
+        return children;
+    };
+    Object.keys(themeOption).forEach(function (theme) {
+        if (theme === 'default') {
+            return;
+        }
+        var children = cloneStyle(appendItems, theme);
+        var cls = '.theme-' + theme;
+        for (var _i = 0, children_1 = children; _i < children_1.length; _i++) {
+            var item = children_1[_i];
+            if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
+                continue;
+            }
+            if (item.name[0].indexOf('body') === 0) {
+                item.name[0] = item.name[0].replace('body', 'body' + cls);
+            }
+            finishItems.push(item);
+        }
+    });
+    return finishItems;
+}
+exports.themeCss = themeCss;
+function formatThemeCss(content) {
+    if (content.trim().length < 1) {
+        return content;
+    }
+    var items = cssToJson(content);
+    items = themeCss(items);
+    return blockToString(items);
+}
+exports.formatThemeCss = formatThemeCss;

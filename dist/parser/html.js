@@ -1,7 +1,8 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.jsonToHtml = exports.htmlToJson = exports.SINGLE_TAGS = void 0;
 var element_1 = require("./element");
+var iterator_1 = require("./iterator");
 exports.SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr', '!DOCTYPE'];
 var ALLOW_INCLUDE_TAGS = ['style', 'script'];
 var BLOCK_TYPE;
@@ -13,43 +14,43 @@ var BLOCK_TYPE;
     BLOCK_TYPE[BLOCK_TYPE["END_TAG"] = 4] = "END_TAG";
 })(BLOCK_TYPE || (BLOCK_TYPE = {}));
 function htmlToJson(content) {
-    var pos = -1;
+    var reader = new iterator_1.CharIterator(content);
     var isNodeBegin = function () {
-        var po = pos;
-        var code;
         var status = BLOCK_TYPE.TAG;
         var attrTag = '';
-        while (po < content.length) {
-            code = content.charAt(++po);
+        var success = false;
+        reader.each(function (code) {
             if (['\'', '"'].indexOf(code) >= 0) {
                 if (status !== BLOCK_TYPE.ATTR_VALUE) {
                     attrTag = code;
                     status = BLOCK_TYPE.ATTR_VALUE;
-                    continue;
+                    return;
                 }
                 if (attrTag === code) {
                     status = BLOCK_TYPE.TAG;
-                    continue;
+                    return;
                 }
             }
             if (code === '>') {
-                return true;
+                success = true;
+                return false;
             }
             if (status !== BLOCK_TYPE.ATTR_VALUE && code === '<') {
                 return false;
             }
-        }
-        return false;
+            return;
+        });
+        return success;
     };
     var getNodeEndTag = function (i) {
         var code;
         var tag = '';
-        code = content.charAt(++i);
+        code = reader.readSeek(++i);
         if (code !== '/') {
             return false;
         }
-        while (i < content.length) {
-            code = content.charAt(++i);
+        while (i < reader.length) {
+            code = reader.readSeek(++i);
             if (code === '>') {
                 return tag;
             }
@@ -61,33 +62,33 @@ function htmlToJson(content) {
         return false;
     };
     var isNodeEnd = function () {
-        var tag = getNodeEndTag(pos);
+        var tag = getNodeEndTag(reader.index);
         if (typeof tag !== 'string') {
             return false;
         }
-        pos += 2 + tag.length;
+        reader.move(2 + tag.length);
         return true;
     };
     var isComment = function () {
-        if (content.substr(pos, 4) !== '<!--') {
+        if (reader.read(4) !== '<!--') {
             return false;
         }
-        return content.indexOf('-->', pos + 3) > 0;
+        return reader.indexOf('-->', 3) > 0;
     };
     var getCommentElement = function () {
-        var start = pos + 4;
-        var end = content.indexOf('-->', start);
-        var text = content.substr(start, end - start);
-        pos = end + 3;
+        var start = reader.index + 4;
+        var end = reader.indexOf('-->', 4);
+        var text = reader.read(end - start, 4);
+        reader.index = end + 2;
         return element_1.Element.comment(text.trim());
     };
     var getTextElement = function () {
         var text = '';
         var code;
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next();
             if (code === '<' && isNodeBegin()) {
-                pos--;
+                reader.move(-1);
                 break;
             }
             text += code;
@@ -98,33 +99,33 @@ function htmlToJson(content) {
         return element_1.Element.text(text.trim());
     };
     var backslashedCount = function () {
-        var po = pos;
-        var code;
         var count = 0;
-        while (po < content.length) {
-            code = content.charAt(--po);
-            if (code === '\\') {
-                count++;
-                continue;
+        reader.reverse(function (code) {
+            if (code !== '\\') {
+                return false;
             }
-            return count;
-        }
+            count++;
+            return;
+        });
         return count;
     };
     var isEmpty = function (code) {
         return code === ' ' || code === '\r' || code === '\n' || code === '\t';
     };
     var moveEndTag = function (tag) {
-        var po = pos;
-        var code;
-        while (po < content.length) {
-            code = content.charAt(++po);
+        var po = -1;
+        reader.each(function (code, i) {
             if (isEmpty(code)) {
-                continue;
+                return;
             }
             if (code === '<') {
-                break;
+                po = i;
+                return false;
             }
+            return;
+        });
+        if (po < 0) {
+            return;
         }
         var endTag = getNodeEndTag(po);
         if (typeof endTag !== 'string') {
@@ -133,7 +134,7 @@ function htmlToJson(content) {
         if (endTag.trim() !== tag) {
             return;
         }
-        pos = po + 2 + endTag.length;
+        reader.index = po + 2 + endTag.length;
     };
     var getElement = function () {
         var tag = '';
@@ -143,8 +144,8 @@ function htmlToJson(content) {
         var name = '';
         var value = '';
         var endAttr;
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next();
             if ((code === '\n' || code === '\r') && (status === BLOCK_TYPE.TAG || status === BLOCK_TYPE.ATTR)) {
                 code = ' ';
             }
@@ -165,19 +166,19 @@ function htmlToJson(content) {
             }
             if (code === '/') {
                 if (status === BLOCK_TYPE.ATTR || status === BLOCK_TYPE.TAG) {
-                    if (content.charAt(pos + 1) === '>') {
-                        pos++;
+                    if (reader.nextIs('>')) {
+                        reader.move();
                         break;
                     }
                     continue;
                 }
                 if (!endAttr && status === BLOCK_TYPE.ATTR_VALUE) {
-                    if (content.charAt(pos++) === '>') {
+                    if (reader.nextIs('>')) {
                         status = BLOCK_TYPE.NONE;
                         attrs[name] = value;
                         name = '';
                         value = '';
-                        pos++;
+                        reader.move();
                         break;
                     }
                 }
@@ -210,11 +211,9 @@ function htmlToJson(content) {
                 tag += code;
             }
             if (code === '=' && status === BLOCK_TYPE.ATTR) {
-                code = content.charAt(pos + 1);
                 status = BLOCK_TYPE.ATTR_VALUE;
-                if (code === '\'' || code === '"') {
-                    endAttr = code;
-                    pos++;
+                if (reader.nextIs('\'', '"')) {
+                    endAttr = reader.next();
                     continue;
                 }
                 endAttr = undefined;
@@ -243,13 +242,13 @@ function htmlToJson(content) {
     };
     var parserElement = function () {
         var code;
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next();
             if (isEmpty(code)) {
                 continue;
             }
             if (code !== '<') {
-                pos--;
+                reader.move(-1);
                 return getTextElement();
             }
             if (isNodeEnd()) {
@@ -259,7 +258,7 @@ function htmlToJson(content) {
                 return getCommentElement();
             }
             if (!isNodeBegin()) {
-                pos--;
+                reader.move(-1);
                 return getTextElement();
             }
             return getElement();
@@ -270,8 +269,8 @@ function htmlToJson(content) {
         var text = '';
         var endTag = '';
         var code = '';
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next();
             if (endTag.length > 0) {
                 if (code === endTag && backslashedCount() % 2 === 0) {
                     endTag = '';
@@ -283,12 +282,12 @@ function htmlToJson(content) {
                 text += code;
                 continue;
             }
-            var tag = getNodeEndTag(pos);
+            var tag = getNodeEndTag(reader.index);
             if (tag !== blockTag) {
                 text += code;
                 continue;
             }
-            pos += 2 + tag.length;
+            reader.move(2 + tag.length);
             break;
         }
         if (text.length < 1) {
@@ -298,7 +297,7 @@ function htmlToJson(content) {
     };
     var parserElements = function () {
         var items = [];
-        while (pos < content.length) {
+        while (reader.canNext) {
             var item = parserElement();
             if (item === true) {
                 break;

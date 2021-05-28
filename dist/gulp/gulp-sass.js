@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.gulpSass = void 0;
 var readable_stream_1 = require("readable-stream");
 var compiler_1 = require("../compiler");

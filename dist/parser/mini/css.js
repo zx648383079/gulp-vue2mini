@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.endImport = exports.preImport = exports.replaceTTF = exports.ttfToBase64 = void 0;
 var fs = require("fs");
 var path = require("path");

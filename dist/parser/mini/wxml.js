@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.htmlToWxml = exports.jsonToWxml = exports.studly = exports.firstUpper = exports.wxmlFunc = void 0;
 var html_1 = require("../html");
 exports.wxmlFunc = [];
@@ -74,7 +74,7 @@ function jsonToWxml(json, exclude) {
             if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
                 existFunc[func] = {
                     type: FuncType.BIND,
-                    properties: [value]
+                    properties: [value],
                 };
             }
             var getFunc = function (keys) {
@@ -87,7 +87,7 @@ function jsonToWxml(json, exclude) {
                     }
                     converterTap(val, key, attrs);
                     args.push('this.' + attrs.get(key) + '(e);');
-                    attrs["delete"](key);
+                    attrs.delete(key);
                 }
                 return args;
             };
@@ -143,7 +143,7 @@ function jsonToWxml(json, exclude) {
             var func = 'catchTaped';
             if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
                 existFunc[func] = {
-                    type: FuncType.FUNC
+                    type: FuncType.FUNC,
                 };
             }
             attrs.set('catchtap', func);
@@ -162,7 +162,7 @@ function jsonToWxml(json, exclude) {
         },
         '@touchend': function (value, _, attrs) {
             converterTap(value, 'bindtouchend', attrs);
-        }
+        },
     };
     var content = json.toString(function (item, nextStr) {
         if (item.node === 'root') {
@@ -341,7 +341,7 @@ function jsonToWxml(json, exclude) {
             if (!Object.prototype.hasOwnProperty.call(existFunc, f)) {
                 existFunc[f] = {
                     type: FuncType.TAP,
-                    properties: [key, dataKey]
+                    properties: [key, dataKey],
                 };
             }
             attrs.set(attrKey, f).set("data-" + dataKey, val);
@@ -385,7 +385,7 @@ function jsonToWxml(json, exclude) {
             existFunc[funcTo] = {
                 type: FuncType.CONVERTER,
                 properties: [func, lines],
-                amount: lines.length
+                amount: lines.length,
             };
         }
         else if (existFunc[funcTo].amount < lines.length) {
@@ -441,7 +441,7 @@ function jsonToWxml(json, exclude) {
             }
         };
         mapProperty(function (key, value) {
-            properties["delete"](key);
+            properties.delete(key);
             if (disallowAttrs.indexOf(key) >= 0) {
                 return;
             }

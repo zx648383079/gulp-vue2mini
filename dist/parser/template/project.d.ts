@@ -15,6 +15,7 @@ export declare class TemplateProject implements ICompliper {
     private getSassImport;
     readyFile(src: string): undefined | ICompliperFile | ICompliperFile[];
     compileFile(src: string): void;
+    private formatThemeStyle;
     compileAFile(src: string, mtime?: number): void;
     mkIfNotFolder(folder: string): void;
     outputFile(file: string): string;

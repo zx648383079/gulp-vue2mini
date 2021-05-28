@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.template = exports.replacePath = exports.renameExt = exports.dealTemplateFile = void 0;
 var readable_stream_1 = require("readable-stream");
 var fs = require("fs");

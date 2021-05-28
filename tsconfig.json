@@ -18,6 +18,7 @@
         "pretty": true,
         "strictPropertyInitialization": true,
         "importHelpers": false,
+        "target": "ES5",
         "typeRoots": [
             "./node_modules/@types"
         ]

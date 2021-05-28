@@ -7,22 +7,8 @@ import { Element } from '../element';
 import { Compiler, consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
 import * as UglifyJS from 'uglify-js';
 import * as CleanCSS from 'clean-css';
-
-interface IPage {
-    isLayout: boolean;
-    canRender: boolean;
-    file: string;
-    tokens: IToken[];
-}
-
-type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random';
-
-interface IToken {
-    type: TYPE_MAP;
-    content: string;
-    comment?: string;
-    amount?: number;
-}
+import { IPage, IToken, TYPE_MAP } from './tokenizer';
+import { formatThemeCss } from '../css';
 
 const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
 const REGEX_SASS_IMPORT = /@import\s+["'](.+?)["'];/g;
@@ -37,7 +23,6 @@ export class TemplateProject implements ICompliper {
     }
 
     private linkFiles: {[key: string]: string[]} = {}; // 关联文件
-
     private cachesFiles = new CacheManger<IPage>();
 
     /**
@@ -94,6 +79,9 @@ export class TemplateProject implements ICompliper {
         if (content.length < 1) {
             return;
         }
+        if (content === 'theme') {
+            return;
+        }
         let type: TYPE_MAP = 'extend';
         if (content === '@') {
             type = 'comment';
@@ -107,6 +95,7 @@ export class TemplateProject implements ICompliper {
             // 如果包含 <> 字符则不符合规则
             return;
         }
+        
         let amount = '1';
         if (type === 'extend' && content.indexOf('@') > 0) {
             [content, amount] = content.split('@');
@@ -315,7 +304,7 @@ export class TemplateProject implements ICompliper {
                 lines.push(item.text as string);
             }
         });
-        let style = joinLine(lines);
+        let style = this.formatThemeStyle(joinLine(lines));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = Compiler.sass(style, file, styleLang);
         }
@@ -423,6 +412,13 @@ export class TemplateProject implements ICompliper {
         this.compileAFile(src);
     }
 
+    private formatThemeStyle(content: string): string {
+        if (content.indexOf('@theme ') < 0) {
+            return content;
+        }
+        return formatThemeCss(content);
+    }
+
     /**
      * compileFile
      * @param mtime 更新时间
@@ -439,7 +435,7 @@ export class TemplateProject implements ICompliper {
                 return;
             }
             if (file.type === 'scss' || file.type === 'sass') {
-                let content = fileContent(file);
+                let content = this.formatThemeStyle(fileContent(file));
                 this.getSassImport(content, src);
                 content = Compiler.sass(content, src, file.type);
                 if (content && content.length > 0 && this.options && this.options.min) {

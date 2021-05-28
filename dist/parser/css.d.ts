@@ -16,4 +16,6 @@ interface IBlockItem {
 export declare function cssToJson(content: string): IBlockItem[];
 export declare function splitRuleName(name: string): string[];
 export declare function cssToScss(content: string): string;
+export declare function themeCss(items: IBlockItem[]): IBlockItem[];
+export declare function formatThemeCss(content: string): string;
 export {};

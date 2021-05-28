@@ -1,3 +1,4 @@
+import { CharIterator } from './iterator';
 import { joinLine, LINE_SPLITE, splitLine } from './util';
 
 enum BLOCK_TYPE {
@@ -27,32 +28,32 @@ const isEmptyCode = (code: string): boolean => {
 };
 
 export function cssToJson(content: string) {
-    let pos = -1;
+    const reader = new CharIterator(content);
     /**
      * 判断是否是评论
      */
     const isComment = () => {
-        const tag = content.substr(pos, 2);
+        const tag = reader.read(2);
         if (tag === '//') {
             return true;
         }
         if (tag !== '//' && tag !== '/*') {
             return false;
         }
-        return content.indexOf('*/', pos + 2) > 0;
+        return reader.indexOf('*/', 2) > 0;
     };
     /**
      * 获取评论元素，并移动位置
      */
     const getCommentBock = (): IBlockItem => {
-        const tag = content.substr(pos, 2);
-        const start = pos + 2;
-        let end = content.indexOf(tag === '//' ? '\n' : '*/', start);
+        const tag = reader.read(2);
+        const start = reader.index + 2;
+        let end = reader.indexOf(tag === '//' ? '\n' : '*/', 2);
         if (tag !== '//' && end < 0) {
             end = content.length;
         }
-        const text = content.substring(start, end);
-        pos = end + (tag === '//' ? 0 : 1);
+        const text = reader.read(end - start, 2) as string;
+        reader.index = end + (tag === '//' ? 0 : 1);
         return {
             type: BLOCK_TYPE.COMMENT,
             text: text.trim(),
@@ -94,27 +95,28 @@ export function cssToJson(content: string) {
         };
     };
     const getBlock = (): IBlockItem|boolean => {
-        const endIndex = content.indexOf(';', pos);
-        const blockStart = content.indexOf('{', pos);
+        const endIndex = reader.indexOf(';');
+        const blockStart = reader.indexOf('{');
         if (endIndex > 0 && (blockStart < 0 || blockStart > endIndex)) {
-            const line = content.substring(pos, endIndex);
-            pos = endIndex;
+            const line = reader.readRange(endIndex) as string;
+            reader.index = endIndex;
             return getTextBlock(line);
         }
         // 有可能最后的属性没有 ; 结束符
-        const blockEnd = content.indexOf('}', pos);
+        const endMap =[reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(i => i > 0);
+        let blockEnd = endMap.length < 1 ? -1 : Math.min(...endMap);
         if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
-            const line = content.substring(pos, blockEnd);
-            pos = blockEnd - 1;
+            const line = reader.readRange(blockEnd);
+            reader.index = blockEnd - 1;
             return getTextBlock(line);
         }
         if (blockStart < 0) {
-            const line = content.substring(pos);
-            pos = content.length;
+            const line = reader.readRange();
+            reader.moveEnd();
             return getTextBlock(line);
         }
-        const name = content.substring(pos, blockStart);
-        pos = blockStart;
+        const name = reader.readRange(blockStart);
+        reader.index = blockStart;
         return {
             type: BLOCK_TYPE.STYLE_GROUP,
             name: name.split(',').map(i => i.trim()).filter(i => i.length > 0),
@@ -123,8 +125,8 @@ export function cssToJson(content: string) {
     };
     const parserBlock = (): IBlockItem | boolean => {
         let code: string;
-        while (pos < content.length) {
-            code = content.charAt(++pos);
+        while (reader.canNext) {
+            code = reader.next() as string;
             if (isEmptyCode(code)) {
                 continue;
             }
@@ -140,7 +142,7 @@ export function cssToJson(content: string) {
     };
     const parserBlocks = () => {
         const items: IBlockItem[] = [];
-        while (pos < content.length) {
+        while (reader.canNext) {
             const item = parserBlock();
             if (item === true) {
                 break;
@@ -209,111 +211,6 @@ function blockToString(items: IBlockItem[], level: number = 1, indent: string = 
     return joinLine(lines);
 }
 
-/**
- * 展开所有的标签
- * @param items blocks
- * @returns array
- */
-function expandBlock(items: IBlockItem[]): IBlockItem[] {
-    const mergeName = (name: string[], prefix: string[]): string[] => {
-        if (prefix.length < 1) {
-            return name;
-        }
-        const args: string[] = [];
-        prefix.forEach(i => {
-            name.forEach(j => {
-                args.push(j.indexOf('&') === 0 ? i + j.substring(1) : (i + ' ' + j));
-            });
-        });
-        return args;
-    };
-    // 合并成 一维
-    const mergeChildren = (prefix: string[], item: IBlockItem): IBlockItem[] =>  {
-        if (!item.children || item.children.length < 1) {
-            return [];
-        }
-        const block: IBlockItem = {
-            type: item.type,
-            name: mergeName(item.name, prefix),
-            children: [],
-        };
-        let children: IBlockItem[] = [];
-        for (const line of item.children) {
-            if (line.type !== BLOCK_TYPE.STYLE_GROUP) {
-                block.children?.push(line);
-                continue;
-            }
-            children = children.concat(mergeChildren(block.name, line));
-        }
-        return [block].concat(children);
-    };
-    // 展开标签
-    const data: IBlockItem[] = [];
-    // 根据name 找到块
-    const nameBlcok = (name: string): IBlockItem|undefined => {
-        for (const item of data) {
-            if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
-                continue;
-            }
-            if (item.name === name) {
-                return item;
-            }
-        }
-        return undefined;
-    };
-    const mergeBlock = (item: IBlockItem, children: IBlockItem[]) => {
-        if (!item.children) {
-            item.children = children;
-            return;
-        }
-        children.forEach(i => {
-            if (i.type !== BLOCK_TYPE.STYLE) {
-                item.children?.push(i);
-                return;
-            }
-            for (const j of item.children as IBlockItem[]) {
-                if (j.type === BLOCK_TYPE.STYLE && j.name === i.name) {
-                    j.value = i.value;
-                    return;
-                }
-            }
-            item.children?.push(i);
-        });
-    };
-    const appendBlock = (item: IBlockItem) => {
-        if (item.name || item.name.length < 0) {
-            return;
-        }
-        item.name.forEach((name: string) => {
-            const block = nameBlcok(name);
-            const children = item.children?.map(i => {
-                return {
-                    ...i
-                };
-            });
-            if (block) {
-                mergeBlock(block, children as IBlockItem[]);
-                return;
-            }
-            data.push({
-                type: item.type,
-                name,
-                children
-            });
-        });
-    };
-    for (const item of items) {
-        if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
-            data.push(item);
-            continue;
-        }
-        if (!item.children || item.children.length < 1) {
-            continue;
-        }
-        mergeChildren([], item).forEach(appendBlock);
-    }
-    return data;
-}
 
 /**
  * 拆分css的规则名
@@ -550,4 +447,109 @@ export function cssToScss(content: string): string {
     const items = cssToJson(content);
     const blocks = splitBlock(items);
     return blockToString(blocks);
+}
+
+
+export function themeCss(items: IBlockItem[]): IBlockItem[] {
+    const themeOption: any = {};
+    const isThemeDef = (item: IBlockItem): boolean => {
+        return item.type === BLOCK_TYPE.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
+    };
+    const appendTheme = (item: IBlockItem) => {
+        const name = item.name[0].substr(7).trim();
+        if (!themeOption[name]) {
+            themeOption[name] = {};
+        }
+        item.children?.forEach(i => {
+            if (i.type === BLOCK_TYPE.STYLE) {
+                themeOption[name][i.name] = i.value;
+            }
+        });
+    };
+    const sourceItems = [];
+    for (const item of items) {
+        if (isThemeDef(item)) {
+            appendTheme(item);
+            continue;
+        }
+        sourceItems.push(item);
+    }
+    const isThemeStyle = (item: IBlockItem): boolean => {
+        return item.type === BLOCK_TYPE.STYLE && item.value.indexOf('@') === 0;
+    };
+    const themeStyle = (item: IBlockItem, theme = 'default'): string => {
+        const name = item.value.substr(1).trim();
+        if (!themeOption[theme][name]) {
+            throw `[${theme}].${name} is error value`;
+        }
+        return themeOption[theme][name];
+    };
+    const defaultStyle = (item: IBlockItem): string => {
+        return themeStyle(item);
+    };
+    const splitThemeStyle = (data: IBlockItem[]): IBlockItem[][] => {
+        const source = [];
+        const append = [];
+        for (const item of data) {
+            if (isThemeStyle(item)) {
+                append.push({...item});
+                item.value = defaultStyle(item);
+            }
+            if (item.type !== BLOCK_TYPE.STYLE_GROUP || !item.children || item.children.length < 1) {
+                source.push(item);
+                continue;
+            }
+            let [s, a] = splitThemeStyle(item.children);
+            if (a.length > 0) {
+                append.push({...item, children: a});
+            }
+            source.push({...item, children: s});
+        }
+        return [source, append];
+    };
+    const [finishItems, appendItems] = splitThemeStyle(sourceItems);
+    if (appendItems.length < 1) {
+        return finishItems;
+    }
+    const cloneStyle = (data: IBlockItem[], theme: string): IBlockItem[] => {
+        const children = [];
+        for (const item of data) {
+            if (isThemeStyle(item)) {
+                children.push({...item, value: themeStyle(item, theme)});
+                continue;
+            }
+            if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
+                children.push(item);
+                continue;
+            }
+            children.push({...item, name: [...item.name as string[]], children: cloneStyle(item.children as IBlockItem[], theme)});
+        }
+        return children;
+    };
+    Object.keys(themeOption).forEach(theme => {
+        if (theme === 'default') {
+            return;
+        }
+        const children = cloneStyle(appendItems, theme);
+        const cls = '.theme-' + theme;
+        for (const item of children) {
+            if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
+                continue;
+            }
+            if (item.name[0].indexOf('body') === 0) {
+                item.name[0] = item.name[0].replace('body', 'body' + cls);
+            }
+            finishItems.push(item);
+        }
+    });
+    return finishItems;
+}
+
+export function formatThemeCss(content: string): string {
+    if (content.trim().length < 1) {
+        return content;
+    }
+    let items = cssToJson(content);
+    items = themeCss(items);
+    return blockToString(items);
 }

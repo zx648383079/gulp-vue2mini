@@ -1,5 +1,5 @@
 "use strict";
-exports.__esModule = true;
+Object.defineProperty(exports, "__esModule", { value: true });
 exports.splitFile = void 0;
 var ts_1 = require("./ts");
 var html_1 = require("../html");
@@ -31,11 +31,11 @@ function splitFile(content, ext, appendJson) {
         html: [],
         style: {
             type: 'css',
-            lines: []
+            lines: [],
         },
         script: {
             type: 'js',
-            lines: []
+            lines: [],
         }
     };
     for (var _i = 0, _a = data.children; _i < _a.length; _i++) {
