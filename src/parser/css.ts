@@ -478,11 +478,18 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
         return item.type === BLOCK_TYPE.STYLE && item.value.indexOf('@') === 0;
     };
     const themeStyle = (item: IBlockItem, theme = 'default'): string => {
-        const name = item.value.substr(1).trim();
-        if (!themeOption[theme][name]) {
-            throw `[${theme}].${name} is error value`;
+        let name: string = item.value.substr(1).trim();
+        if (themeOption[theme][name]) {
+            return themeOption[theme][name];
         }
-        return themeOption[theme][name];
+        // 允许通过 theme.name 的方式直接访问值
+        if (name.indexOf('.') >= 0) {
+            [theme, name] = name.split('.', 2);
+            if (themeOption[theme][name]) {
+                return themeOption[theme][name];
+            }
+        }
+        throw `[${theme}].${name} is error value`;
     };
     const defaultStyle = (item: IBlockItem): string => {
         return themeStyle(item);
@@ -536,9 +543,12 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
             if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
                 continue;
             }
-            if (item.name[0].indexOf('body') === 0) {
-                item.name[0] = item.name[0].replace('body', 'body' + cls);
-            }
+            item.name = (item.name as string[]).map(i => {
+                if (i.trim() === 'body') {
+                    return 'body' + cls;
+                }
+                return cls + ' ' + i;
+            });
             finishItems.push(item);
         }
     });
