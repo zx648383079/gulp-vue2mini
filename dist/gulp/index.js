@@ -13,3 +13,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./gulp-sass"), exports);
 __exportStar(require("./gulp-tempate"), exports);
 __exportStar(require("./gulp-ts"), exports);
+__exportStar(require("./gulp-less"), exports);
+__exportStar(require("./gulp-theme"), exports);

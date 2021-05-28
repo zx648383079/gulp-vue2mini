@@ -62,6 +62,13 @@ export class Compiler {
         }));
         return output.css.toString();
     }
+
+    public static async less(input: string, file: string, options: Less.Options = {}): Promise<string> {
+        options.filename = file;
+        const less: LessStatic = require('less');
+        const output = await less.render(input, options);
+        return output.css;
+    }
 }
 
 export const consoleLog = (file: string, tip = 'Finished', rootFolder?: string) => {

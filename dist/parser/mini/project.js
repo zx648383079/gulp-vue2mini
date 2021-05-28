@@ -32,6 +32,13 @@ var MiniProject = (function () {
                 dist: dist.replace(ext, '.wxss'),
             };
         }
+        if (ext === '.less') {
+            return {
+                type: 'less',
+                src: src,
+                dist: dist.replace(ext, '.wxss'),
+            };
+        }
         if (['.ttf', '.json'].indexOf(ext) >= 0) {
             return undefined;
         }
@@ -90,6 +97,15 @@ var MiniProject = (function () {
                     });
                     continue;
                 }
+                if (item.type === 'less') {
+                    files.push({
+                        src: src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxss'),
+                        type: item.type
+                    });
+                    continue;
+                }
                 if (item.type === 'js') {
                     files.push({
                         src: src,
@@ -127,6 +143,12 @@ var MiniProject = (function () {
             _this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
                 fs.writeFileSync(file.dist, compiler_1.Compiler.ts(compiler_1.fileContent(file), src));
+                return;
+            }
+            if (file.type === 'less') {
+                compiler_1.Compiler.less(compiler_1.fileContent(file), src).then(function (content) {
+                    fs.writeFileSync(file.dist, content);
+                });
                 return;
             }
             if (file.type === 'sass' || file.type === 'scss') {

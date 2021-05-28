@@ -87,7 +87,7 @@ vue2mini
 
 [转化核心](src/parser)
 
-支持 ts sass
+支持 ts sass less
 
 支持拆解html js ts sass css 写在一个文件上的情况
 

@@ -51,6 +51,9 @@ gulp.src('src/**/*.{vue,html}')
         .pipe(sass())
         .pipe(template('endsass'))   // 提取 sass 部分
 
+gulp.src('src/**/*.{vue,html}')
+        .pipe(template('less'))
+        .pipe(gulp())   // 提取 sass 部分
 
 gulp.src('src/**/*.{vue,html}')
         .pipe(template('json'))   // 提取并转化 json 部分

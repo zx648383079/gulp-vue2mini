@@ -32,6 +32,13 @@ export class MiniProject implements ICompliper {
                 dist: dist.replace(ext, '.wxss'),
             };
         }
+        if (ext === '.less') {
+            return {
+                type: 'less',
+                src,
+                dist: dist.replace(ext, '.wxss'),
+            };
+        }
         if (['.ttf', '.json'].indexOf(ext) >= 0) {
             return undefined;
         }
@@ -91,6 +98,15 @@ export class MiniProject implements ICompliper {
                     });
                     continue;
                 }
+                if (item.type === 'less') {
+                    files.push({
+                        src,
+                        content: item.content,
+                        dist: dist.replace(ext, '.wxss'),
+                        type: item.type
+                    });
+                    continue;
+                }
                 if (item.type === 'js') {
                     files.push({
                         src,
@@ -133,6 +149,12 @@ export class MiniProject implements ICompliper {
                 fs.writeFileSync(file.dist,
                     Compiler.ts(fileContent(file), src)
                 );
+                return;
+            }
+            if (file.type === 'less') {
+                Compiler.less(fileContent(file), src).then(content => {
+                    fs.writeFileSync(file.dist, content);
+                });
                 return;
             }
             if (file.type === 'sass' || file.type === 'scss') {
