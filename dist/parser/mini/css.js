@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.endImport = exports.preImport = exports.replaceTTF = exports.ttfToBase64 = void 0;
+exports.StyleParser = exports.endImport = exports.preImport = exports.replaceTTF = exports.ttfToBase64 = void 0;
 var fs = require("fs");
 var path = require("path");
 function ttfToBase64(file) {
@@ -62,3 +62,9 @@ function endImport(content) {
     return content;
 }
 exports.endImport = endImport;
+var StyleParser = (function () {
+    function StyleParser() {
+    }
+    return StyleParser;
+}());
+exports.StyleParser = StyleParser;

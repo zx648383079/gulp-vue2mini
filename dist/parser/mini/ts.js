@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseMethodToObject = exports.parseJson = exports.parsePage = void 0;
+exports.ScriptParser = exports.parseMethodToObject = exports.parseJson = exports.parsePage = void 0;
 var util_1 = require("../util");
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 function parsePage(content, tplFuns) {
@@ -143,3 +143,9 @@ function appendMethod(content, tplFuns, classLine, isComponent) {
     }
     return util_1.joinLine([content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]));
 }
+var ScriptParser = (function () {
+    function ScriptParser() {
+    }
+    return ScriptParser;
+}());
+exports.ScriptParser = ScriptParser;

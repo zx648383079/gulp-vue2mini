@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.htmlToWxml = exports.jsonToWxml = exports.studly = exports.firstUpper = exports.wxmlFunc = void 0;
+exports.TemplateParser = exports.htmlToWxml = exports.jsonToWxml = exports.studly = exports.firstUpper = exports.wxmlFunc = void 0;
 var html_1 = require("../html");
 exports.wxmlFunc = [];
 var FuncType;
@@ -532,3 +532,9 @@ function htmlToWxml(content) {
     return jsonToWxml(element);
 }
 exports.htmlToWxml = htmlToWxml;
+var TemplateParser = (function () {
+    function TemplateParser() {
+    }
+    return TemplateParser;
+}());
+exports.TemplateParser = TemplateParser;

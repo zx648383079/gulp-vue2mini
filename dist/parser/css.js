@@ -15,6 +15,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from) {
         to[j] = from[i];
     return to;
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatThemeCss = exports.themeCss = exports.cssToScss = exports.splitRuleName = exports.cssToJson = void 0;
 var iterator_1 = require("./iterator");
@@ -25,15 +26,95 @@ var BLOCK_TYPE;
     BLOCK_TYPE[BLOCK_TYPE["CHASET"] = 1] = "CHASET";
     BLOCK_TYPE[BLOCK_TYPE["IMPORT"] = 2] = "IMPORT";
     BLOCK_TYPE[BLOCK_TYPE["INCLUDE"] = 3] = "INCLUDE";
-    BLOCK_TYPE[BLOCK_TYPE["TEXT"] = 4] = "TEXT";
-    BLOCK_TYPE[BLOCK_TYPE["STYLE_GROUP"] = 5] = "STYLE_GROUP";
-    BLOCK_TYPE[BLOCK_TYPE["STYLE"] = 6] = "STYLE";
+    BLOCK_TYPE[BLOCK_TYPE["EXTEND"] = 4] = "EXTEND";
+    BLOCK_TYPE[BLOCK_TYPE["USE"] = 5] = "USE";
+    BLOCK_TYPE[BLOCK_TYPE["TEXT"] = 6] = "TEXT";
+    BLOCK_TYPE[BLOCK_TYPE["STYLE_GROUP"] = 7] = "STYLE_GROUP";
+    BLOCK_TYPE[BLOCK_TYPE["STYLE"] = 8] = "STYLE";
 })(BLOCK_TYPE || (BLOCK_TYPE = {}));
+var TYPE_CONVERTER_MAP = (_a = {},
+    _a[BLOCK_TYPE.EXTEND] = '@extend',
+    _a[BLOCK_TYPE.CHASET] = '@charset',
+    _a[BLOCK_TYPE.USE] = '@use',
+    _a[BLOCK_TYPE.IMPORT] = '@import',
+    _a[BLOCK_TYPE.INCLUDE] = '@include',
+    _a);
 var isEmptyCode = function (code) {
-    return code === ' ' || code === '\r' || code === '\n' || code === '\t';
+    return code === ' ' || isLineCode(code) || code === '\t';
+};
+var isLineCode = function (code) {
+    return code === '\r' || code === '\n';
 };
 function cssToJson(content) {
     var reader = new iterator_1.CharIterator(content);
+    var isIndent = content.indexOf('{') < 0;
+    var indentSize = function (pos) {
+        if (pos === void 0) { pos = reader.index; }
+        var count = 0;
+        while (pos < reader.length) {
+            var code = reader.readSeek(pos++);
+            if (isLineCode(code)) {
+                if (count > 0) {
+                    break;
+                }
+                continue;
+            }
+            if (code === '\t') {
+                count += 4;
+                continue;
+            }
+            if (code === ' ') {
+                count++;
+                continue;
+            }
+            break;
+        }
+        return count;
+    };
+    var nextIndentSize = function (pos) {
+        if (pos === void 0) { pos = reader.index; }
+        var inComment = false;
+        var code;
+        while (pos < reader.length) {
+            code = reader.readSeek(++pos);
+            if (!inComment && code === '/' && reader.readSeek(pos + 1) === '*') {
+                inComment = true;
+                pos += 1;
+                continue;
+            }
+            if (inComment && code === '*' && reader.readSeek(pos + 1) === '/') {
+                while (pos < reader.length) {
+                    code = reader.readSeek(++pos);
+                    if (!isLineCode(code)) {
+                        continue;
+                    }
+                    return indentSize(pos);
+                }
+            }
+            if (!inComment && isLineCode(code)) {
+                return indentSize(pos);
+            }
+        }
+        return 0;
+    };
+    var moveNewLine = function () {
+        while (reader.canNext) {
+            var code = reader.next();
+            if (code === '\n') {
+                return true;
+            }
+            if (code !== '\r') {
+                reader.move(-1);
+                return false;
+            }
+            if (reader.nextIs('\n')) {
+                reader.next();
+                return true;
+            }
+            return true;
+        }
+        return false;
+    };
     var isComment = function () {
         var tag = reader.read(2);
         if (tag === '//') {
@@ -53,29 +134,26 @@ function cssToJson(content) {
         }
         var text = reader.read(end - start, 2);
         reader.index = end + (tag === '//' ? 0 : 1);
+        if (isIndent && tag === '/*') {
+            moveNewLine();
+        }
         return {
             type: BLOCK_TYPE.COMMENT,
             text: text.trim(),
         };
     };
     var getTextBlock = function (line) {
-        if (line.indexOf('@charset') >= 0) {
-            return {
-                type: BLOCK_TYPE.CHASET,
-                text: line.replace(/@charset\s*/, '')
-            };
-        }
-        if (line.indexOf('@import') >= 0) {
-            return {
-                type: BLOCK_TYPE.IMPORT,
-                text: line.replace(/@import\s*/, '')
-            };
-        }
-        if (line.indexOf('@include') >= 0) {
-            return {
-                type: BLOCK_TYPE.INCLUDE,
-                text: line.replace(/@include\s*/, '')
-            };
+        line = line.trim();
+        for (var key in TYPE_CONVERTER_MAP) {
+            if (Object.prototype.hasOwnProperty.call(TYPE_CONVERTER_MAP, key)) {
+                var search = TYPE_CONVERTER_MAP[key];
+                if (line.startsWith(search)) {
+                    return {
+                        type: key,
+                        text: line.substr(search.length).trim(),
+                    };
+                }
+            }
         }
         var args = line.split(':', 2);
         if (args.length === 2) {
@@ -85,7 +163,7 @@ function cssToJson(content) {
                 value: args[1].trim(),
             };
         }
-        if (line.trim().length < 1) {
+        if (line.length < 1) {
             return false;
         }
         return {
@@ -93,55 +171,78 @@ function cssToJson(content) {
             text: line,
         };
     };
-    var getBlock = function () {
-        var endIndex = reader.indexOf(';');
-        var blockStart = reader.indexOf('{');
-        if (endIndex > 0 && (blockStart < 0 || blockStart > endIndex)) {
-            var line = reader.readRange(endIndex);
-            reader.index = endIndex;
-            return getTextBlock(line);
+    var getBlock = function (indentLength) {
+        var blockStart;
+        var endIndex;
+        if (isIndent) {
+            endIndex = Math.min.apply(Math, [reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1].filter(function (i) { return i > 0; }));
+            var lineIndentLength = indentSize();
+            var nextIndentLength = nextIndentSize();
+            if (lineIndentLength === indentLength && nextIndentLength <= lineIndentLength) {
+                var line = reader.readRange(endIndex);
+                reader.index = endIndex;
+                return getTextBlock(line);
+            }
+            blockStart = endIndex;
+            indentLength = nextIndentLength;
         }
-        var endMap = [reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(function (i) { return i > 0; });
-        var blockEnd = endMap.length < 1 ? -1 : Math.min.apply(Math, endMap);
-        if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
-            var line = reader.readRange(blockEnd);
-            reader.index = blockEnd - 1;
-            return getTextBlock(line);
-        }
-        if (blockStart < 0) {
-            var line = reader.readRange();
-            reader.moveEnd();
-            return getTextBlock(line);
+        else {
+            var endIndex_1 = reader.indexOf(';');
+            blockStart = reader.indexOf('{');
+            if (endIndex_1 > 0 && (blockStart < 0 || blockStart > endIndex_1)) {
+                var line = reader.readRange(endIndex_1);
+                reader.index = endIndex_1;
+                return getTextBlock(line);
+            }
+            var endMap = [reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(function (i) { return i > 0; });
+            var blockEnd = endMap.length < 1 ? -1 : Math.min.apply(Math, endMap);
+            if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
+                var line = reader.readRange(blockEnd);
+                reader.index = blockEnd - 1;
+                return getTextBlock(line);
+            }
+            if (blockStart < 0) {
+                var line = reader.readRange();
+                reader.moveEnd();
+                return getTextBlock(line);
+            }
         }
         var name = reader.readRange(blockStart);
         reader.index = blockStart;
+        if (isIndent) {
+            moveNewLine();
+        }
         return {
             type: BLOCK_TYPE.STYLE_GROUP,
             name: name.split(',').map(function (i) { return i.trim(); }).filter(function (i) { return i.length > 0; }),
-            children: parserBlocks()
+            children: parserBlocks(indentLength)
         };
     };
-    var parserBlock = function () {
+    var parserBlock = function (indentLength) {
         var code;
         while (reader.canNext) {
+            if (isIndent && moveNewLine()) {
+                return indentLength > 0;
+            }
             code = reader.next();
-            if (isEmptyCode(code)) {
+            if (!isIndent && isEmptyCode(code)) {
                 continue;
             }
             if (code === '/' && isComment()) {
                 return getCommentBock();
             }
-            if (code === '}') {
+            if (isIndent && code === '}') {
                 return true;
             }
-            return getBlock();
+            return getBlock(indentLength);
         }
         return false;
     };
-    var parserBlocks = function () {
+    var parserBlocks = function (indentLength) {
+        if (indentLength === void 0) { indentLength = 0; }
         var items = [];
         while (reader.canNext) {
-            var item = parserBlock();
+            var item = parserBlock(indentLength);
             if (item === true) {
                 break;
             }
@@ -175,10 +276,6 @@ function blockToString(items, level, indent) {
     }
     for (var _i = 0, items_1 = items; _i < items_1.length; _i++) {
         var item = items_1[_i];
-        if (item.type === BLOCK_TYPE.CHASET) {
-            lines.push(spaces + '@charset ' + item.text + ';');
-            continue;
-        }
         if (item.type === BLOCK_TYPE.TEXT) {
             lines.push(spaces + item.text + ';');
             continue;
@@ -192,16 +289,13 @@ function blockToString(items, level, indent) {
             lines.push(spaces + '/* ' + util_1.splitLine(text).map(function (i) { return i.trim(); }).join(util_1.LINE_SPLITE + spaces) + ' */');
             continue;
         }
-        if (item.type === BLOCK_TYPE.IMPORT) {
-            lines.push(spaces + '@import ' + item.text + ';');
-            continue;
-        }
-        if (item.type === BLOCK_TYPE.INCLUDE) {
-            lines.push(spaces + '@include ' + item.text + ';');
+        if (Object.prototype.hasOwnProperty.call(TYPE_CONVERTER_MAP, item.type)) {
+            lines.push(spaces + TYPE_CONVERTER_MAP[item.type] + ' ' + item.text + ';');
             continue;
         }
         if (item.type === BLOCK_TYPE.STYLE) {
             lines.push(spaces + item.name + ': ' + item.value + ';');
+            continue;
         }
         if (item.type === BLOCK_TYPE.STYLE_GROUP) {
             lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + util_1.LINE_SPLITE + spaces) : item.name) + ' {');
@@ -467,12 +561,21 @@ function themeCss(items) {
         sourceItems.push(item);
     }
     var isThemeStyle = function (item) {
-        return item.type === BLOCK_TYPE.STYLE && item.value.indexOf('@') === 0;
+        if (item.type !== BLOCK_TYPE.STYLE) {
+            return false;
+        }
+        for (var _i = 0, _a = item.value.split(' '); _i < _a.length; _i++) {
+            var val = _a[_i];
+            val = val.trim();
+            if (val.charAt(0) === '@' && val.length > 1) {
+                return true;
+            }
+        }
+        return false;
     };
-    var themeStyle = function (item, theme) {
+    var themeStyleValue = function (name, theme) {
         var _a;
         if (theme === void 0) { theme = 'default'; }
-        var name = item.value.substr(1).trim();
         if (themeOption[theme][name]) {
             return themeOption[theme][name];
         }
@@ -483,6 +586,22 @@ function themeCss(items) {
             }
         }
         throw "[" + theme + "]." + name + " is error value";
+    };
+    var themeStyle = function (item, theme) {
+        if (theme === void 0) { theme = 'default'; }
+        var block = [];
+        item.value.split(' ').forEach(function (val) {
+            val = val.trim();
+            if (val.length < 1) {
+                return;
+            }
+            if (val.charAt(0) === '@' && val.length > 1) {
+                block.push(themeStyleValue(val.substr(1), theme));
+                return;
+            }
+            block.push(val);
+        });
+        return block.join(' ');
     };
     var defaultStyle = function (item) {
         return themeStyle(item);

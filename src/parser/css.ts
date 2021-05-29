@@ -6,6 +6,8 @@ enum BLOCK_TYPE {
     CHASET,
     IMPORT,
     INCLUDE,
+    EXTEND,
+    USE,
     TEXT,
     STYLE_GROUP,
     STYLE,
@@ -18,17 +20,113 @@ interface IBlockItem {
     children?: IBlockItem[];
 }
 
+const TYPE_CONVERTER_MAP: any = {
+    [BLOCK_TYPE.EXTEND]: '@extend',
+    [BLOCK_TYPE.CHASET]: '@charset',
+    [BLOCK_TYPE.USE]: '@use',
+    [BLOCK_TYPE.IMPORT]: '@import',
+    [BLOCK_TYPE.INCLUDE]: '@include',
+};
+
 /**
  * 判断是否是空字符
  * @param code 字符
  * @returns true
  */
 const isEmptyCode = (code: string): boolean => {
-    return code === ' ' || code === '\r' || code === '\n' || code === '\t';
+    return code === ' ' || isLineCode(code) || code === '\t';
+};
+
+/**
+ * 是否是换行符
+ * @param code 
+ * @returns 
+ */
+const isLineCode = (code: string): boolean => {
+    return code === '\r' || code === '\n';
 };
 
 export function cssToJson(content: string) {
     const reader = new CharIterator(content);
+    // 判断方式是否是采取缩进方式
+    const isIndent = content.indexOf('{') < 0;
+
+    /**
+     * 判断缩进的数量
+     * @param pos 
+     * @returns 
+     */
+    const indentSize = (pos = reader.index): number =>  {
+        let count = 0;
+        while (pos < reader.length) {
+            const code = reader.readSeek(pos++);
+            if (isLineCode(code)) {
+                if (count > 0) {
+                    break;
+                }
+                continue;
+            }
+            if (code === '\t') {
+                count += 4;
+                continue;
+            }
+            if (code === ' ') {
+                count ++;
+                continue;
+            }
+            break;
+        }
+        return count;
+    };
+
+    const nextIndentSize = (pos = reader.index): number => {
+        let inComment = false;
+        let code: string;
+        while (pos < reader.length) {
+            code = reader.readSeek(++pos);
+            if (!inComment && code === '/' && reader.readSeek(pos + 1) === '*') {
+                inComment = true;
+                pos += 1;
+                continue;
+            }
+            if (inComment && code === '*' && reader.readSeek(pos + 1) === '/') {
+                while (pos < reader.length) {
+                    code = reader.readSeek(++pos);
+                    if (!isLineCode(code)) {
+                        continue;
+                    }
+                    return indentSize(pos);
+                }
+            }
+            if (!inComment && isLineCode(code)) {
+                return indentSize(pos);
+            }
+
+        }
+        return 0;
+    };
+    /**
+     * 判断接下来是否是换行，是的话移动到新的一行开始
+     * @returns 
+     */
+    const moveNewLine = (): boolean => {
+        while (reader.canNext) {
+            const code = reader.next();
+            if (code === '\n') {
+                return true;
+            }
+            if (code !== '\r') {
+                reader.move(-1);
+                return false;
+            }
+            if (reader.nextIs('\n')) {
+                reader.next();
+                return true;
+            }
+            return true;
+        }
+        return false;
+    } 
     /**
      * 判断是否是评论
      */
@@ -54,29 +152,26 @@ export function cssToJson(content: string) {
         }
         const text = reader.read(end - start, 2) as string;
         reader.index = end + (tag === '//' ? 0 : 1);
+        if (isIndent && tag === '/*') {
+            moveNewLine();
+        }
         return {
             type: BLOCK_TYPE.COMMENT,
             text: text.trim(),
         };
     };
     const getTextBlock = (line: string): IBlockItem|boolean => {
-        if (line.indexOf('@charset') >= 0) {
-            return {
-                type: BLOCK_TYPE.CHASET,
-                text: line.replace(/@charset\s*/, '')
-            };
-        }
-        if (line.indexOf('@import') >= 0) {
-            return {
-                type: BLOCK_TYPE.IMPORT,
-                text: line.replace(/@import\s*/, '')
-            };
-        }
-        if (line.indexOf('@include') >= 0) {
-            return {
-                type: BLOCK_TYPE.INCLUDE,
-                text: line.replace(/@include\s*/, '')
-            };
+        line = line.trim();
+        for (const key in TYPE_CONVERTER_MAP) {
+            if (Object.prototype.hasOwnProperty.call(TYPE_CONVERTER_MAP, key)) {
+                const search: string = TYPE_CONVERTER_MAP[key];
+                if (line.startsWith(search)) {
+                    return {
+                        type: key as any,
+                        text: line.substr(search.length).trim(),
+                    };
+                }
+            }
         }
         const args = line.split(':', 2);
         if (args.length === 2) {
@@ -86,7 +181,7 @@ export function cssToJson(content: string) {
                 value: args[1].trim(),
             };
         }
-        if (line.trim().length < 1) {
+        if (line.length < 1) {
             return false;
         }
         return {
@@ -94,56 +189,78 @@ export function cssToJson(content: string) {
             text: line,
         };
     };
-    const getBlock = (): IBlockItem|boolean => {
-        const endIndex = reader.indexOf(';');
-        const blockStart = reader.indexOf('{');
-        if (endIndex > 0 && (blockStart < 0 || blockStart > endIndex)) {
-            const line = reader.readRange(endIndex) as string;
-            reader.index = endIndex;
-            return getTextBlock(line);
-        }
-        // 有可能最后的属性没有 ; 结束符
-        const endMap =[reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(i => i > 0);
-        let blockEnd = endMap.length < 1 ? -1 : Math.min(...endMap);
-        if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
-            const line = reader.readRange(blockEnd);
-            reader.index = blockEnd - 1;
-            return getTextBlock(line);
-        }
-        if (blockStart < 0) {
-            const line = reader.readRange();
-            reader.moveEnd();
-            return getTextBlock(line);
+    const getBlock = (indentLength: number): IBlockItem|boolean => {
+        let blockStart: number;
+        let endIndex: number;
+        if (isIndent) {
+            endIndex = Math.min(... [reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1].filter(i => i > 0));
+            const lineIndentLength = indentSize();
+            const nextIndentLength = nextIndentSize();
+            if (lineIndentLength === indentLength && nextIndentLength <= lineIndentLength) {
+                const line = reader.readRange(endIndex);
+                reader.index = endIndex;
+                return getTextBlock(line);
+            }
+            blockStart = endIndex;
+            indentLength = nextIndentLength;
+        } else {
+            const endIndex = reader.indexOf(';');
+            blockStart = reader.indexOf('{');
+            if (endIndex > 0 && (blockStart < 0 || blockStart > endIndex)) {
+                const line = reader.readRange(endIndex) as string;
+                reader.index = endIndex;
+                return getTextBlock(line);
+            }
+            // 有可能最后的属性没有 ; 结束符
+            const endMap = [reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(i => i > 0);
+            let blockEnd = endMap.length < 1 ? -1 : Math.min(...endMap);
+            if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
+                const line = reader.readRange(blockEnd);
+                reader.index = blockEnd - 1;
+                return getTextBlock(line);
+            }
+            
+            if (blockStart < 0) {
+                const line = reader.readRange();
+                reader.moveEnd();
+                return getTextBlock(line);
+            }
         }
         const name = reader.readRange(blockStart);
         reader.index = blockStart;
+        if (isIndent) {
+            moveNewLine();
+        }
         return {
             type: BLOCK_TYPE.STYLE_GROUP,
             name: name.split(',').map(i => i.trim()).filter(i => i.length > 0),
-            children: parserBlocks()
+            children: parserBlocks(indentLength)
         };
     };
-    const parserBlock = (): IBlockItem | boolean => {
+    const parserBlock = (indentLength: number): IBlockItem | boolean => {
         let code: string;
         while (reader.canNext) {
+            if (isIndent && moveNewLine()) {
+                return indentLength > 0;
+            }
             code = reader.next() as string;
-            if (isEmptyCode(code)) {
+            if (!isIndent && isEmptyCode(code)) {
                 continue;
             }
             if (code === '/' && isComment()) {
                 return getCommentBock();
             }
-            if (code === '}') {
+            if (isIndent && code === '}') {
                 return true;
             }
-            return getBlock();
+            return getBlock(indentLength);
         }
         return false;
     };
-    const parserBlocks = () => {
+    const parserBlocks = (indentLength = 0) => {
         const items: IBlockItem[] = [];
         while (reader.canNext) {
-            const item = parserBlock();
+            const item = parserBlock(indentLength);
             if (item === true) {
                 break;
             }
@@ -174,10 +291,6 @@ function blockToString(items: IBlockItem[], level: number = 1, indent: string = 
         });
     }
     for (const item of items) {
-        if (item.type === BLOCK_TYPE.CHASET) {
-            lines.push(spaces + '@charset ' + item.text + ';');
-            continue;
-        }
         if (item.type === BLOCK_TYPE.TEXT) {
             lines.push(spaces + item.text + ';');
             continue;
@@ -191,16 +304,13 @@ function blockToString(items: IBlockItem[], level: number = 1, indent: string = 
             lines.push(spaces + '/* ' + splitLine(text).map(i => i.trim()).join(LINE_SPLITE + spaces) + ' */');
             continue;
         }
-        if (item.type === BLOCK_TYPE.IMPORT) {
-            lines.push(spaces + '@import ' + item.text + ';');
-            continue;
-        }
-        if (item.type === BLOCK_TYPE.INCLUDE) {
-            lines.push(spaces + '@include ' + item.text + ';');
+        if (Object.prototype.hasOwnProperty.call(TYPE_CONVERTER_MAP, item.type)) {
+            lines.push(spaces + TYPE_CONVERTER_MAP[item.type] + ' ' + item.text + ';');
             continue;
         }
         if (item.type === BLOCK_TYPE.STYLE) {
             lines.push(spaces + item.name + ': ' + item.value + ';');
+            continue;
         }
         if (item.type === BLOCK_TYPE.STYLE_GROUP) {
             lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + LINE_SPLITE + spaces) : item.name) + ' {');
@@ -475,10 +585,18 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
         sourceItems.push(item);
     }
     const isThemeStyle = (item: IBlockItem): boolean => {
-        return item.type === BLOCK_TYPE.STYLE && item.value.indexOf('@') === 0;
+        if (item.type !== BLOCK_TYPE.STYLE) {
+            return false;
+        }
+        for (let val of item.value.split(' ') as string[]) {
+            val = val.trim();
+            if (val.charAt(0) === '@' && val.length > 1) {
+                return true;
+            }
+        }
+        return false;
     };
-    const themeStyle = (item: IBlockItem, theme = 'default'): string => {
-        let name: string = item.value.substr(1).trim();
+    const themeStyleValue = (name: string, theme = 'default'): string => {
         if (themeOption[theme][name]) {
             return themeOption[theme][name];
         }
@@ -490,6 +608,21 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
             }
         }
         throw `[${theme}].${name} is error value`;
+    }
+    const themeStyle = (item: IBlockItem, theme = 'default'): string => {
+        const block: string[] = [];
+        item.value.split(' ').forEach((val: string) => {
+            val = val.trim();
+            if (val.length < 1) {
+                return;
+            }
+            if (val.charAt(0) === '@' && val.length > 1) {
+                block.push(themeStyleValue(val.substr(1), theme));
+                return;
+            }
+            block.push(val);
+        });
+        return block.join(' ');
     };
     const defaultStyle = (item: IBlockItem): string => {
         return themeStyle(item);

@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.1.17
+
+1. 增加对sass 的识别
+
 ## v1.1.16
 
 1. 模板解析：增加html页面style、script进行合并，增加多主题支持

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.splitFile = void 0;
+exports.VueParser = exports.splitFile = void 0;
 var ts_1 = require("./ts");
 var html_1 = require("../html");
 var wxml_1 = require("./wxml");
@@ -86,3 +86,9 @@ function splitTsFile(content, tplfuns, appendJson) {
     data.json = { type: 'json', content: json || '{}' };
     return data;
 }
+var VueParser = (function () {
+    function VueParser() {
+    }
+    return VueParser;
+}());
+exports.VueParser = VueParser;

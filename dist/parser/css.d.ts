@@ -3,9 +3,11 @@ declare enum BLOCK_TYPE {
     CHASET = 1,
     IMPORT = 2,
     INCLUDE = 3,
-    TEXT = 4,
-    STYLE_GROUP = 5,
-    STYLE = 6
+    EXTEND = 4,
+    USE = 5,
+    TEXT = 6,
+    STYLE_GROUP = 7,
+    STYLE = 8
 }
 interface IBlockItem {
     [key: string]: any;

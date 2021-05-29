@@ -67,3 +67,7 @@ export function endImport(content: string): string {
     }
     return content;
 }
+
+export class StyleParser {
+    
+}

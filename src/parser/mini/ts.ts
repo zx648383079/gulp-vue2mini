@@ -171,3 +171,7 @@ function appendMethod(content: string, tplFuns?: string[], classLine: string = '
     }
     return joinLine([content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]));
 }
+
+export class ScriptParser {
+
+}

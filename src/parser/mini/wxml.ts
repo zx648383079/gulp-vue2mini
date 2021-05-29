@@ -617,3 +617,9 @@ export function htmlToWxml(content: string): string {
     const element = htmlToJson(content);
     return jsonToWxml(element);
 }
+
+export class TemplateParser {
+
+    
+    
+}

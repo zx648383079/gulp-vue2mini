@@ -9,4 +9,6 @@ interface IFileTemplate {
     json?: ITemplate;
 }
 export declare function splitFile(content: string, ext?: string, appendJson?: any): IFileTemplate;
+export declare class VueParser {
+}
 export {};

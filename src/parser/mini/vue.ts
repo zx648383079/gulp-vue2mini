@@ -102,3 +102,7 @@ function splitTsFile(content: string, tplfuns?: string[], appendJson?: any): IFi
     data.json = {type: 'json', content: json || '{}'};
     return data;
 }
+
+export class VueParser {
+    
+}
