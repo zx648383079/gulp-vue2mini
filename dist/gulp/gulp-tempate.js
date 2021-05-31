@@ -2,11 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.template = exports.replacePath = exports.renameExt = exports.dealTemplateFile = void 0;
 var readable_stream_1 = require("readable-stream");
-var fs = require("fs");
 var css_1 = require("../parser/mini/css");
-var vue_1 = require("../parser/mini/vue");
 var cache_1 = require("../parser/cache");
+var project_1 = require("../parser/mini/project");
 var cachesFiles = new cache_1.CacheManger();
+var project = new project_1.MiniProject(process.cwd(), process.cwd());
 function dealTemplateFile(contentBuff, path, ext, wantTag) {
     if (wantTag === 'tpl') {
         wantTag = 'wxml';
@@ -19,24 +19,14 @@ function dealTemplateFile(contentBuff, path, ext, wantTag) {
     if (cachesFiles.has(fileTag)) {
         return Buffer.from(wantTag === 'json' ? '{}' : '');
     }
-    var data = {};
-    if (['scss', 'sass', 'less', 'css', 'wxss'].indexOf(wantTag) < 0 || ext.indexOf('vue') > 0) {
-        var jsonPath = path.replace(ext, '.json');
-        if (fs.existsSync(jsonPath)) {
-            var json = fs.readFileSync(jsonPath).toString();
-            data = json.trim().length > 0 ? JSON.parse(json) : {};
+    var res = project.readyMixFile(path, String(contentBuff), ext, path);
+    for (var _i = 0, res_1 = res; _i < res_1.length; _i++) {
+        var item = res_1[_i];
+        var cacheKey = path.replace(ext, '__tmpl.' + item.type);
+        if ((!item.content || item.content.trim().length < 1) && cachesFiles.has(cacheKey)) {
+            continue;
         }
-    }
-    var res = vue_1.splitFile(String(contentBuff), ext.substr(1).toLowerCase(), data);
-    for (var key in res) {
-        if (res.hasOwnProperty(key)) {
-            var item = res[key];
-            var cacheKey = path.replace(ext, '__tmpl.' + item.type);
-            if ((!item.content || item.content.trim().length < 1) && cachesFiles.has(cacheKey)) {
-                continue;
-            }
-            cachesFiles.set(cacheKey, item.content);
-        }
+        cachesFiles.set(cacheKey, item.content);
     }
     cachesFiles.set(fileTag, true);
     if (cachesFiles.has(tplFile)) {

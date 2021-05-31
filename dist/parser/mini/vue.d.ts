@@ -1,14 +1,23 @@
-interface ITemplate {
+import { MiniProject } from './project';
+interface IVueResultItem {
     type: string;
     content: string;
 }
-interface IFileTemplate {
-    html?: ITemplate;
-    style?: ITemplate;
-    script?: ITemplate;
-    json?: ITemplate;
+interface IScriptResultItem extends IVueResultItem {
+    isPage?: boolean;
+    isComponent?: boolean;
+    isApp?: boolean;
 }
-export declare function splitFile(content: string, ext?: string, appendJson?: any): IFileTemplate;
+interface IVueResult {
+    template?: string;
+    style?: IVueResultItem;
+    script?: IScriptResultItem;
+    json?: string;
+}
 export declare class VueParser {
+    private project;
+    constructor(project: MiniProject);
+    render(content: string, ext: string, srcFile: string): IVueResult;
+    private splitTsFile;
 }
 export {};

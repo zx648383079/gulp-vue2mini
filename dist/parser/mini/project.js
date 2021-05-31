@@ -6,11 +6,21 @@ var fs = require("fs");
 var css_1 = require("./css");
 var vue_1 = require("./vue");
 var compiler_1 = require("../../compiler");
+var ts_1 = require("./ts");
+var link_1 = require("../link");
+var wxml_1 = require("./wxml");
+var json_1 = require("./json");
 var MiniProject = (function () {
     function MiniProject(inputFolder, outputFolder, options) {
         this.inputFolder = inputFolder;
         this.outputFolder = outputFolder;
         this.options = options;
+        this.link = new link_1.LinkManager();
+        this.script = new ts_1.ScriptParser(this);
+        this.template = new wxml_1.TemplateParser(this);
+        this.style = new css_1.StyleParser(this);
+        this.json = new json_1.JsonParser(this);
+        this.mix = new vue_1.VueParser(this);
     }
     MiniProject.prototype.readyFile = function (src) {
         var ext = path.extname(src);
@@ -50,7 +60,7 @@ var MiniProject = (function () {
             };
         }
         if (ext === '.html' || ext === '.vue') {
-            return this.readyVueFile(src, ext, dist);
+            return this.readyMixFile(src, ext, dist);
         }
         return {
             type: ext.substring(1),
@@ -58,82 +68,52 @@ var MiniProject = (function () {
             dist: dist,
         };
     };
-    MiniProject.prototype.readyVueFile = function (src, ext, dist) {
+    MiniProject.prototype.readyMixFile = function (src, content, ext, dist) {
+        var _a, _b;
+        if (ext === void 0) {
+            _a = [fs.readFileSync(src).toString(), path.extname(src), content], content = _a[0], ext = _a[1], dist = _a[2];
+        }
+        else if (dist === void 0) {
+            _b = [fs.readFileSync(src).toString(), content, ext], content = _b[0], ext = _b[1], dist = _b[2];
+        }
         var data = {};
         var jsonPath = src.replace(ext, '.json');
-        if (fs.existsSync(jsonPath)) {
+        if (jsonPath.endsWith('.json') && fs.existsSync(jsonPath)) {
             var json = fs.readFileSync(jsonPath).toString();
             data = json.trim().length > 0 ? JSON.parse(json) : {};
         }
-        var res = vue_1.splitFile(fs.readFileSync(src).toString(), ext.substr(1).toLowerCase(), data);
+        var res = this.mix.render(content, ext.substr(1).toLowerCase(), src);
         var files = [];
-        for (var key in res) {
-            if (res.hasOwnProperty(key)) {
-                var item = res[key];
-                if (item.type === 'json') {
-                    files.push({
-                        src: src,
-                        content: item.content,
-                        dist: dist.replace(ext, '.json'),
-                        type: item.type
-                    });
-                    continue;
-                }
-                if (item.type === 'wxml') {
-                    files.push({
-                        src: src,
-                        content: item.content,
-                        dist: dist.replace(ext, '.wxml'),
-                        type: item.type
-                    });
-                    continue;
-                }
-                if (item.type === 'css') {
-                    files.push({
-                        src: src,
-                        content: item.content,
-                        dist: dist.replace(ext, '.wxss'),
-                        type: item.type
-                    });
-                    continue;
-                }
-                if (item.type === 'less') {
-                    files.push({
-                        src: src,
-                        content: item.content,
-                        dist: dist.replace(ext, '.wxss'),
-                        type: item.type
-                    });
-                    continue;
-                }
-                if (item.type === 'js') {
-                    files.push({
-                        src: src,
-                        content: item.content,
-                        dist: dist.replace(ext, '.js'),
-                        type: item.type
-                    });
-                    continue;
-                }
-                if (item.type === 'ts') {
-                    files.push({
-                        src: src,
-                        content: item.content,
-                        dist: dist.replace(ext, '.js'),
-                        type: item.type
-                    });
-                    continue;
-                }
-                if (item.type === 'scss' || item.type === 'sass') {
-                    files.push({
-                        src: src,
-                        content: item.content,
-                        dist: dist.replace(ext, '.wxss'),
-                        type: item.type
-                    });
-                    continue;
-                }
-            }
+        files.push({
+            src: src,
+            content: this.json.render(res.json, data),
+            dist: dist.replace(ext, '.json'),
+            type: 'json',
+        });
+        if (res.template) {
+            files.push({
+                src: src,
+                content: res.template,
+                dist: dist.replace(ext, '.wxml'),
+                type: 'wxml'
+            });
+            ;
+        }
+        if (res.script) {
+            files.push({
+                src: src,
+                content: res.script.content,
+                dist: dist.replace(ext, '.js'),
+                type: res.script.type
+            });
+        }
+        if (res.style) {
+            files.push({
+                src: src,
+                content: res.style.content,
+                dist: dist.replace(ext, '.wxss'),
+                type: res.style.type
+            });
         }
         return files;
     };

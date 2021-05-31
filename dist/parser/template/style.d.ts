@@ -1,12 +1,17 @@
-import { ICompliper, ICompliperFile } from '../../compiler';
-export declare class StyleProject implements ICompliper {
-    inputFolder: string;
-    outputFolder: string;
-    options?: any;
-    constructor(inputFolder: string, outputFolder: string, options?: any);
-    readyFile(src: string): undefined | ICompliperFile | ICompliperFile[];
-    compileFile(src: string): void;
-    outputFile(file: string): string;
-    unlink(src: string): void;
-    logFile(file: string, tip?: string): void;
+import { TemplateProject } from './project';
+interface IThemeOption {
+    [key: string]: {
+        [name: string]: string;
+    };
 }
+export declare class StyleParser {
+    private project;
+    constructor(project: TemplateProject);
+    private themeItems;
+    render(content: string, file: string, lang?: string): string;
+    pushTheme(items: IThemeOption): void;
+    private hasTheme;
+    private needTheme;
+    private sassImport;
+}
+export {};

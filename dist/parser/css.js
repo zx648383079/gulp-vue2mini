@@ -17,7 +17,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from) {
 };
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.formatThemeCss = exports.themeCss = exports.cssToScss = exports.splitRuleName = exports.cssToJson = void 0;
+exports.formatThemeCss = exports.themeCss = exports.separateThemeStyle = exports.cssToScss = exports.splitRuleName = exports.blockToString = exports.cssToJson = void 0;
 var iterator_1 = require("./iterator");
 var util_1 = require("./util");
 var BLOCK_TYPE;
@@ -115,6 +115,29 @@ function cssToJson(content) {
         }
         return false;
     };
+    var lineEndIsComma = function (end, start) {
+        if (start === void 0) { start = 0; }
+        while (end > start) {
+            var code = reader.readSeek(--end);
+            if (code === ',') {
+                return true;
+            }
+            if (!isLineCode(code)) {
+                return false;
+            }
+        }
+        return false;
+    };
+    var getPreviousLine = function (start, end) {
+        if (end === void 0) { end = 0; }
+        while (start > end) {
+            var code = reader.readSeek(--start);
+            if (isLineCode(code)) {
+                return start;
+            }
+        }
+        return -1;
+    };
     var isComment = function () {
         var tag = reader.read(2);
         if (tag === '//') {
@@ -178,10 +201,33 @@ function cssToJson(content) {
             endIndex = Math.min.apply(Math, [reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1].filter(function (i) { return i > 0; }));
             var lineIndentLength = indentSize();
             var nextIndentLength = nextIndentSize();
-            if (lineIndentLength === indentLength && nextIndentLength <= lineIndentLength) {
-                var line = reader.readRange(endIndex);
-                reader.index = endIndex;
-                return getTextBlock(line);
+            if (lineIndentLength === indentLength) {
+                if (nextIndentLength < lineIndentLength) {
+                    var line = reader.readRange(endIndex);
+                    reader.index = endIndex;
+                    return getTextBlock(line);
+                }
+                if (nextIndentLength === lineIndentLength) {
+                    if (!lineEndIsComma(endIndex, reader.index)) {
+                        var line = reader.readRange(endIndex);
+                        reader.index = endIndex;
+                        return getTextBlock(line);
+                    }
+                    var pos = reader.index;
+                    while (reader.canNext) {
+                        var code = reader.next();
+                        if (!isLineCode(code)) {
+                            continue;
+                        }
+                        moveNewLine();
+                        nextIndentLength = indentSize();
+                        if (nextIndentLength > indentLength) {
+                            break;
+                        }
+                    }
+                    endIndex = reader.index;
+                    reader.index = pos;
+                }
             }
             blockStart = endIndex;
             indentLength = nextIndentLength;
@@ -200,6 +246,14 @@ function cssToJson(content) {
                 var line = reader.readRange(blockEnd);
                 reader.index = blockEnd - 1;
                 return getTextBlock(line);
+            }
+            if (blockStart > 0 && blockStart < blockEnd) {
+                blockEnd = getPreviousLine(blockStart, reader.index);
+                if (blockEnd > 0) {
+                    var line = reader.readRange(blockEnd);
+                    reader.index = blockEnd - 1;
+                    return getTextBlock(line);
+                }
             }
             if (blockStart < 0) {
                 var line = reader.readRange();
@@ -221,8 +275,13 @@ function cssToJson(content) {
     var parserBlock = function (indentLength) {
         var code;
         while (reader.canNext) {
-            if (isIndent && moveNewLine()) {
-                return indentLength > 0;
+            if (isIndent) {
+                if (moveNewLine()) {
+                    return indentLength > 0;
+                }
+                if (indentSize() < indentLength) {
+                    return true;
+                }
             }
             code = reader.next();
             if (!isIndent && isEmptyCode(code)) {
@@ -231,7 +290,7 @@ function cssToJson(content) {
             if (code === '/' && isComment()) {
                 return getCommentBock();
             }
-            if (isIndent && code === '}') {
+            if (!isIndent && code === '}') {
                 return true;
             }
             return getBlock(indentLength);
@@ -255,11 +314,22 @@ function cssToJson(content) {
     return parserBlocks();
 }
 exports.cssToJson = cssToJson;
-function blockToString(items, level, indent) {
+function blockToString(items, level, indent, isIndent) {
     if (level === void 0) { level = 1; }
     if (indent === void 0) { indent = '    '; }
+    if (isIndent === void 0) { isIndent = false; }
     var spaces = indent.length > 0 ? indent.repeat(level - 1) : indent;
     var lines = [];
+    var endTextJoin = function () {
+        var items = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            items[_i] = arguments[_i];
+        }
+        if (isIndent) {
+            return items.join('');
+        }
+        return items.join('') + ';';
+    };
     if (level > 1) {
         items = items.sort(function (a, b) {
             if (a.type === b.type) {
@@ -277,7 +347,7 @@ function blockToString(items, level, indent) {
     for (var _i = 0, items_1 = items; _i < items_1.length; _i++) {
         var item = items_1[_i];
         if (item.type === BLOCK_TYPE.TEXT) {
-            lines.push(spaces + item.text + ';');
+            lines.push(endTextJoin(spaces, item.text));
             continue;
         }
         if (item.type === BLOCK_TYPE.COMMENT) {
@@ -290,21 +360,24 @@ function blockToString(items, level, indent) {
             continue;
         }
         if (Object.prototype.hasOwnProperty.call(TYPE_CONVERTER_MAP, item.type)) {
-            lines.push(spaces + TYPE_CONVERTER_MAP[item.type] + ' ' + item.text + ';');
+            lines.push(endTextJoin(spaces, TYPE_CONVERTER_MAP[item.type], ' ', item.text));
             continue;
         }
         if (item.type === BLOCK_TYPE.STYLE) {
-            lines.push(spaces + item.name + ': ' + item.value + ';');
+            lines.push(endTextJoin(spaces, item.name, ': ', item.value));
             continue;
         }
         if (item.type === BLOCK_TYPE.STYLE_GROUP) {
-            lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + util_1.LINE_SPLITE + spaces) : item.name) + ' {');
-            lines.push(blockToString(item.children, level + 1, indent));
-            lines.push(spaces + '}');
+            lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + util_1.LINE_SPLITE + spaces) : item.name) + (isIndent ? '' : ' {'));
+            lines.push(blockToString(item.children, level + 1, indent, isIndent));
+            if (!isIndent) {
+                lines.push(spaces + '}');
+            }
         }
     }
     return util_1.joinLine(lines);
 }
+exports.blockToString = blockToString;
 function splitRuleName(name) {
     name = name.trim();
     if (name.length < 2) {
@@ -534,11 +607,12 @@ function cssToScss(content) {
     return blockToString(blocks);
 }
 exports.cssToScss = cssToScss;
-function themeCss(items) {
+function isThemeDef(item) {
+    return item.type === BLOCK_TYPE.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
+}
+;
+function separateThemeStyle(items) {
     var themeOption = {};
-    var isThemeDef = function (item) {
-        return item.type === BLOCK_TYPE.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
-    };
     var appendTheme = function (item) {
         var _a;
         var name = item.name[0].substr(7).trim();
@@ -559,6 +633,14 @@ function themeCss(items) {
             continue;
         }
         sourceItems.push(item);
+    }
+    return [themeOption, sourceItems];
+}
+exports.separateThemeStyle = separateThemeStyle;
+function themeCss(items, themeOption) {
+    var _a;
+    if (!themeOption) {
+        _a = separateThemeStyle(items), themeOption = _a[0], items = _a[1];
     }
     var isThemeStyle = function (item) {
         if (item.type !== BLOCK_TYPE.STYLE) {
@@ -611,6 +693,9 @@ function themeCss(items) {
         var append = [];
         for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
             var item = data_1[_i];
+            if (isThemeDef(item)) {
+                continue;
+            }
             if (isThemeStyle(item)) {
                 append.push(__assign({}, item));
                 item.value = defaultStyle(item);
@@ -627,7 +712,7 @@ function themeCss(items) {
         }
         return [source, append];
     };
-    var _a = splitThemeStyle(sourceItems), finishItems = _a[0], appendItems = _a[1];
+    var _b = splitThemeStyle(items), finishItems = _b[0], appendItems = _b[1];
     if (appendItems.length < 1) {
         return finishItems;
     }
@@ -671,10 +756,16 @@ function themeCss(items) {
 }
 exports.themeCss = themeCss;
 function formatThemeCss(content) {
-    if (content.trim().length < 1) {
-        return content;
+    var items;
+    if (typeof content !== 'object') {
+        if (content.trim().length < 1) {
+            return content;
+        }
+        items = cssToJson(content);
     }
-    var items = cssToJson(content);
+    else {
+        items = content;
+    }
     items = themeCss(items);
     return blockToString(items);
 }

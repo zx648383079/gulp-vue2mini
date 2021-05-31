@@ -126,7 +126,34 @@ export function cssToJson(content: string) {
             return true;
         }
         return false;
-    } 
+    }
+    const lineEndIsComma = (end: number, start = 0): boolean => {
+        while (end > start) {
+            const code = reader.readSeek(--end);
+            if (code === ',') {
+                return true;
+            }
+            if (!isLineCode(code)) {
+                return false;
+            }
+        }
+        return false;
+    }
+    /**
+     * 反向获取最后出现的换行符
+     * @param start 
+     * @param end 
+     * @returns 
+     */
+    const getPreviousLine = (start: number, end = 0): number => {
+        while (start > end) {
+            const code = reader.readSeek(--start);
+            if (isLineCode(code)) {
+                return start;
+            }
+        }
+        return -1;
+    }
     /**
      * 判断是否是评论
      */
@@ -195,11 +222,35 @@ export function cssToJson(content: string) {
         if (isIndent) {
             endIndex = Math.min(... [reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1].filter(i => i > 0));
             const lineIndentLength = indentSize();
-            const nextIndentLength = nextIndentSize();
-            if (lineIndentLength === indentLength && nextIndentLength <= lineIndentLength) {
-                const line = reader.readRange(endIndex);
-                reader.index = endIndex;
-                return getTextBlock(line);
+            let nextIndentLength = nextIndentSize();
+            if (lineIndentLength === indentLength) {
+                if (nextIndentLength < lineIndentLength) {
+                    const line = reader.readRange(endIndex);
+                    reader.index = endIndex;
+                    return getTextBlock(line);
+                }
+                if (nextIndentLength === lineIndentLength) {
+                    // 判断 多行的规则名情况
+                    if (!lineEndIsComma(endIndex, reader.index)) {
+                        const line = reader.readRange(endIndex);
+                        reader.index = endIndex;
+                        return getTextBlock(line);
+                    }
+                    const pos = reader.index;
+                    while (reader.canNext) {
+                        const code = reader.next() as string;
+                        if (!isLineCode(code)) {
+                            continue;
+                        }
+                        moveNewLine();
+                        nextIndentLength = indentSize();
+                        if (nextIndentLength > indentLength) {
+                            break;
+                        }
+                    }
+                    endIndex = reader.index;
+                    reader.index = pos;
+                }
             }
             blockStart = endIndex;
             indentLength = nextIndentLength;
@@ -218,6 +269,15 @@ export function cssToJson(content: string) {
                 const line = reader.readRange(blockEnd);
                 reader.index = blockEnd - 1;
                 return getTextBlock(line);
+            }
+            if (blockStart > 0 && blockStart < blockEnd) {
+                // 如果 下一行包含 { 表明下一行是新的style_group, 当前行为style
+                blockEnd = getPreviousLine(blockStart, reader.index);
+                if (blockEnd > 0) {
+                    const line = reader.readRange(blockEnd);
+                    reader.index = blockEnd - 1;
+                    return getTextBlock(line);
+                }
             }
             
             if (blockStart < 0) {
@@ -240,8 +300,13 @@ export function cssToJson(content: string) {
     const parserBlock = (indentLength: number): IBlockItem | boolean => {
         let code: string;
         while (reader.canNext) {
-            if (isIndent && moveNewLine()) {
-                return indentLength > 0;
+            if (isIndent) {
+                if (moveNewLine()) {
+                    return indentLength > 0;
+                }
+                if (indentSize() < indentLength) {
+                    return true;
+                }
             }
             code = reader.next() as string;
             if (!isIndent && isEmptyCode(code)) {
@@ -250,7 +315,7 @@ export function cssToJson(content: string) {
             if (code === '/' && isComment()) {
                 return getCommentBock();
             }
-            if (isIndent && code === '}') {
+            if (!isIndent && code === '}') {
                 return true;
             }
             return getBlock(indentLength);
@@ -273,9 +338,15 @@ export function cssToJson(content: string) {
     return parserBlocks();
 }
 
-function blockToString(items: IBlockItem[], level: number = 1, indent: string = '    '): string {
+export function blockToString(items: IBlockItem[], level: number = 1, indent: string = '    ', isIndent = false): string {
     const spaces = indent.length > 0 ?  indent.repeat(level - 1) : indent;
     const lines: string[] = [];
+    const endTextJoin = (...items: string[]) => {
+        if (isIndent) {
+            return items.join('');
+        }
+        return items.join('') + ';';
+    }
     if (level > 1) {
         items = items.sort((a, b) => {
             if (a.type === b.type) {
@@ -292,7 +363,7 @@ function blockToString(items: IBlockItem[], level: number = 1, indent: string = 
     }
     for (const item of items) {
         if (item.type === BLOCK_TYPE.TEXT) {
-            lines.push(spaces + item.text + ';');
+            lines.push(endTextJoin(spaces, item.text as string));
             continue;
         }
         if (item.type === BLOCK_TYPE.COMMENT) {
@@ -305,17 +376,19 @@ function blockToString(items: IBlockItem[], level: number = 1, indent: string = 
             continue;
         }
         if (Object.prototype.hasOwnProperty.call(TYPE_CONVERTER_MAP, item.type)) {
-            lines.push(spaces + TYPE_CONVERTER_MAP[item.type] + ' ' + item.text + ';');
+            lines.push(endTextJoin(spaces, TYPE_CONVERTER_MAP[item.type], ' ', item.text as string));
             continue;
         }
         if (item.type === BLOCK_TYPE.STYLE) {
-            lines.push(spaces + item.name + ': ' + item.value + ';');
+            lines.push(endTextJoin(spaces, item.name, ': ', item.value));
             continue;
         }
         if (item.type === BLOCK_TYPE.STYLE_GROUP) {
-            lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + LINE_SPLITE + spaces) : item.name) + ' {');
-            lines.push(blockToString(item.children as IBlockItem[], level + 1, indent));
-            lines.push(spaces + '}');
+            lines.push(spaces + (typeof item.name === 'object' ? item.name.join(',' + LINE_SPLITE + spaces) : item.name) + (isIndent ? '' : ' {'));
+            lines.push(blockToString(item.children as IBlockItem[], level + 1, indent, isIndent));
+            if (!isIndent) {
+                lines.push(spaces + '}');
+            }
         }
     }
     return joinLine(lines);
@@ -559,12 +632,14 @@ export function cssToScss(content: string): string {
     return blockToString(blocks);
 }
 
+// 多主题css
 
-export function themeCss(items: IBlockItem[]): IBlockItem[] {
+function isThemeDef(item: IBlockItem): boolean {
+    return item.type === BLOCK_TYPE.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
+};
+
+export function separateThemeStyle(items: IBlockItem[]): any[] {
     const themeOption: any = {};
-    const isThemeDef = (item: IBlockItem): boolean => {
-        return item.type === BLOCK_TYPE.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
-    };
     const appendTheme = (item: IBlockItem) => {
         const name = item.name[0].substr(7).trim();
         if (!themeOption[name]) {
@@ -583,6 +658,13 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
             continue;
         }
         sourceItems.push(item);
+    }
+    return [themeOption, sourceItems];
+}
+
+export function themeCss(items: IBlockItem[], themeOption?: any): IBlockItem[] {
+    if (!themeOption) {
+        [themeOption, items] = separateThemeStyle(items);
     }
     const isThemeStyle = (item: IBlockItem): boolean => {
         if (item.type !== BLOCK_TYPE.STYLE) {
@@ -631,6 +713,9 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
         const source = [];
         const append = [];
         for (const item of data) {
+            if (isThemeDef(item)) {
+                continue;
+            }
             if (isThemeStyle(item)) {
                 append.push({...item});
                 item.value = defaultStyle(item);
@@ -647,7 +732,7 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
         }
         return [source, append];
     };
-    const [finishItems, appendItems] = splitThemeStyle(sourceItems);
+    const [finishItems, appendItems] = splitThemeStyle(items);
     if (appendItems.length < 1) {
         return finishItems;
     }
@@ -688,11 +773,18 @@ export function themeCss(items: IBlockItem[]): IBlockItem[] {
     return finishItems;
 }
 
-export function formatThemeCss(content: string): string {
-    if (content.trim().length < 1) {
-        return content;
+export function formatThemeCss(items: IBlockItem[]): string;
+export function formatThemeCss(content: string): string;
+export function formatThemeCss(content: string|IBlockItem[]): string {
+    let items: IBlockItem[];
+    if (typeof content !== 'object') {
+        if (content.trim().length < 1) {
+            return content;
+        }
+        items = cssToJson(content);
+    } else {
+        items = content;
     }
-    let items = cssToJson(content);
     items = themeCss(items);
     return blockToString(items);
 }

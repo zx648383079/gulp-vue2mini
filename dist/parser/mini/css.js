@@ -63,8 +63,12 @@ function endImport(content) {
 }
 exports.endImport = endImport;
 var StyleParser = (function () {
-    function StyleParser() {
+    function StyleParser(project) {
+        this.project = project;
     }
+    StyleParser.prototype.render = function (content, file) {
+        return content;
+    };
     return StyleParser;
 }());
 exports.StyleParser = StyleParser;

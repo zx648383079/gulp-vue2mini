@@ -1,18 +1,19 @@
 import * as fs from 'fs';
-import { joinLine, splitLine } from '../util';
-import { CacheManger } from '../cache';
 import * as path from 'path';
-import { htmlToJson, jsonToHtml } from '../html';
-import { Element } from '../element';
 import { Compiler, consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
 import * as UglifyJS from 'uglify-js';
 import * as CleanCSS from 'clean-css';
-import { IPage, IToken, TYPE_MAP } from './tokenizer';
-import { formatThemeCss } from '../css';
+import { TemplateTokenizer } from './tokenizer';
+import { LinkManager } from '../link';
+import { StyleParser } from './style';
+import { TemplateParser } from './template';
+import { ScriptParser } from './script';
 
-const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
-const REGEX_SASS_IMPORT = /@import\s+["'](.+?)["'];/g;
 
+
+/**
+ * 模板项目转化
+ */
 export class TemplateProject implements ICompliper {
 
     constructor(
@@ -20,159 +21,20 @@ export class TemplateProject implements ICompliper {
         public outputFolder: string,
         public options?: any
     ) {
+        this.link.on(this.compileAFile.bind(this));
     }
 
-    private linkFiles: {[key: string]: string[]} = {}; // 关联文件
-    private cachesFiles = new CacheManger<IPage>();
+    public readonly link = new LinkManager();
+    public readonly script = new ScriptParser(this);
+    public readonly template = new TemplateParser(this);
+    public readonly style = new StyleParser(this);
+    public readonly tokenizer = new TemplateTokenizer(this);
 
     /**
-     * 触发更新
-     * @param key 触发文件
-     * @param mtime 文件的更改时间
+     * 是否压缩最小化
      */
-    private triggerLinkFile(key: string, mtime: number) {
-        if (!Object.prototype.hasOwnProperty.call(this.linkFiles, key)) {
-            return;
-        }
-        this.linkFiles[key].forEach(file => {
-            if (file) {
-                this.compileAFile(file, mtime);
-            }
-        });
-    }
-
-    /**
-     * 添加链接文件
-     * @param key 触发文件
-     * @param file 目标包含触发文件
-     */
-    private addLinkFile(key: string, file: string) {
-        if (!Object.prototype.hasOwnProperty.call(this.linkFiles, key)) {
-            this.linkFiles[key] = [file];
-            return;
-        }
-        if (this.linkFiles[key].indexOf(file) >= 0) {
-            return;
-        }
-        this.linkFiles[key].push(file);
-    }
-
-    /**
-     * 根据一行内容提取token
-     * @param line 内容
-     */
-    private converterToken(line: string): IToken | undefined {
-        line = line.trim();
-        if (line.length < 0) {
-            return;
-        }
-        if (line.charAt(0) !== '@') {
-            return;
-        }
-        let content = line.substr(1);
-        let comment = '';
-        const i = content.indexOf(' ');
-        if (i > 0) {
-            comment = content.substr(i).trim();
-            content = content.substr(0, i);
-        }
-        if (content.length < 1) {
-            return;
-        }
-        if (content === 'theme') {
-            return;
-        }
-        let type: TYPE_MAP = 'extend';
-        if (content === '@') {
-            type = 'comment';
-        } else if (content === '...') {
-            type = 'content';
-        } else if (content.indexOf('~') === 0 && line.indexOf('@@') > 2) {
-            type = 'random';
-            content = line.substr(2);
-        }
-        if (type === 'extend' && /[\<\>]/.test(content)) {
-            // 如果包含 <> 字符则不符合规则
-            return;
-        }
-        
-        let amount = '1';
-        if (type === 'extend' && content.indexOf('@') > 0) {
-            [content, amount] = content.split('@');
-        }
-        return {
-            type,
-            content,
-            comment,
-            amount: parseInt(amount, 10) || 1,
-        };
-    }
-
-    /**
-     * 将文件内容转成功token
-     * @param file 文件路径
-     * @param content 文件的内容
-     */
-    private parseToken(file: ICompliperFile): IPage {
-        const time = fs.statSync(file.src).mtimeMs;
-        if (this.cachesFiles.has(file.src, time)) {
-            return this.cachesFiles.get(file.src) as IPage;
-        }
-        const tokens: IToken[] = [];
-        let isLayout = false;
-        let canRender = true;
-        const currentFolder = path.dirname(file.src);
-        const ext = path.extname(file.src);
-        const replacePath = (text: string) => {
-            return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
-                if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
-                    return $0;
-                }
-                if ($2.indexOf('://') >= 0) {
-                    return $0;
-                }
-                if ($2.charAt(0) === '/') {
-                    return $0;
-                }
-                return $0.replace($2, path.resolve(currentFolder, $2));
-            });
-        };
-        splitLine(fileContent(file)).forEach((line, i) => {
-            const token = this.converterToken(line);
-            if (!token) {
-                tokens.push({
-                    type: 'text',
-                    content: replacePath(line)
-                });
-                return;
-            }
-            if (token.type === 'comment' && i < 1) {
-                token.type = 'layout';
-                canRender = false;
-            }
-            if (token.type === 'content') {
-                isLayout = true;
-            }
-            if (token.type === 'random') {
-                token.content = replacePath(token.content);
-            }
-            if (token.type === 'extend') {
-                if (token.content.indexOf('.') <= 0) {
-                    token.content += ext;
-                }
-                token.content = path.resolve(currentFolder, token.content);
-                this.addLinkFile(token.content, file.src);
-            }
-            tokens.push(token);
-        });
-        const page = {
-            tokens,
-            isLayout,
-            file: file.src,
-            canRender
-        };
-        this.cachesFiles.set(file.src, page, time);
-        return page;
+    public get compliperMin(): boolean {
+        return this.options && this.options.min;
     }
 
     /**
@@ -181,193 +43,8 @@ export class TemplateProject implements ICompliper {
      * @param content 内容
      */
     public renderFile(file: ICompliperFile): string {
-        const page = this.parseToken(file);
-        if (!page.canRender) {
-            return '';
-        }
-
-        let layout: IPage | null = null;
-        const renderPage = (item: IPage, data?: string) => {
-            const lines: string[] = [];
-            item.tokens.forEach(token => {
-                if (token.type === 'comment' || token.type === 'layout') {
-                    return;
-                }
-                if (token.type === 'content') {
-                    lines.push(data as string);
-                    return;
-                }
-                if (token.type === 'text') {
-                    lines.push(token.content);
-                    return;
-                }
-                if (token.type === 'random') {
-                    const args = token.content.split('@@');
-                    lines.push(args[Math.floor(Math.random() * args.length)]);
-                    return;
-                }
-                if (token.type !== 'extend') {
-                    lines.push(token.content);
-                    return;
-                }
-                const next = this.parseToken({
-                    src: token.content,
-                    dist: ''
-                });
-                if (next.isLayout) {
-                    layout = next;
-                    return;
-                }
-                let amount = token.amount || 1;
-                for (; amount > 0; amount --) {
-                    lines.push(renderPage(next));
-                }
-            });
-            return joinLine(lines);
-        };
-        const content = renderPage(page);
-        return this.mergeStyle(layout ? renderPage(layout, content) : content, file.src);
-    }
-    /**
-     * 合并脚本和样式
-     * @param content 内容
-     * @param file 文件
-     */
-    private mergeStyle(content: string, file: string): string {
-        const currentFolder = path.dirname(file);
-        const replacePath = (text: string) => {
-            return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
-                if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
-                    return $0;
-                }
-                if ($2.indexOf('://') >= 0) {
-                    return $0;
-                }
-                // 未考虑linux
-                if ($2.charAt(0) === '/') {
-                    return $0;
-                }
-                const fileName = path.relative(currentFolder, $2).replace('\\', '/').replace(/\.ts$/, '.js').replace(/\.(scss|sass|less)$/, '.css');
-                return $0.replace($2, fileName);
-            });
-        };
-        const data = htmlToJson(replacePath(content));
-        let headers: Element[] = [];
-        let footers: Element[] = [];
-        let styles: Element[] = [];
-        let scripts: Element[] = [];
-        let styleLang = 'css';
-        let scriptLang = 'js';
-        const eachElement = (root: Element) => {
-            if (root.node !== 'element') {
-                root.map(eachElement);
-                return;
-            }
-            if (root.tag === 'link') {
-                headers.push(root.clone());
-                root.ignore = true;
-                return;
-            }
-            if (root.tag === 'style') {
-                root.ignore = true;
-                const l = root.attr('lang') as string;
-                if (l && l !== 'css') {
-                    styleLang = l;
-                }
-                if (root.children && root.children.length > 0) {
-                    styles = styles.concat(root.children);
-                }
-                return;
-            }
-            if (root.tag !== 'script') {
-                root.map(eachElement);
-                return;
-            }
-            if (root.attr('src')) {
-                footers.push(root.clone());
-                root.ignore = true;
-                return;
-            }
-            const lang = root.attr('lang');
-            if (lang && lang !== 'js') {
-                scriptLang = lang as string;
-            }
-            root.ignore = true;
-            if (root.children && root.children.length > 0) {
-                scripts = scripts.concat(root.children);
-            }
-        };
-        data.map(eachElement);
-        let lines: string[] = [];
-        styles.forEach(item => {
-            if (item.text) {
-                lines.push(item.text as string);
-            }
-        });
-        let style = this.formatThemeStyle(joinLine(lines));
-        if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
-            style = Compiler.sass(style, file, styleLang);
-        }
-        lines = [];
-        scripts.forEach(item => {
-            if (item.text) {
-                lines.push(item.text as string);
-            }
-        });
-        let script = joinLine(lines);
-        if (script.length > 0 && scriptLang === 'ts') {
-            script = Compiler.ts(script, file);
-        }
-
-        const pushStyle = (root: Element) => {
-            if (root.node !== 'element') {
-                return;
-            }
-            if (root.tag === 'head') {
-                if (headers.length > 0) {
-                    root.children = !root.children ? headers : root.children.concat(headers);
-                }
-                if (style.length > 0) {
-                    root.children?.push(Element.create('style', [Element.text(style)]));
-                }
-                headers = [];
-                return;
-            }
-            if (root.tag === 'body') {
-                if (footers.length > 0) {
-                    root.children = !root.children ? footers : root.children.concat(footers);
-                }
-                if (script.length > 0) {
-                    root.children?.push(Element.create('script', [Element.text(script)]));
-                }
-                footers = [];
-                return;
-            }
-            root.map(pushStyle);
-        };
-        data.map(pushStyle);
-        return jsonToHtml(data, this.options && this.options.min ? '' : '    ');
-    }
-
-    /**
-     * 添加文件绑定
-     * @param content 内容
-     * @param file 文件
-     */
-    private getSassImport(content: string, file: string) {
-        if (content.length < 6) {
-            return;
-        }
-        const ext = path.extname(file);
-        const folder = path.dirname(file);
-        let res;
-        while (true) {
-            res = REGEX_SASS_IMPORT.exec(content);
-            if (!res) {
-                break;
-            }
-            this.addLinkFile(path.resolve(folder, res[1].indexOf('.') > 0 ? res[1] : ('_' + res[1] + ext)), file);
-        }
+        const res = this.template.render(file);
+        return res.template;
     }
 
     public readyFile(src: string): undefined | ICompliperFile | ICompliperFile[] {
@@ -396,7 +73,7 @@ export class TemplateProject implements ICompliper {
                 src,
                 dist,
             };
-            if (!this.parseToken(file).canRender) {
+            if (!this.tokenizer.render(file).canRender) {
                 return undefined;
             }
             return file;
@@ -412,13 +89,6 @@ export class TemplateProject implements ICompliper {
         this.compileAFile(src);
     }
 
-    private formatThemeStyle(content: string): string {
-        if (content.indexOf('@theme ') < 0) {
-            return content;
-        }
-        return formatThemeCss(content);
-    }
-
     /**
      * compileFile
      * @param mtime 更新时间
@@ -428,17 +98,16 @@ export class TemplateProject implements ICompliper {
             this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
                 let content = Compiler.ts(fileContent(file), src);
-                if (content && content.length > 0 && this.options && this.options.min) {
+                if (content && content.length > 0 && this.compliperMin) {
                     content = UglifyJS.minify(content).code;
                 }
                 fs.writeFileSync(file.dist, content);
                 return;
             }
             if (file.type === 'scss' || file.type === 'sass') {
-                let content = this.formatThemeStyle(fileContent(file));
-                this.getSassImport(content, src);
+                let content = this.style.render(fileContent(file), src, file.type);
                 content = Compiler.sass(content, src, file.type);
-                if (content && content.length > 0 && this.options && this.options.min) {
+                if (content && content.length > 0 && this.compliperMin) {
                     content = new CleanCSS().minify(content).styles;
                 }
                 fs.writeFileSync(file.dist, content);
@@ -462,7 +131,7 @@ export class TemplateProject implements ICompliper {
             compile(file);
             this.logFile(file.src);
         });
-        this.triggerLinkFile(src, mtime || fs.statSync(src).mtimeMs);
+        this.link.trigger(src, mtime || fs.statSync(src).mtimeMs);
     }
 
     /**

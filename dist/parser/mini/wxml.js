@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TemplateParser = exports.htmlToWxml = exports.jsonToWxml = exports.studly = exports.firstUpper = exports.wxmlFunc = void 0;
+exports.TemplateParser = exports.htmlToWxml = exports.jsonToWxml = void 0;
 var html_1 = require("../html");
-exports.wxmlFunc = [];
+var util_1 = require("../util");
 var FuncType;
 (function (FuncType) {
     FuncType[FuncType["BIND"] = 0] = "BIND";
@@ -27,42 +27,9 @@ function createTapCoverterFunc(name, target, args) {
     var line = lines.join(', ');
     return "    " + name + "(e: TouchEvent) {\n        this." + target + "(" + line + ");\n    }";
 }
-function firstUpper(val) {
-    if (!val) {
-        return '';
-    }
-    val = val.trim();
-    if (val.length < 1) {
-        return '';
-    }
-    if (val.length === 1) {
-        return val.toUpperCase();
-    }
-    return val.substring(0, 1).toUpperCase() + val.substring(1);
-}
-exports.firstUpper = firstUpper;
-function studly(val, isFirstUpper) {
-    if (isFirstUpper === void 0) { isFirstUpper = true; }
-    if (!val || val.length < 1) {
-        return '';
-    }
-    var items = [];
-    val.split(/[\.\s_-]+/).forEach(function (item) {
-        if (item.length < 1) {
-            return;
-        }
-        if (!isFirstUpper && items.length < 1) {
-            items.push(item);
-            return;
-        }
-        items.push(firstUpper(item));
-    });
-    return items.join('');
-}
-exports.studly = studly;
-function jsonToWxml(json, exclude) {
+function jsonToWxml(json, exclude, wxmlFunc) {
     if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
-    exports.wxmlFunc = [];
+    if (wxmlFunc === void 0) { wxmlFunc = []; }
     var existFunc = {};
     var disallowAttrs = [];
     var replaceAttrs = {
@@ -70,7 +37,7 @@ function jsonToWxml(json, exclude) {
             attrs.set('wx:if', '{{ ' + value + ' }}');
         },
         'v-model': function (value, tag, attrs) {
-            var func = studly(value, false) + 'Changed';
+            var func = util_1.studly(value, false) + 'Changed';
             if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
                 existFunc[func] = {
                     type: FuncType.BIND,
@@ -236,21 +203,21 @@ function jsonToWxml(json, exclude) {
         if (Object.prototype.hasOwnProperty.call(existFunc, key)) {
             var item = existFunc[key];
             if (item.type === FuncType.BIND) {
-                exports.wxmlFunc.push(createInputFunc(key, item.properties[0], item.append));
+                wxmlFunc.push(createInputFunc(key, item.properties[0], item.append));
                 continue;
             }
             if (item.type === FuncType.FUNC) {
-                exports.wxmlFunc.push(key + "(){}");
+                wxmlFunc.push(key + "(){}");
                 continue;
             }
             if (item.type === FuncType.TAP) {
                 var properties = item.properties;
-                exports.wxmlFunc.push(createTapFunc(key, properties[0], properties[1]));
+                wxmlFunc.push(createTapFunc(key, properties[0], properties[1]));
                 continue;
             }
             if (item.type === FuncType.CONVERTER) {
                 var properties = item.properties;
-                exports.wxmlFunc.push(createTapCoverterFunc(key, properties[0], properties[1]));
+                wxmlFunc.push(createTapCoverterFunc(key, properties[0], properties[1]));
                 continue;
             }
         }
@@ -335,7 +302,7 @@ function jsonToWxml(json, exclude) {
         }
         var addFun = function (key, val) {
             key = key.trim();
-            var dataKey = studly(key);
+            var dataKey = util_1.studly(key);
             var f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
             if (!Object.prototype.hasOwnProperty.call(existFunc, f)) {
@@ -533,8 +500,19 @@ function htmlToWxml(content) {
 }
 exports.htmlToWxml = htmlToWxml;
 var TemplateParser = (function () {
-    function TemplateParser() {
+    function TemplateParser(project, exclude) {
+        if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
+        this.project = project;
+        this.exclude = exclude;
     }
+    TemplateParser.prototype.render = function (content) {
+        var func = [];
+        var template = jsonToWxml(typeof content === 'object' ? content : html_1.htmlToJson(content), this.exclude, func);
+        return {
+            template: template,
+            func: func,
+        };
+    };
     return TemplateParser;
 }());
 exports.TemplateParser = TemplateParser;

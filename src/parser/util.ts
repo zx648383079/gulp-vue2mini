@@ -26,3 +26,44 @@ export const splitLine = (content: string): string[] => {
 export const joinLine = (lines: string[]): string => {
     return lines.join(LINE_SPLITE);
 };
+
+
+/**
+ * 首字母大写
+ */
+ export function firstUpper(val: string): string {
+    if (!val) {
+        return '';
+    }
+    val = val.trim();
+    if (val.length < 1) {
+        return '';
+    }
+    if (val.length === 1) {
+        return val.toUpperCase();
+    }
+    return val.substring(0, 1).toUpperCase() + val.substring(1);
+}
+
+/**
+ * 转化成驼峰
+ * @param val 字符串
+ * @param isFirstUpper 第一个字母是否大写
+ */
+export function studly(val: string, isFirstUpper: boolean = true): string {
+    if (!val || val.length < 1) {
+        return '';
+    }
+    const items: string[] = [];
+    val.split(/[\.\s_-]+/).forEach(item => {
+        if (item.length < 1) {
+            return;
+        }
+        if (!isFirstUpper && items.length < 1) {
+            items.push(item);
+            return;
+        }
+        items.push(firstUpper(item));
+    });
+    return items.join('');
+}

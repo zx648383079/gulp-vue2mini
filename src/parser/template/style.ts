@@ -1,46 +1,75 @@
-import * as fs from 'fs';
+import { blockToString, cssToJson, separateThemeStyle, themeCss } from '../css';
+import { TemplateProject } from './project';
 import * as path from 'path';
-import { consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
-import { cssToScss } from '../css';
 
-export class StyleProject implements ICompliper {
+interface IThemeOption {
+    [key: string]: {
+        [name: string]: string;
+    }
+}
 
+const REGEX_SASS_IMPORT = /@(import|use)\s+["'](.+?)["'];/g;
+
+export class StyleParser {
     constructor(
-        public inputFolder: string,
-        public outputFolder: string,
-        public options?: any
-    ) {
+        private project: TemplateProject
+    ) {}
+
+    private themeItems: IThemeOption = {};
+    
+    public render(content: string, file: string, lang = 'css'): string {
+        const needTheme = this.needTheme(content);
+        const hasTheme = this.hasTheme(content);
+        if (!needTheme && !hasTheme) {
+            return content;
+        }
+        let blockItems = cssToJson(content);
+        if (hasTheme) {
+            const [theme, items] = separateThemeStyle(blockItems);
+            this.pushTheme(theme);
+            blockItems = items;
+        }
+        content = blockToString(themeCss(blockItems, this.themeItems));
+        if (lang === 'scss' || lang === 'sass') {
+            this.sassImport(content, file);
+        }
+        return content;
     }
 
-    public readyFile(src: string): undefined | ICompliperFile | ICompliperFile[] {
-        return {
-            src,
-            dist: this.outputFile(src),
-            type: 'css'
-        };
-    }
-
-    public compileFile(src: string): void {
-        eachCompileFile(this.readyFile(src), file => {
-            if (file.type === 'css') {
-                fs.writeFileSync(file.dist, cssToScss(fileContent(file)));
-                this.logFile(src);
+    public pushTheme(items: IThemeOption) {
+        for (const key in items) {
+            if (Object.prototype.hasOwnProperty.call(items, key)) {
+                this.themeItems[key] = Object.assign(Object.prototype.hasOwnProperty.call(this.themeItems, key) ? this.themeItems[key] : {}, items[key]);
             }
-        });
-    }
-
-    public outputFile(file: string) {
-        return path.resolve(this.outputFolder, path.relative(this.inputFolder, file));
-    }
-
-    public unlink(src: string) {
-        const dist = this.outputFile(src);
-        if (fs.existsSync(dist)) {
-            fs.unlinkSync(dist);
         }
     }
 
-    public logFile(file: string, tip = 'Finished') {
-        consoleLog(file, tip, this.inputFolder);
+    private hasTheme(content: string): boolean {
+        return content.indexOf('@theme ') >= 0;
+    }
+
+    private needTheme(content: string): boolean {
+        return /:.+@[a-z]+/.test(content);
+    }
+
+    /**
+     * 添加文件绑定
+     * @param content 内容
+     * @param file 文件
+     */
+     private sassImport(content: string, file: string) {
+        if (content.length < 6) {
+            return;
+        }
+        const ext = path.extname(file);
+        const folder = path.dirname(file);
+        let res;
+        while (true) {
+            res = REGEX_SASS_IMPORT.exec(content);
+            if (!res) {
+                break;
+            }
+            this.project.link.push(path.resolve(folder, res[2].indexOf('.') > 0 ? res[2] : ('_' + res[2] + ext)), file);
+        }
     }
 }

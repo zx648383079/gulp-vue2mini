@@ -1,11 +1,8 @@
 import { htmlToJson } from '../html';
 import { Element } from '../element';
 import { Attribute } from '../attribute';
-
-/**
- * 获取tpl提取的方法
- */
-export let wxmlFunc: string[] = [];
+import { MiniProject } from './project';
+import { studly } from '../util';
 
 enum FuncType {
     BIND,
@@ -68,52 +65,13 @@ function createTapCoverterFunc(name: string, target: string, args: string[]): st
         this.${target}(${line});
     }`;
 }
-/**
- * 首字母大写
- */
-export function firstUpper(val: string): string {
-    if (!val) {
-        return '';
-    }
-    val = val.trim();
-    if (val.length < 1) {
-        return '';
-    }
-    if (val.length === 1) {
-        return val.toUpperCase();
-    }
-    return val.substring(0, 1).toUpperCase() + val.substring(1);
-}
 
-/**
- * 转化成驼峰
- * @param val 字符串
- * @param isFirstUpper 第一个字母是否大写
- */
-export function studly(val: string, isFirstUpper: boolean = true): string {
-    if (!val || val.length < 1) {
-        return '';
-    }
-    const items: string[] = [];
-    val.split(/[\.\s_-]+/).forEach(item => {
-        if (item.length < 1) {
-            return;
-        }
-        if (!isFirstUpper && items.length < 1) {
-            items.push(item);
-            return;
-        }
-        items.push(firstUpper(item));
-    });
-    return items.join('');
-}
 
 /**
  * json 转 wxml
  * @param json 页面json
  */
-export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/): string {
-    wxmlFunc = [];
+export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/, wxmlFunc: string[] = []): string {
     const existFunc: IConverterFunc = {};
     const disallowAttrs: string[] = [];
     const replaceAttrs: {
@@ -618,8 +576,25 @@ export function htmlToWxml(content: string): string {
     return jsonToWxml(element);
 }
 
+
+interface ITemplateResult {
+    template: string;
+    func?: string[];
+}
+
 export class TemplateParser {
 
-    
-    
+    constructor(
+        private project: MiniProject,
+        private exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/
+    ) {}
+
+    public render(content: string| Element): ITemplateResult {
+        const func: string[] = [];
+        const template = jsonToWxml(typeof content === 'object' ? content : htmlToJson(content), this.exclude, func);
+        return {
+            template,
+            func,
+        }
+    }
 }

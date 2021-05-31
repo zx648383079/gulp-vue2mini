@@ -1,7 +1,17 @@
-export declare function parsePage(content: string, tplFuns?: string[]): string;
-export declare function parseJson(content: string, append: any): string | null;
-export declare function parseMethodToObject(content: string, maps: {
-    [key: string]: string;
-}): string;
-export declare class ScriptParser {
+import { MiniProject } from './project';
+interface IScriptResult {
+    script: string;
+    json?: string;
+    isPage?: boolean;
+    isComponent?: boolean;
+    isApp?: boolean;
 }
+export declare class ScriptParser {
+    private project;
+    constructor(project: MiniProject);
+    render(source: string, templateFunc?: string[]): IScriptResult;
+    private parseJson;
+    private parseMethodToObject;
+    private appendMethod;
+}
+export {};

@@ -4,7 +4,7 @@ import * as chokidar from 'chokidar';
 import { TemplateProject } from './parser/template/project';
 import { MiniProject } from './parser/mini/project';
 import { formatArgv } from './argv';
-import { StyleProject } from './parser/template/style';
+import { StyleProject } from './parser/style/style';
 import { ICompliper } from './compiler';
 
 process.env.INIT_CWD = process.cwd();
@@ -15,6 +15,7 @@ const argv = formatArgv(process.argv, {
     theme: false,
     watch: false,
     help: false,
+    debug: false,
     input: 'src',
     output: 'dist'
 });
@@ -29,6 +30,7 @@ Usage: vue2mini <command>
     --output 编译后保存的文件夹，默认为dist
     --min 压缩ts和sass 生成的文件代码，仅对模板有效
     --watch 监听脚本变动，自动处理
+    --debug 开启debug模式显示具体错误来源
 
 Example:
     vue2mini --mini --input=src --output=dist
@@ -89,6 +91,9 @@ const compilerFile = (src: string) => {
         project?.compileFile(src);
     } catch (error) {
         project?.logFile(src, ' Failure \n' + error.message);
+        if (argv.params.debug) {
+            console.log(error);
+        }
     }
 };
 

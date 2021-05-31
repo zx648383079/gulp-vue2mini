@@ -1,12 +1,12 @@
 import { Transform } from 'readable-stream';
 import * as vinyl from 'vinyl';
-import * as fs from 'fs';
 import { preImport, endImport, replaceTTF } from '../parser/mini/css';
-import { splitFile } from '../parser/mini/vue';
 import { CacheManger } from '../parser/cache';
 import { transformCallback } from './types';
+import { MiniProject } from '../parser/mini/project';
 
 const cachesFiles = new CacheManger();
+const project = new MiniProject(process.cwd(), process.cwd());
 
 /**
  * 处理文件
@@ -27,24 +27,13 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     if (cachesFiles.has(fileTag)) {
         return Buffer.from(wantTag === 'json' ? '{}' : '');
     }
-    let data = {};
-    if (['scss', 'sass', 'less', 'css', 'wxss'].indexOf(wantTag) < 0 || ext.indexOf('vue') > 0) {
-        const jsonPath = path.replace(ext, '.json');
-        if (fs.existsSync(jsonPath)) {
-            const json = fs.readFileSync(jsonPath).toString();
-            data = json.trim().length > 0 ? JSON.parse(json) : {};
+    const res = project.readyMixFile(path, String(contentBuff), ext, path);
+    for (const item of res) {
+        const cacheKey = path.replace(ext, '__tmpl.' + item.type);
+        if ((!item.content || item.content.trim().length < 1) && cachesFiles.has(cacheKey)) {
+            continue;
         }
-    }
-    const res: any = splitFile(String(contentBuff), ext.substr(1).toLowerCase(), data);
-    for (const key in res) {
-        if (res.hasOwnProperty(key)) {
-            const item = res[key];
-            const cacheKey = path.replace(ext, '__tmpl.' + item.type);
-            if ((!item.content || item.content.trim().length < 1) && cachesFiles.has(cacheKey)) {
-                continue;
-            }
-            cachesFiles.set(cacheKey, item.content);
-        }
+        cachesFiles.set(cacheKey, item.content);
     }
     cachesFiles.set(fileTag, true);
     if (cachesFiles.has(tplFile)) {

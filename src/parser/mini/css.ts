@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { MiniProject } from './project';
 /**
  * ttf文件 转 base64
  * @param file 文件路径
@@ -69,5 +70,12 @@ export function endImport(content: string): string {
 }
 
 export class StyleParser {
+
+    constructor(
+        private project: MiniProject
+    ) {}
     
+    public render(content: string, file: string): string {
+        return content;
+    }
 }
