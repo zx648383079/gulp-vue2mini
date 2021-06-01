@@ -5,7 +5,8 @@ import { TemplateProject } from './parser/template/project';
 import { MiniProject } from './parser/mini/project';
 import { formatArgv } from './argv';
 import { StyleProject } from './parser/style/style';
-import { ICompliper } from './compiler';
+import { CompliperFile, ICompliper } from './compiler';
+import { eachFile } from './parser/util';
 
 process.env.INIT_CWD = process.cwd();
 
@@ -72,25 +73,16 @@ if (!project) {
     process.exit(0);
 }
 
-const eachFile = (folder: string, cb: (file: string) => void) => {
-    const dirInfo = fs.readdirSync(folder);
-    dirInfo.forEach(item => {
-        const location = path.join(folder, item);
-        const info = fs.statSync(location);
-        if (info.isDirectory()) {
-            eachFile(location, cb);
-            return;
-        }
-        cb(location);
-    });
-};
+const nowTime = new Date().getTime();
 
-
-const compilerFile = (src: string) => {
+const compilerFile = (file: CompliperFile) => {
     try {
-        project?.compileFile(src);
+        if (file.mtime < nowTime) {
+            file.mtime = nowTime;
+        } 
+        project?.compileFile(file);
     } catch (error) {
-        project?.logFile(src, ' Failure \n' + error.message);
+        project?.logFile(file, ' Failure \n' + error.message);
         if (argv.params.debug) {
             console.log(error);
         }
@@ -103,7 +95,7 @@ if (argv.params.watch) {
     }).on('add', compilerFile).on('change', compilerFile);
 } else {
     if (inputState.isFile()) {
-        compilerFile(input);
+        compilerFile(new CompliperFile(input, nowTime));
     } else {
         eachFile(inputFolder, compilerFile);
     }

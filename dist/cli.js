@@ -7,6 +7,8 @@ var project_1 = require("./parser/template/project");
 var project_2 = require("./parser/mini/project");
 var argv_1 = require("./argv");
 var style_1 = require("./parser/style/style");
+var compiler_1 = require("./compiler");
+var util_1 = require("./parser/util");
 process.env.INIT_CWD = process.cwd();
 var argv = argv_1.formatArgv(process.argv, {
     mini: false,
@@ -48,24 +50,16 @@ if (!project) {
     console.log(helpText);
     process.exit(0);
 }
-var eachFile = function (folder, cb) {
-    var dirInfo = fs.readdirSync(folder);
-    dirInfo.forEach(function (item) {
-        var location = path.join(folder, item);
-        var info = fs.statSync(location);
-        if (info.isDirectory()) {
-            eachFile(location, cb);
-            return;
-        }
-        cb(location);
-    });
-};
-var compilerFile = function (src) {
+var nowTime = new Date().getTime();
+var compilerFile = function (file) {
     try {
-        project === null || project === void 0 ? void 0 : project.compileFile(src);
+        if (file.mtime < nowTime) {
+            file.mtime = nowTime;
+        }
+        project === null || project === void 0 ? void 0 : project.compileFile(file);
     }
     catch (error) {
-        project === null || project === void 0 ? void 0 : project.logFile(src, ' Failure \n' + error.message);
+        project === null || project === void 0 ? void 0 : project.logFile(file, ' Failure \n' + error.message);
         if (argv.params.debug) {
             console.log(error);
         }
@@ -78,9 +72,9 @@ if (argv.params.watch) {
 }
 else {
     if (inputState.isFile()) {
-        compilerFile(input);
+        compilerFile(new compiler_1.CompliperFile(input, nowTime));
     }
     else {
-        eachFile(inputFolder, compilerFile);
+        util_1.eachFile(inputFolder, compilerFile);
     }
 }

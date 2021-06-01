@@ -8,22 +8,27 @@ export class LinkManager {
 
     private data: ILinkData = {}; // 关联文件
     private listeners: LinkUpdateEvent[] = [];
+    private lockItems: string[] = [];
 
     /**
      * 触发更新
      * @param key 触发文件
      * @param mtime 文件的更改时间
      */
-     public trigger(key: string, mtime: number, ... args: any[]) {
+    public trigger(key: string, mtime: number, ... args: any[]) {
         if (!Object.prototype.hasOwnProperty.call(this.data, key)) {
             return;
         }
         this.data[key].forEach(file => {
-            if (file) {
-                this.listeners.forEach(cb => {
-                    cb(file, mtime, key, ...args);
-                });
+            if (!file) {
+                return;
             }
+            if (this.lockItems.indexOf(file) >= 0) {
+                return;
+            }
+            this.listeners.forEach(cb => {
+                cb(file, mtime, key, ...args);
+            });
         });
     }
 
@@ -45,6 +50,15 @@ export class LinkManager {
             return;
         }
         this.data[key].push(file);
+    }
+
+    public lock(file: string, cb: () => void) {
+        if (this.lockItems.indexOf(file) >= 0) {
+            return;
+        }
+        const len = this.lockItems.push(file);
+        cb();
+        this.lockItems.splice(len - 1, 1);
     }
 
     /**

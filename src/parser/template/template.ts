@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { Compiler, ICompliperFile } from '../../compiler';
+import { Compiler, CompliperFile } from '../../compiler';
 import { htmlToJson, jsonToHtml } from '../html';
 import { joinLine } from '../util';
 import { TemplateProject } from './project';
@@ -22,7 +22,7 @@ export class TemplateParser {
         private project: TemplateProject
     ) {}
 
-    public render(file: ICompliperFile): ITemplateResult {
+    public render(file: CompliperFile): ITemplateResult {
         const page = this.project.tokenizer.render(file);
         if (!page.canRender) {
             return {
@@ -54,10 +54,7 @@ export class TemplateParser {
                     lines.push(token.content);
                     return;
                 }
-                const next = this.project.tokenizer.render({
-                    src: token.content,
-                    dist: ''
-                });
+                const next = this.project.tokenizer.render(new CompliperFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
@@ -71,7 +68,7 @@ export class TemplateParser {
         };
         const content = renderPage(page);
         return {
-            template: this.mergeStyle(layout ? renderPage(layout, content) : content, file.src)
+            template: this.mergeStyle(layout ? renderPage(layout, content) : content, file.src, file.mtime)
         };
     }
 
@@ -80,7 +77,7 @@ export class TemplateParser {
      * @param content 内容
      * @param file 文件
      */
-     private mergeStyle(content: string, file: string): string {
+     private mergeStyle(content: string, file: string, time: number): string {
         const currentFolder = path.dirname(file);
         const replacePath = (text: string) => {
             return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
@@ -151,7 +148,7 @@ export class TemplateParser {
                 lines.push(item.text as string);
             }
         });
-        let style = this.project.style.render(joinLine(lines), file, styleLang);
+        let style = this.project.style.render(new CompliperFile(file + styleLang, time, '', styleLang, joinLine(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = Compiler.sass(style, file, styleLang);
         }
@@ -194,5 +191,15 @@ export class TemplateParser {
         };
         data.map(pushStyle);
         return jsonToHtml(data, this.project.compliperMin ? '' : '    ');
+    }
+
+    public extractStyle(content: string): string {
+        const regex = /<style[\s\S]+?>([\s\S]+?)<\/style>/g;
+        const items = [];
+        let match: RegExpExecArray|null;
+        while (null !== (match = regex.exec(content))) {
+            items.push(match[1]);
+        }
+        return items.join('\r\n');
     }
 }

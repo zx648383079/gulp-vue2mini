@@ -1,4 +1,4 @@
-import { ICompliperFile } from '../../compiler';
+import { CompliperFile } from '../../compiler';
 import { TemplateProject } from './project';
 interface ITemplateResultItem {
     type: string;
@@ -12,7 +12,8 @@ interface ITemplateResult {
 export declare class TemplateParser {
     private project;
     constructor(project: TemplateProject);
-    render(file: ICompliperFile): ITemplateResult;
+    render(file: CompliperFile): ITemplateResult;
     private mergeStyle;
+    extractStyle(content: string): string;
 }
 export {};

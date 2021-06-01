@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { CompliperFile } from '../compiler';
 export const LINE_SPLITE = '\r\n';
 
 /**
@@ -66,4 +69,20 @@ export function studly(val: string, isFirstUpper: boolean = true): string {
         items.push(firstUpper(item));
     });
     return items.join('');
+}
+
+export function eachFile(folder: string, cb: (file: CompliperFile) => void) {
+    if (!folder) {
+        return;
+    }
+    const dirInfo = fs.readdirSync(folder);
+    dirInfo.forEach(item => {
+        const location = path.join(folder, item);
+        const info = fs.statSync(location);
+        if (info.isDirectory()) {
+            eachFile(location, cb);
+            return;
+        }
+        cb(new CompliperFile(location, info.mtimeMs));
+    });
 }

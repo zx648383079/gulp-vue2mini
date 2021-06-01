@@ -4,6 +4,7 @@ import { preImport, endImport, replaceTTF } from '../parser/mini/css';
 import { CacheManger } from '../parser/cache';
 import { transformCallback } from './types';
 import { MiniProject } from '../parser/mini/project';
+import { CompliperFile } from '../compiler';
 
 const cachesFiles = new CacheManger();
 const project = new MiniProject(process.cwd(), process.cwd());
@@ -27,7 +28,7 @@ export function dealTemplateFile(contentBuff: Buffer, path: string, ext: string,
     if (cachesFiles.has(fileTag)) {
         return Buffer.from(wantTag === 'json' ? '{}' : '');
     }
-    const res = project.readyMixFile(path, String(contentBuff), ext, path);
+    const res = project.readyMixFile(new CompliperFile(path, 0, path, ext, String(contentBuff)));
     for (const item of res) {
         const cacheKey = path.replace(ext, '__tmpl.' + item.type);
         if ((!item.content || item.content.trim().length < 1) && cachesFiles.has(cacheKey)) {

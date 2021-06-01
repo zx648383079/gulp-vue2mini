@@ -1,6 +1,5 @@
-import { fileContent, ICompliperFile } from '../../compiler';
+import { CompliperFile } from '../../compiler';
 import { CacheManger } from '../cache';
-import * as fs from 'fs';
 import * as path from 'path';
 import { splitLine } from '../util';
 import { TemplateProject } from './project';
@@ -43,16 +42,16 @@ export class TemplateTokenizer {
      * @param file 
      * @returns 
      */
-    public render(file: ICompliperFile): IPage {
-        const time = fs.statSync(file.src).mtimeMs;
+    public render(file: CompliperFile): IPage {
+        const time = file.mtime;
         if (this.cachesFiles.has(file.src, time)) {
             return this.cachesFiles.get(file.src) as IPage;
         }
         const tokens: IToken[] = [];
         let isLayout = false;
         let canRender = true;
-        const currentFolder = path.dirname(file.src);
-        const ext = path.extname(file.src);
+        const currentFolder = file.dirname;
+        const ext = file.extname;
         const replacePath = (text: string) => {
             return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
@@ -67,7 +66,7 @@ export class TemplateTokenizer {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        splitLine(fileContent(file)).forEach((line, i) => {
+        splitLine(this.project.fileContent(file)).forEach((line, i) => {
             const token = this.converterToken(line);
             if (!token) {
                 tokens.push({
@@ -109,7 +108,7 @@ export class TemplateTokenizer {
      * 根据一行内容提取token
      * @param line 内容
      */
-      private converterToken(line: string): IToken | undefined {
+    private converterToken(line: string): IToken | undefined {
         line = line.trim();
         if (line.length < 0) {
             return;

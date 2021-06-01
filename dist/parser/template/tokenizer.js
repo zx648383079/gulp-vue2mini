@@ -1,9 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TemplateTokenizer = exports.REGEX_ASSET = void 0;
-var compiler_1 = require("../../compiler");
 var cache_1 = require("../cache");
-var fs = require("fs");
 var path = require("path");
 var util_1 = require("../util");
 exports.REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
@@ -14,15 +12,15 @@ var TemplateTokenizer = (function () {
     }
     TemplateTokenizer.prototype.render = function (file) {
         var _this = this;
-        var time = fs.statSync(file.src).mtimeMs;
+        var time = file.mtime;
         if (this.cachesFiles.has(file.src, time)) {
             return this.cachesFiles.get(file.src);
         }
         var tokens = [];
         var isLayout = false;
         var canRender = true;
-        var currentFolder = path.dirname(file.src);
-        var ext = path.extname(file.src);
+        var currentFolder = file.dirname;
+        var ext = file.extname;
         var replacePath = function (text) {
             return text.replace(exports.REGEX_ASSET, function ($0, _, $2) {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
@@ -37,7 +35,7 @@ var TemplateTokenizer = (function () {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        util_1.splitLine(compiler_1.fileContent(file)).forEach(function (line, i) {
+        util_1.splitLine(this.project.fileContent(file)).forEach(function (line, i) {
             var token = _this.converterToken(line);
             if (!token) {
                 tokens.push({

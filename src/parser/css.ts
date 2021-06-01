@@ -78,6 +78,27 @@ export function cssToJson(content: string) {
         }
         return count;
     };
+    const jumpEmptyLine = (source: number): number => {
+        let code = reader.readSeek(source);
+        if (code == '\n') {
+            source += 1;
+        } else if (code == '\r') {
+            source += reader.readSeek(source + 1) === '\n' ? 2 : 1;
+        } else if (!isEmptyCode(code)) {
+            return source;
+        }
+        let pos = source;
+        while (pos < reader.length - 1) {
+            code = reader.readSeek(++ pos);
+            if (isLineCode(code)) {
+                return jumpEmptyLine(pos);
+            }
+            if (!isEmptyCode(code)) {
+                return source;
+            }
+        }
+        return pos;
+    };
 
     const nextIndentSize = (pos = reader.index): number => {
         let inComment = false;
@@ -95,36 +116,42 @@ export function cssToJson(content: string) {
                     if (!isLineCode(code)) {
                         continue;
                     }
-                    return indentSize(pos);
+                    return indentSize(jumpEmptyLine(pos));
                 }
             }
             if (!inComment && isLineCode(code)) {
-                return indentSize(pos);
+                return indentSize(jumpEmptyLine(pos));
             }
 
         }
         return 0;
     };
     /**
-     * 判断接下来是否是换行，是的话移动到新的一行开始
+     * 判断接下来是否是换行，是的话移动到新的一行开始, 下一个字符为行第一个字符
      * @returns 
      */
     const moveNewLine = (): boolean => {
-        while (reader.canNext) {
-            const code = reader.next();
-            if (code === '\n') {
-                return true;
-            }
-            if (code !== '\r') {
-                reader.move(-1);
-                return false;
-            }
-            if (reader.nextIs('\n')) {
-                reader.next();
-                return true;
-            }
-            return true;
+        const pos = reader.index;
+        const newPos = jumpEmptyLine(pos);
+        if (newPos === pos) {
+            return false;
         }
+        reader.index = newPos - 1;
+        // while (reader.canNext) {
+        //     const code = reader.next();
+        //     if (code === '\n') {
+        //         return true;
+        //     }
+        //     if (code !== '\r') {
+        //         reader.move(-1);
+        //         return false;
+        //     }
+        //     if (reader.nextIs('\n')) {
+        //         reader.next();
+        //         return true;
+        //     }
+        //     return true;
+        // }
         return false;
     }
     const lineEndIsComma = (end: number, start = 0): boolean => {
@@ -216,11 +243,48 @@ export function cssToJson(content: string) {
             text: line,
         };
     };
+    const getMultipleName = (end: number) => {
+        const commentItems = [];
+        const nameItems: string[] = [];
+        let name = '';
+        const endPush = () => {
+            name = name.trim();
+            if (name.length > 0) {
+                nameItems.push(name);
+                name = '';
+            }
+        };
+        reader.move(-1);
+        while (reader.canNext && reader.index < end) {
+            const code = reader.next();
+            if (code === '{') {
+                break;
+            }
+            if (isComment()) {
+                commentItems.push(getCommentBock());
+                continue;
+            }
+            if (code !== ',') {
+                name += code;
+                continue;
+            }
+            endPush();
+        }
+        endPush();
+        return [nameItems, commentItems];
+    }
+    const minIndex = (...args: number[]): number => {
+        const items = args.filter(i => i >= 0);
+        if (items.length < 1) {
+            return -1;
+        }
+        return Math.min(...items);
+    };
     const getBlock = (indentLength: number): IBlockItem|boolean => {
         let blockStart: number;
         let endIndex: number;
         if (isIndent) {
-            endIndex = Math.min(... [reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1].filter(i => i > 0));
+            endIndex = minIndex(reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1);
             const lineIndentLength = indentSize();
             let nextIndentLength = nextIndentSize();
             if (lineIndentLength === indentLength) {
@@ -263,38 +327,47 @@ export function cssToJson(content: string) {
                 return getTextBlock(line);
             }
             // 有可能最后的属性没有 ; 结束符
-            const endMap = [reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(i => i > 0);
-            let blockEnd = endMap.length < 1 ? -1 : Math.min(...endMap);
-            if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
-                const line = reader.readRange(blockEnd);
-                reader.index = blockEnd - 1;
-                return getTextBlock(line);
-            }
-            if (blockStart > 0 && blockStart < blockEnd) {
-                // 如果 下一行包含 { 表明下一行是新的style_group, 当前行为style
-                blockEnd = getPreviousLine(blockStart, reader.index);
-                if (blockEnd > 0) {
+            let blockEnd = minIndex(reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*'));
+            const commaIndex = reader.indexOf(',');
+            // 如果下一行包含, 表示当前行为属性，下一行是规则名，
+            if (commaIndex > 0 && (blockStart < 0 || blockStart > commaIndex) && (endIndex < 0 || commaIndex < endIndex) && blockEnd >= 0 && commaIndex < blockEnd) {
+                const lineIndex = minIndex(reader.indexOf('\n'), reader.indexOf('\r'));
+                if (lineIndex >= 0 && lineIndex < commaIndex) {
+                    const line = reader.readRange(lineIndex);
+                    reader.index = lineIndex - 1;
+                    return getTextBlock(line);
+                }
+                // 存在多个逗号分开的名称
+            } else {
+                if (blockEnd >= 0 && (blockStart < 0 || blockStart > blockEnd)) {
                     const line = reader.readRange(blockEnd);
                     reader.index = blockEnd - 1;
                     return getTextBlock(line);
                 }
+                if (blockStart >= 0 && blockStart < blockEnd) {
+                    // 如果 下一行包含 { 表明下一行是新的style_group, 当前行为style
+                    blockEnd = getPreviousLine(blockStart, reader.index);
+                    if (blockEnd > 0) {
+                        const line = reader.readRange(blockEnd);
+                        reader.index = blockEnd - 1;
+                        return getTextBlock(line);
+                    }
+                }
             }
-            
             if (blockStart < 0) {
                 const line = reader.readRange();
                 reader.moveEnd();
                 return getTextBlock(line);
             }
         }
-        const name = reader.readRange(blockStart);
-        reader.index = blockStart;
+        const [nameItems, comments] = getMultipleName(blockStart);
         if (isIndent) {
             moveNewLine();
         }
         return {
             type: BLOCK_TYPE.STYLE_GROUP,
-            name: name.split(',').map(i => i.trim()).filter(i => i.length > 0),
-            children: parserBlocks(indentLength)
+            name: nameItems,
+            children: [...comments as IBlockItem[], ...parserBlocks(indentLength)],
         };
     };
     const parserBlock = (indentLength: number): IBlockItem | boolean => {
@@ -304,7 +377,7 @@ export function cssToJson(content: string) {
                 if (moveNewLine()) {
                     return indentLength > 0;
                 }
-                if (indentSize() < indentLength) {
+                if (indentSize(reader.index) < indentLength) {
                     return true;
                 }
             }

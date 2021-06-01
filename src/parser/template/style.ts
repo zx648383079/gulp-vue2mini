@@ -1,6 +1,7 @@
 import { blockToString, cssToJson, separateThemeStyle, themeCss } from '../css';
 import { TemplateProject } from './project';
 import * as path from 'path';
+import { CompliperFile } from '../../compiler';
 
 interface IThemeOption {
     [key: string]: {
@@ -16,8 +17,17 @@ export class StyleParser {
     ) {}
 
     private themeItems: IThemeOption = {};
+
+    public get length() {
+        return Object.keys(this.themeItems).length;
+    }
+
+    public get(theme: string) {
+        return Object.prototype.hasOwnProperty.call(this.themeItems, theme) ? this.themeItems[theme] : undefined;
+    }
     
-    public render(content: string, file: string, lang = 'css'): string {
+    public render(file: CompliperFile): string {
+        let content = this.project.fileContent(file);
         const needTheme = this.needTheme(content);
         const hasTheme = this.hasTheme(content);
         if (!needTheme && !hasTheme) {
@@ -28,10 +38,14 @@ export class StyleParser {
             const [theme, items] = separateThemeStyle(blockItems);
             this.pushTheme(theme);
             blockItems = items;
+            this.project.link.lock(file.src, () => {
+                this.project.link.trigger('theme', file.mtime);
+            });
         }
+        this.project.link.push('theme', file.src);
         content = blockToString(themeCss(blockItems, this.themeItems));
-        if (lang === 'scss' || lang === 'sass') {
-            this.sassImport(content, file);
+        if (file.type === 'scss' || file.type === 'sass') {
+            this.sassImport(content, file.src);
         }
         return content;
     }
@@ -42,6 +56,14 @@ export class StyleParser {
                 this.themeItems[key] = Object.assign(Object.prototype.hasOwnProperty.call(this.themeItems, key) ? this.themeItems[key] : {}, items[key]);
             }
         }
+    }
+
+    public extractTheme(content: string) {
+        if (!this.hasTheme(content)) {
+            return;
+        }
+        const [theme] = separateThemeStyle(cssToJson(content));
+        this.pushTheme(theme);
     }
 
     private hasTheme(content: string): boolean {

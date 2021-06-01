@@ -43,10 +43,7 @@ var TemplateParser = (function () {
                     lines.push(token.content);
                     return;
                 }
-                var next = _this.project.tokenizer.render({
-                    src: token.content,
-                    dist: ''
-                });
+                var next = _this.project.tokenizer.render(new compiler_1.CompliperFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
@@ -60,10 +57,10 @@ var TemplateParser = (function () {
         };
         var content = renderPage(page);
         return {
-            template: this.mergeStyle(layout ? renderPage(layout, content) : content, file.src)
+            template: this.mergeStyle(layout ? renderPage(layout, content) : content, file.src, file.mtime)
         };
     };
-    TemplateParser.prototype.mergeStyle = function (content, file) {
+    TemplateParser.prototype.mergeStyle = function (content, file, time) {
         var currentFolder = path.dirname(file);
         var replacePath = function (text) {
             return text.replace(tokenizer_1.REGEX_ASSET, function ($0, _, $2) {
@@ -133,7 +130,7 @@ var TemplateParser = (function () {
                 lines.push(item.text);
             }
         });
-        var style = this.project.style.render(util_1.joinLine(lines), file, styleLang);
+        var style = this.project.style.render(new compiler_1.CompliperFile(file + styleLang, time, '', styleLang, util_1.joinLine(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = compiler_1.Compiler.sass(style, file, styleLang);
         }
@@ -176,6 +173,15 @@ var TemplateParser = (function () {
         };
         data.map(pushStyle);
         return html_1.jsonToHtml(data, this.project.compliperMin ? '' : '    ');
+    };
+    TemplateParser.prototype.extractStyle = function (content) {
+        var regex = /<style[\s\S]+?>([\s\S]+?)<\/style>/g;
+        var items = [];
+        var match;
+        while (null !== (match = regex.exec(content))) {
+            items.push(match[1]);
+        }
+        return items.join('\r\n');
     };
     return TemplateParser;
 }());

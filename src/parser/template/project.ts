@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Compiler, consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
+import { BaseCompliper, Compiler, CompliperFile, eachCompileFile, fileContent, ICompliper } from '../../compiler';
 import * as UglifyJS from 'uglify-js';
 import * as CleanCSS from 'clean-css';
 import { TemplateTokenizer } from './tokenizer';
@@ -8,20 +8,26 @@ import { LinkManager } from '../link';
 import { StyleParser } from './style';
 import { TemplateParser } from './template';
 import { ScriptParser } from './script';
+import { CacheManger } from '../cache';
+import { eachFile } from '../util';
 
 
 
 /**
  * 模板项目转化
  */
-export class TemplateProject implements ICompliper {
+export class TemplateProject extends BaseCompliper implements ICompliper {
 
     constructor(
-        public inputFolder: string,
-        public outputFolder: string,
-        public options?: any
+        inputFolder: string,
+        outputFolder: string,
+        options?: any
     ) {
-        this.link.on(this.compileAFile.bind(this));
+        super(inputFolder, outputFolder, options);
+        this.link.on((file: string, mtime: number) => {
+            this.compileAFile(new CompliperFile(file, mtime))
+        });
+        this.ready();
     }
 
     public readonly link = new LinkManager();
@@ -29,6 +35,7 @@ export class TemplateProject implements ICompliper {
     public readonly template = new TemplateParser(this);
     public readonly style = new StyleParser(this);
     public readonly tokenizer = new TemplateTokenizer(this);
+    public readonly cache = new CacheManger<string>();
 
     /**
      * 是否压缩最小化
@@ -42,50 +49,35 @@ export class TemplateProject implements ICompliper {
      * @param file 文件路径
      * @param content 内容
      */
-    public renderFile(file: ICompliperFile): string {
+    public renderFile(file: CompliperFile): string {
         const res = this.template.render(file);
         return res.template;
     }
 
-    public readyFile(src: string): undefined | ICompliperFile | ICompliperFile[] {
-        const ext = path.extname(src);
+    public readyFile(src: CompliperFile): undefined | CompliperFile | CompliperFile[] {
+        const ext = src.extname;
         const dist = this.outputFile(src);
         if (ext === '.ts') {
-            return {
-                src,
-                dist: dist.replace(ext, '.js'),
-                type: 'ts'
-            };
+            return CompliperFile.from(src, dist.replace(ext, '.js'), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {
-            if (path.basename(src).indexOf('_') === 0) {
+            if (src.basename.startsWith('_')) {
+                this.style.render(src);
                 return undefined;
             }
-            return {
-                type: ext.substring(1),
-                src,
-                dist: dist.replace(ext, '.css'),
-            };
+            return CompliperFile.from(src, dist.replace(ext, '.css'), ext.substring(1));
         }
         if (ext === '.html') {
-            const file = {
-                type: 'html',
-                src,
-                dist,
-            };
+            const file = CompliperFile.from(src, dist, 'html');
             if (!this.tokenizer.render(file).canRender) {
                 return undefined;
             }
             return file;
         }
-        return {
-            type: ext.substring(1),
-            src,
-            dist,
-        };
+        return CompliperFile.from(src, dist, ext.substring(1));
     }
 
-    public compileFile(src: string) {
+    public compileFile(src: CompliperFile) {
         this.compileAFile(src);
     }
 
@@ -93,11 +85,11 @@ export class TemplateProject implements ICompliper {
      * compileFile
      * @param mtime 更新时间
      */
-    public compileAFile(src: string, mtime?: number) {
-        const compile = (file: ICompliperFile) => {
+    public compileAFile(src: CompliperFile) {
+        const compile = (file: CompliperFile) => {
             this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                let content = Compiler.ts(fileContent(file), src);
+                let content = Compiler.ts(this.fileContent(file), src.src);
                 if (content && content.length > 0 && this.compliperMin) {
                     content = UglifyJS.minify(content).code;
                 }
@@ -105,8 +97,14 @@ export class TemplateProject implements ICompliper {
                 return;
             }
             if (file.type === 'scss' || file.type === 'sass') {
-                let content = this.style.render(fileContent(file), src, file.type);
-                content = Compiler.sass(content, src, file.type);
+                let content = this.style.render(file);
+                content = Compiler.sass(content, src.src, file.type, {
+                    importer: (url, _, next) => {
+                        next({
+                            contents: this.style.render(new CompliperFile(url, 0)),
+                        })
+                    }
+                });
                 if (content && content.length > 0 && this.compliperMin) {
                     content = new CleanCSS().minify(content).styles;
                 }
@@ -124,43 +122,46 @@ export class TemplateProject implements ICompliper {
             fs.copyFileSync(file.src, file.dist);
         };
         eachCompileFile(this.readyFile(src), file => {
-            if (mtime && mtime > 0 && fs.existsSync(file.dist) && fs.statSync(file.dist).mtimeMs >= mtime) {
+            if (src.mtime && src.mtime > 0 && file.distMtime >= src.mtime) {
                 // 判断时间是否更新
                 return;
             }
             compile(file);
-            this.logFile(file.src);
+            this.logFile(file);
         });
-        this.link.trigger(src, mtime || fs.statSync(src).mtimeMs);
+        this.link.trigger(src.src, src.mtime);
     }
 
-    /**
-     * mkIfNotFolder
-     */
-    public mkIfNotFolder(folder: string) {
-        if (!fs.existsSync(folder)) {
-            fs.mkdirSync(folder, {recursive: true});
+    public fileContent(file: CompliperFile): string {
+        if (this.cache.has(file.src, file.mtime)) {
+            file.content = this.cache.get(file.src);
+            return file.content!;
         }
+        this.cache.set(file.src, fileContent(file), file.mtime);
+        return file.content!;
     }
 
-    /**
-     * outputFile
-     */
-    public outputFile(file: string) {
-        return path.resolve(this.outputFolder, path.relative(this.inputFolder, file));
-    }
-
-    public unlink(src: string) {
+    public unlink(src: string|CompliperFile) {
         const dist = this.outputFile(src);
         if (fs.existsSync(dist)) {
             fs.unlinkSync(dist);
         }
+        const file = src instanceof CompliperFile ? src.src : src;
+        this.link.remove(file);
+        this.cache.delete(file);
     }
 
-    /**
-     * logFile
-     */
-    public logFile(file: string, tip = 'Finished') {
-        consoleLog(file, tip, this.inputFolder);
+    public ready() {
+        eachFile(this.inputFolder, file => {
+            const ext = file.extname.substr(1);
+            if (ext === 'html') {
+                this.style.extractTheme(this.template.extractStyle(this.fileContent(file)))
+                return;
+            }
+            if (['sass', 'scss', 'less', 'css'].indexOf(ext) < 0) {
+                return;
+            }
+            this.style.extractTheme(this.fileContent(file));
+        });
     }
 }

@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { preImport, endImport, replaceTTF, StyleParser } from './css';
 import { VueParser } from './vue';
-import { Compiler, consoleLog, eachCompileFile, fileContent, ICompliper, ICompliperFile } from '../../compiler';
+import { BaseCompliper, Compiler, CompliperFile, eachCompileFile, fileContent, ICompliper } from '../../compiler';
 import { ScriptParser } from './ts';
 import { LinkManager } from '../link';
 import { TemplateParser } from './wxml';
@@ -11,13 +11,7 @@ import { JsonParser } from './json';
 /**
  * 小程序转化
  */
-export class MiniProject implements ICompliper {
-    constructor(
-        public inputFolder: string,
-        public outputFolder: string,
-        public options?: any
-    ) {
-    }
+export class MiniProject extends BaseCompliper implements ICompliper {
 
     public readonly link = new LinkManager();
     public readonly script = new ScriptParser(this);
@@ -26,99 +20,63 @@ export class MiniProject implements ICompliper {
     public readonly json = new JsonParser(this);
     public readonly mix = new VueParser(this);
 
-    public readyFile(src: string): undefined | ICompliperFile | ICompliperFile[] {
-        const ext = path.extname(src);
+    public readyFile(src: CompliperFile): undefined | CompliperFile | CompliperFile[] {
+        const ext = src.extname;
         const dist = this.outputFile(src);
         if (ext === '.ts') {
-            return {
-                type: 'ts',
-                src,
-                dist: dist.replace(ext, '.js'),
-            };
+            return CompliperFile.from(src, dist.replace(ext, '.js'), 'ts');
         }
         if (ext === '.scss' || ext === '.sass') {
-            if (path.basename(src).indexOf('_') === 0) {
+            if (src.basename.startsWith('_')) {
                 return undefined;
             }
-            return {
-                type: ext.substring(1),
-                src,
-                dist: dist.replace(ext, '.wxss'),
-            };
+            return CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (ext === '.less') {
-            return {
-                type: 'less',
-                src,
-                dist: dist.replace(ext, '.wxss'),
-            };
+            return CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (['.ttf', '.json'].indexOf(ext) >= 0) {
             return undefined;
         }
         if (ext === '.css') {
-            return {
-                type: 'css',
-                src,
-                dist: dist.replace(ext, '.wxss'),
-            };
+            return CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (ext === '.html' || ext === '.vue') {
             return this.readyMixFile(src, ext, dist);
         }
-        return {
-            type: ext.substring(1),
-            src,
-            dist,
-        };
+        return CompliperFile.from(src, dist, ext.substring(1));
     }
 
-    public readyMixFile(src: string, dist: string): ICompliperFile[];
-    public readyMixFile(src: string, ext: string, dist: string): ICompliperFile[];
-    public readyMixFile(src: string, content: string, ext: string, dist: string): ICompliperFile[];
-    public readyMixFile(src: string, content: string, ext?: string, dist?: string): ICompliperFile[] {
+    public readyMixFile(src: CompliperFile): CompliperFile[];
+    public readyMixFile(src: CompliperFile, dist: string): CompliperFile[];
+    public readyMixFile(src: CompliperFile, ext: string, dist: string): CompliperFile[];
+    public readyMixFile(src: CompliperFile, content: string, ext: string, dist: string): CompliperFile[];
+    public readyMixFile(src: CompliperFile, content?: string, ext?: string, dist?: string): CompliperFile[] {
+        if (content === void 0) {
+            [content, ext, dist] = [fileContent(src), src.extname, src.dist];
+        }
         if (ext === void 0) {
-            [content, ext, dist] = [fs.readFileSync(src).toString(), path.extname(src), content];
+            [content, ext, dist] = [fileContent(src), src.extname, content];
         } else if (dist === void 0) {
-            [content, ext, dist] = [fs.readFileSync(src).toString(), content, ext];
+            [content, ext, dist] = [fileContent(src), content, ext];
         }
         let data = {};
-        const jsonPath = src.replace(ext!, '.json');
+        const jsonPath = src.src.replace(ext!, '.json');
         if (jsonPath.endsWith('.json') && fs.existsSync(jsonPath)) {
             const json = fs.readFileSync(jsonPath).toString();
             data = json.trim().length > 0 ? JSON.parse(json) : {};
         }
-        const res = this.mix.render(content, ext!.substr(1).toLowerCase(), src);
-        const files: ICompliperFile[] = [];
-        files.push({
-            src,
-            content: this.json.render(res.json, data),
-            dist: dist!.replace(ext!, '.json'),
-            type: 'json',
-        });
+        const res = this.mix.render(content, ext!.substr(1).toLowerCase(), src.src);
+        const files: CompliperFile[] = [];
+        files.push(CompliperFile.from(src, dist!.replace(ext!, '.json'), 'json', this.json.render(res.json, data)));
         if (res.template) {
-            files.push({
-                src,
-                content: res.template,
-                dist: dist!.replace(ext!, '.wxml'),
-                type: 'wxml'
-            });;
+            files.push(CompliperFile.from(src, dist!.replace(ext!, '.wxml'), 'wxml', res.template));
         }
         if (res.script) {
-            files.push({
-                src,
-                content: res.script.content,
-                dist: dist!.replace(ext!, '.js'),
-                type: res.script.type
-            });
+            files.push(CompliperFile.from(src, dist!.replace(ext!, '.js'), res.script.type, res.script.content));
         }
         if (res.style) {
-            files.push({
-                src,
-                content: res.style.content,
-                dist: dist!.replace(ext!, '.wxss'),
-                type: res.style.type
-            });
+            files.push(CompliperFile.from(src, dist!.replace(ext!, '.wxss'), res.style.type, res.style.content));
         }
         return files;
     }
@@ -126,26 +84,26 @@ export class MiniProject implements ICompliper {
     /**
      * compileFile
      */
-    public compileFile(src: string) {
-        const compile = (file: ICompliperFile) => {
+    public compileFile(src: CompliperFile) {
+        const compile = (file: CompliperFile) => {
             this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
                 fs.writeFileSync(file.dist,
-                    Compiler.ts(fileContent(file), src)
+                    Compiler.ts(fileContent(file), src.src)
                 );
                 return;
             }
             if (file.type === 'less') {
-                Compiler.less(fileContent(file), src).then(content => {
+                Compiler.less(fileContent(file), src.src).then(content => {
                     fs.writeFileSync(file.dist, content);
                 });
                 return;
             }
             if (file.type === 'sass' || file.type === 'scss') {
-                let content = Compiler.sass(preImport(fileContent(file)), src, file.type);
+                let content = Compiler.sass(preImport(fileContent(file)), src.src, file.type);
                 content = endImport(content);
                 fs.writeFileSync(file.dist,
-                    replaceTTF(content, path.dirname(src))
+                    replaceTTF(content, src.dirname)
                 );
                 return;
             }
@@ -153,41 +111,11 @@ export class MiniProject implements ICompliper {
                 fs.writeFileSync(file.dist, file.content);
                 return;
             }
-            fs.copyFileSync(src, file.dist);
+            fs.copyFileSync(src.src, file.dist);
         };
         eachCompileFile(this.readyFile(src), file => {
             compile(file);
             this.logFile(file.src);
         });
-    }
-
-    /**
-     * mkIfNotFolder
-     */
-    public mkIfNotFolder(folder: string) {
-        if (!fs.existsSync(folder)) {
-            fs.mkdirSync(folder, {recursive: true});
-        }
-    }
-
-    /**
-     * outputFile
-     */
-    public outputFile(file: string) {
-        return path.resolve(this.outputFolder, path.relative(this.inputFolder, file));
-    }
-
-    public unlink(src: string) {
-        const dist = this.outputFile(src);
-        if (fs.existsSync(dist)) {
-            fs.unlinkSync(dist);
-        }
-    }
-
-    /**
-     * logFile
-     */
-    public logFile(file: string, tip = 'Finished') {
-        consoleLog(file, tip, this.inputFolder);
     }
 }

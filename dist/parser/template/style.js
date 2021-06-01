@@ -9,8 +9,19 @@ var StyleParser = (function () {
         this.project = project;
         this.themeItems = {};
     }
-    StyleParser.prototype.render = function (content, file, lang) {
-        if (lang === void 0) { lang = 'css'; }
+    Object.defineProperty(StyleParser.prototype, "length", {
+        get: function () {
+            return Object.keys(this.themeItems).length;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    StyleParser.prototype.get = function (theme) {
+        return Object.prototype.hasOwnProperty.call(this.themeItems, theme) ? this.themeItems[theme] : undefined;
+    };
+    StyleParser.prototype.render = function (file) {
+        var _this = this;
+        var content = this.project.fileContent(file);
         var needTheme = this.needTheme(content);
         var hasTheme = this.hasTheme(content);
         if (!needTheme && !hasTheme) {
@@ -21,10 +32,14 @@ var StyleParser = (function () {
             var _a = css_1.separateThemeStyle(blockItems), theme = _a[0], items = _a[1];
             this.pushTheme(theme);
             blockItems = items;
+            this.project.link.lock(file.src, function () {
+                _this.project.link.trigger('theme', file.mtime);
+            });
         }
+        this.project.link.push('theme', file.src);
         content = css_1.blockToString(css_1.themeCss(blockItems, this.themeItems));
-        if (lang === 'scss' || lang === 'sass') {
-            this.sassImport(content, file);
+        if (file.type === 'scss' || file.type === 'sass') {
+            this.sassImport(content, file.src);
         }
         return content;
     };
@@ -34,6 +49,13 @@ var StyleParser = (function () {
                 this.themeItems[key] = Object.assign(Object.prototype.hasOwnProperty.call(this.themeItems, key) ? this.themeItems[key] : {}, items[key]);
             }
         }
+    };
+    StyleParser.prototype.extractTheme = function (content) {
+        if (!this.hasTheme(content)) {
+            return;
+        }
+        var theme = css_1.separateThemeStyle(css_1.cssToJson(content))[0];
+        this.pushTheme(theme);
     };
     StyleParser.prototype.hasTheme = function (content) {
         return content.indexOf('@theme ') >= 0;

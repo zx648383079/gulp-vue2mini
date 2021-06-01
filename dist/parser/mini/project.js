@@ -1,4 +1,19 @@
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        if (typeof b !== "function" && b !== null)
+            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MiniProject = void 0;
 var path = require("path");
@@ -10,110 +25,72 @@ var ts_1 = require("./ts");
 var link_1 = require("../link");
 var wxml_1 = require("./wxml");
 var json_1 = require("./json");
-var MiniProject = (function () {
-    function MiniProject(inputFolder, outputFolder, options) {
-        this.inputFolder = inputFolder;
-        this.outputFolder = outputFolder;
-        this.options = options;
-        this.link = new link_1.LinkManager();
-        this.script = new ts_1.ScriptParser(this);
-        this.template = new wxml_1.TemplateParser(this);
-        this.style = new css_1.StyleParser(this);
-        this.json = new json_1.JsonParser(this);
-        this.mix = new vue_1.VueParser(this);
+var MiniProject = (function (_super) {
+    __extends(MiniProject, _super);
+    function MiniProject() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.link = new link_1.LinkManager();
+        _this.script = new ts_1.ScriptParser(_this);
+        _this.template = new wxml_1.TemplateParser(_this);
+        _this.style = new css_1.StyleParser(_this);
+        _this.json = new json_1.JsonParser(_this);
+        _this.mix = new vue_1.VueParser(_this);
+        return _this;
     }
     MiniProject.prototype.readyFile = function (src) {
-        var ext = path.extname(src);
+        var ext = src.extname;
         var dist = this.outputFile(src);
         if (ext === '.ts') {
-            return {
-                type: 'ts',
-                src: src,
-                dist: dist.replace(ext, '.js'),
-            };
+            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.js'), 'ts');
         }
         if (ext === '.scss' || ext === '.sass') {
-            if (path.basename(src).indexOf('_') === 0) {
+            if (src.basename.startsWith('_')) {
                 return undefined;
             }
-            return {
-                type: ext.substring(1),
-                src: src,
-                dist: dist.replace(ext, '.wxss'),
-            };
+            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (ext === '.less') {
-            return {
-                type: 'less',
-                src: src,
-                dist: dist.replace(ext, '.wxss'),
-            };
+            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (['.ttf', '.json'].indexOf(ext) >= 0) {
             return undefined;
         }
         if (ext === '.css') {
-            return {
-                type: 'css',
-                src: src,
-                dist: dist.replace(ext, '.wxss'),
-            };
+            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (ext === '.html' || ext === '.vue') {
             return this.readyMixFile(src, ext, dist);
         }
-        return {
-            type: ext.substring(1),
-            src: src,
-            dist: dist,
-        };
+        return compiler_1.CompliperFile.from(src, dist, ext.substring(1));
     };
     MiniProject.prototype.readyMixFile = function (src, content, ext, dist) {
-        var _a, _b;
+        var _a, _b, _c;
+        if (content === void 0) {
+            _a = [compiler_1.fileContent(src), src.extname, src.dist], content = _a[0], ext = _a[1], dist = _a[2];
+        }
         if (ext === void 0) {
-            _a = [fs.readFileSync(src).toString(), path.extname(src), content], content = _a[0], ext = _a[1], dist = _a[2];
+            _b = [compiler_1.fileContent(src), src.extname, content], content = _b[0], ext = _b[1], dist = _b[2];
         }
         else if (dist === void 0) {
-            _b = [fs.readFileSync(src).toString(), content, ext], content = _b[0], ext = _b[1], dist = _b[2];
+            _c = [compiler_1.fileContent(src), content, ext], content = _c[0], ext = _c[1], dist = _c[2];
         }
         var data = {};
-        var jsonPath = src.replace(ext, '.json');
+        var jsonPath = src.src.replace(ext, '.json');
         if (jsonPath.endsWith('.json') && fs.existsSync(jsonPath)) {
             var json = fs.readFileSync(jsonPath).toString();
             data = json.trim().length > 0 ? JSON.parse(json) : {};
         }
-        var res = this.mix.render(content, ext.substr(1).toLowerCase(), src);
+        var res = this.mix.render(content, ext.substr(1).toLowerCase(), src.src);
         var files = [];
-        files.push({
-            src: src,
-            content: this.json.render(res.json, data),
-            dist: dist.replace(ext, '.json'),
-            type: 'json',
-        });
+        files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.json'), 'json', this.json.render(res.json, data)));
         if (res.template) {
-            files.push({
-                src: src,
-                content: res.template,
-                dist: dist.replace(ext, '.wxml'),
-                type: 'wxml'
-            });
-            ;
+            files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxml'), 'wxml', res.template));
         }
         if (res.script) {
-            files.push({
-                src: src,
-                content: res.script.content,
-                dist: dist.replace(ext, '.js'),
-                type: res.script.type
-            });
+            files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.js'), res.script.type, res.script.content));
         }
         if (res.style) {
-            files.push({
-                src: src,
-                content: res.style.content,
-                dist: dist.replace(ext, '.wxss'),
-                type: res.style.type
-            });
+            files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), res.style.type, res.style.content));
         }
         return files;
     };
@@ -122,50 +99,32 @@ var MiniProject = (function () {
         var compile = function (file) {
             _this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                fs.writeFileSync(file.dist, compiler_1.Compiler.ts(compiler_1.fileContent(file), src));
+                fs.writeFileSync(file.dist, compiler_1.Compiler.ts(compiler_1.fileContent(file), src.src));
                 return;
             }
             if (file.type === 'less') {
-                compiler_1.Compiler.less(compiler_1.fileContent(file), src).then(function (content) {
+                compiler_1.Compiler.less(compiler_1.fileContent(file), src.src).then(function (content) {
                     fs.writeFileSync(file.dist, content);
                 });
                 return;
             }
             if (file.type === 'sass' || file.type === 'scss') {
-                var content = compiler_1.Compiler.sass(css_1.preImport(compiler_1.fileContent(file)), src, file.type);
+                var content = compiler_1.Compiler.sass(css_1.preImport(compiler_1.fileContent(file)), src.src, file.type);
                 content = css_1.endImport(content);
-                fs.writeFileSync(file.dist, css_1.replaceTTF(content, path.dirname(src)));
+                fs.writeFileSync(file.dist, css_1.replaceTTF(content, src.dirname));
                 return;
             }
             if (typeof file.content !== 'undefined') {
                 fs.writeFileSync(file.dist, file.content);
                 return;
             }
-            fs.copyFileSync(src, file.dist);
+            fs.copyFileSync(src.src, file.dist);
         };
         compiler_1.eachCompileFile(this.readyFile(src), function (file) {
             compile(file);
             _this.logFile(file.src);
         });
     };
-    MiniProject.prototype.mkIfNotFolder = function (folder) {
-        if (!fs.existsSync(folder)) {
-            fs.mkdirSync(folder, { recursive: true });
-        }
-    };
-    MiniProject.prototype.outputFile = function (file) {
-        return path.resolve(this.outputFolder, path.relative(this.inputFolder, file));
-    };
-    MiniProject.prototype.unlink = function (src) {
-        var dist = this.outputFile(src);
-        if (fs.existsSync(dist)) {
-            fs.unlinkSync(dist);
-        }
-    };
-    MiniProject.prototype.logFile = function (file, tip) {
-        if (tip === void 0) { tip = 'Finished'; }
-        compiler_1.consoleLog(file, tip, this.inputFolder);
-    };
     return MiniProject;
-}());
+}(compiler_1.BaseCompliper));
 exports.MiniProject = MiniProject;

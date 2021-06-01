@@ -36,11 +36,88 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fileContent = exports.eachCompileFile = exports.consoleLog = exports.Compiler = void 0;
+exports.fileContent = exports.eachCompileFile = exports.consoleLog = exports.Compiler = exports.BaseCompliper = exports.CompliperFile = void 0;
 var path = require("path");
 var ts = require("typescript");
 var sass = require("sass");
 var fs = require("fs");
+var CompliperFile = (function () {
+    function CompliperFile(src, mtime, dist, type, content) {
+        if (mtime === void 0) { mtime = 0; }
+        if (dist === void 0) { dist = ''; }
+        this.src = src;
+        this.mtime = mtime;
+        this.dist = dist;
+        this.type = type;
+        this.content = content;
+    }
+    Object.defineProperty(CompliperFile.prototype, "extname", {
+        get: function () {
+            return path.extname(this.src);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(CompliperFile.prototype, "dirname", {
+        get: function () {
+            return path.dirname(this.src);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(CompliperFile.prototype, "basename", {
+        get: function () {
+            return path.basename(this.src);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    Object.defineProperty(CompliperFile.prototype, "distMtime", {
+        get: function () {
+            if (!this.dist || !fs.existsSync(this.dist)) {
+                return 0;
+            }
+            return fs.statSync(this.dist).mtimeMs;
+        },
+        enumerable: false,
+        configurable: true
+    });
+    CompliperFile.from = function (file, dist, type, content) {
+        if (dist === void 0) { dist = file.dist; }
+        if (type === void 0) { type = file.type; }
+        if (content === void 0) { content = file.content; }
+        return new CompliperFile(file.src, file.mtime, dist, type, content);
+    };
+    return CompliperFile;
+}());
+exports.CompliperFile = CompliperFile;
+var BaseCompliper = (function () {
+    function BaseCompliper(inputFolder, outputFolder, options) {
+        this.inputFolder = inputFolder;
+        this.outputFolder = outputFolder;
+        this.options = options;
+    }
+    BaseCompliper.prototype.mkIfNotFolder = function (folder) {
+        if (!fs.existsSync(folder)) {
+            fs.mkdirSync(folder, { recursive: true });
+        }
+    };
+    BaseCompliper.prototype.outputFile = function (file) {
+        return path.resolve(this.outputFolder, path.relative(this.inputFolder, file instanceof CompliperFile ? file.src : file));
+    };
+    BaseCompliper.prototype.unlink = function (src) {
+        var dist = this.outputFile(src);
+        if (fs.existsSync(dist)) {
+            fs.unlinkSync(dist);
+        }
+    };
+    BaseCompliper.prototype.logFile = function (file, tip) {
+        if (tip === void 0) { tip = 'Finished'; }
+        exports.consoleLog(file instanceof CompliperFile ? file.src : file, tip, this.inputFolder);
+    };
+    return BaseCompliper;
+}());
+exports.BaseCompliper = BaseCompliper;
 var Compiler = (function () {
     function Compiler() {
     }

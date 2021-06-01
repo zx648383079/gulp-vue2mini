@@ -5,6 +5,7 @@ var readable_stream_1 = require("readable-stream");
 var css_1 = require("../parser/mini/css");
 var cache_1 = require("../parser/cache");
 var project_1 = require("../parser/mini/project");
+var compiler_1 = require("../compiler");
 var cachesFiles = new cache_1.CacheManger();
 var project = new project_1.MiniProject(process.cwd(), process.cwd());
 function dealTemplateFile(contentBuff, path, ext, wantTag) {
@@ -19,7 +20,7 @@ function dealTemplateFile(contentBuff, path, ext, wantTag) {
     if (cachesFiles.has(fileTag)) {
         return Buffer.from(wantTag === 'json' ? '{}' : '');
     }
-    var res = project.readyMixFile(path, String(contentBuff), ext, path);
+    var res = project.readyMixFile(new compiler_1.CompliperFile(path, 0, path, ext, String(contentBuff)));
     for (var _i = 0, res_1 = res; _i < res_1.length; _i++) {
         var item = res_1[_i];
         var cacheKey = path.replace(ext, '__tmpl.' + item.type);

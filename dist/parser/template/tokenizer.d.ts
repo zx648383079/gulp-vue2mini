@@ -1,4 +1,4 @@
-import { ICompliperFile } from '../../compiler';
+import { CompliperFile } from '../../compiler';
 import { TemplateProject } from './project';
 export declare type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random' | 'theme';
 export declare const REGEX_ASSET: RegExp;
@@ -24,6 +24,6 @@ export declare class TemplateTokenizer {
     private project;
     constructor(project: TemplateProject);
     private cachesFiles;
-    render(file: ICompliperFile): IPage;
+    render(file: CompliperFile): IPage;
     private converterToken;
 }

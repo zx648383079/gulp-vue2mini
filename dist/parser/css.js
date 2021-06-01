@@ -71,6 +71,29 @@ function cssToJson(content) {
         }
         return count;
     };
+    var jumpEmptyLine = function (source) {
+        var code = reader.readSeek(source);
+        if (code == '\n') {
+            source += 1;
+        }
+        else if (code == '\r') {
+            source += reader.readSeek(source + 1) === '\n' ? 2 : 1;
+        }
+        else if (!isEmptyCode(code)) {
+            return source;
+        }
+        var pos = source;
+        while (pos < reader.length - 1) {
+            code = reader.readSeek(++pos);
+            if (isLineCode(code)) {
+                return jumpEmptyLine(pos);
+            }
+            if (!isEmptyCode(code)) {
+                return source;
+            }
+        }
+        return pos;
+    };
     var nextIndentSize = function (pos) {
         if (pos === void 0) { pos = reader.index; }
         var inComment = false;
@@ -88,31 +111,22 @@ function cssToJson(content) {
                     if (!isLineCode(code)) {
                         continue;
                     }
-                    return indentSize(pos);
+                    return indentSize(jumpEmptyLine(pos));
                 }
             }
             if (!inComment && isLineCode(code)) {
-                return indentSize(pos);
+                return indentSize(jumpEmptyLine(pos));
             }
         }
         return 0;
     };
     var moveNewLine = function () {
-        while (reader.canNext) {
-            var code = reader.next();
-            if (code === '\n') {
-                return true;
-            }
-            if (code !== '\r') {
-                reader.move(-1);
-                return false;
-            }
-            if (reader.nextIs('\n')) {
-                reader.next();
-                return true;
-            }
-            return true;
+        var pos = reader.index;
+        var newPos = jumpEmptyLine(pos);
+        if (newPos === pos) {
+            return false;
         }
+        reader.index = newPos - 1;
         return false;
     };
     var lineEndIsComma = function (end, start) {
@@ -194,11 +208,52 @@ function cssToJson(content) {
             text: line,
         };
     };
+    var getMultipleName = function (end) {
+        var commentItems = [];
+        var nameItems = [];
+        var name = '';
+        var endPush = function () {
+            name = name.trim();
+            if (name.length > 0) {
+                nameItems.push(name);
+                name = '';
+            }
+        };
+        reader.move(-1);
+        while (reader.canNext && reader.index < end) {
+            var code = reader.next();
+            if (code === '{') {
+                break;
+            }
+            if (isComment()) {
+                commentItems.push(getCommentBock());
+                continue;
+            }
+            if (code !== ',') {
+                name += code;
+                continue;
+            }
+            endPush();
+        }
+        endPush();
+        return [nameItems, commentItems];
+    };
+    var minIndex = function () {
+        var args = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            args[_i] = arguments[_i];
+        }
+        var items = args.filter(function (i) { return i >= 0; });
+        if (items.length < 1) {
+            return -1;
+        }
+        return Math.min.apply(Math, items);
+    };
     var getBlock = function (indentLength) {
         var blockStart;
         var endIndex;
         if (isIndent) {
-            endIndex = Math.min.apply(Math, [reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1].filter(function (i) { return i > 0; }));
+            endIndex = minIndex(reader.indexOf('\n'), reader.indexOf('\r'), reader.length, reader.indexOf('//') - 1, reader.indexOf('/*') - 1);
             var lineIndentLength = indentSize();
             var nextIndentLength = nextIndentSize();
             if (lineIndentLength === indentLength) {
@@ -240,19 +295,29 @@ function cssToJson(content) {
                 reader.index = endIndex_1;
                 return getTextBlock(line);
             }
-            var endMap = [reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*')].filter(function (i) { return i > 0; });
-            var blockEnd = endMap.length < 1 ? -1 : Math.min.apply(Math, endMap);
-            if (blockEnd > 0 && (blockStart < 0 || blockStart > blockEnd)) {
-                var line = reader.readRange(blockEnd);
-                reader.index = blockEnd - 1;
-                return getTextBlock(line);
+            var blockEnd = minIndex(reader.indexOf('}'), reader.indexOf('//'), reader.indexOf('/*'));
+            var commaIndex = reader.indexOf(',');
+            if (commaIndex > 0 && (blockStart < 0 || blockStart > commaIndex) && (endIndex_1 < 0 || commaIndex < endIndex_1) && blockEnd >= 0 && commaIndex < blockEnd) {
+                var lineIndex = minIndex(reader.indexOf('\n'), reader.indexOf('\r'));
+                if (lineIndex >= 0 && lineIndex < commaIndex) {
+                    var line = reader.readRange(lineIndex);
+                    reader.index = lineIndex - 1;
+                    return getTextBlock(line);
+                }
             }
-            if (blockStart > 0 && blockStart < blockEnd) {
-                blockEnd = getPreviousLine(blockStart, reader.index);
-                if (blockEnd > 0) {
+            else {
+                if (blockEnd >= 0 && (blockStart < 0 || blockStart > blockEnd)) {
                     var line = reader.readRange(blockEnd);
                     reader.index = blockEnd - 1;
                     return getTextBlock(line);
+                }
+                if (blockStart >= 0 && blockStart < blockEnd) {
+                    blockEnd = getPreviousLine(blockStart, reader.index);
+                    if (blockEnd > 0) {
+                        var line = reader.readRange(blockEnd);
+                        reader.index = blockEnd - 1;
+                        return getTextBlock(line);
+                    }
                 }
             }
             if (blockStart < 0) {
@@ -261,15 +326,14 @@ function cssToJson(content) {
                 return getTextBlock(line);
             }
         }
-        var name = reader.readRange(blockStart);
-        reader.index = blockStart;
+        var _a = getMultipleName(blockStart), nameItems = _a[0], comments = _a[1];
         if (isIndent) {
             moveNewLine();
         }
         return {
             type: BLOCK_TYPE.STYLE_GROUP,
-            name: name.split(',').map(function (i) { return i.trim(); }).filter(function (i) { return i.length > 0; }),
-            children: parserBlocks(indentLength)
+            name: nameItems,
+            children: __spreadArray(__spreadArray([], comments), parserBlocks(indentLength)),
         };
     };
     var parserBlock = function (indentLength) {
@@ -279,7 +343,7 @@ function cssToJson(content) {
                 if (moveNewLine()) {
                     return indentLength > 0;
                 }
-                if (indentSize() < indentLength) {
+                if (indentSize(reader.index) < indentLength) {
                     return true;
                 }
             }
