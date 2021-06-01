@@ -813,6 +813,13 @@ function themeCss(items, themeOption) {
             finishItems.push(item);
         }
     });
+    if (Object.prototype.hasOwnProperty.call(themeOption, 'dark')) {
+        finishItems.push({
+            type: BLOCK_TYPE.STYLE_GROUP,
+            name: ['@media (prefers-color-scheme: dark)'],
+            children: cloneStyle(appendItems, 'dark')
+        });
+    }
     return finishItems;
 }
 exports.themeCss = themeCss;

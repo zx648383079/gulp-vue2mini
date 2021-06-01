@@ -841,6 +841,13 @@ export function themeCss(items: IBlockItem[], themeOption?: any): IBlockItem[] {
             finishItems.push(item);
         }
     });
+    if (Object.prototype.hasOwnProperty.call(themeOption, 'dark')) {
+        finishItems.push({
+            type: BLOCK_TYPE.STYLE_GROUP,
+            name: ['@media (prefers-color-scheme: dark)'],
+            children: cloneStyle(appendItems, 'dark')
+        });
+    }
     return finishItems;
 }
 

@@ -28,6 +28,8 @@ vue2mini --theme --watch
 ```
 默认主题为 `default`
 
+深色主题为 `dark`
+
 此代码必须写在  `style` 标签中，或 `css/scss` 样式中
 
 使用方式 `@定义名` 使用，也可以直接使用 `@主题名.定义名` 使用
