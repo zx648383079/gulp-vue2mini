@@ -26,8 +26,10 @@ export class LinkManager {
             if (this.lockItems.indexOf(file) >= 0) {
                 return;
             }
-            this.listeners.forEach(cb => {
-                cb(file, mtime, key, ...args);
+            this.lock(file, () => {
+                this.listeners.forEach(cb => {
+                    cb(file, mtime, key, ...args);
+                });
             });
         });
     }
@@ -56,9 +58,13 @@ export class LinkManager {
         if (this.lockItems.indexOf(file) >= 0) {
             return;
         }
-        const len = this.lockItems.push(file);
+        this.lockItems.push(file);
         cb();
-        this.lockItems.splice(len - 1, 1);
+        const index = this.lockItems.indexOf(file);
+        if (index < 0) {
+            return;
+        }
+        this.lockItems.splice(index, 1);
     }
 
     /**

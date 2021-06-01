@@ -710,14 +710,7 @@ function themeCss(items, themeOption) {
         if (item.type !== BLOCK_TYPE.STYLE) {
             return false;
         }
-        for (var _i = 0, _a = item.value.split(' '); _i < _a.length; _i++) {
-            var val = _a[_i];
-            val = val.trim();
-            if (val.charAt(0) === '@' && val.length > 1) {
-                return true;
-            }
-        }
-        return false;
+        return /(,|\s|\(|^)@[a-z]/.test(item.value);
     };
     var themeStyleValue = function (name, theme) {
         var _a;
@@ -735,19 +728,13 @@ function themeCss(items, themeOption) {
     };
     var themeStyle = function (item, theme) {
         if (theme === void 0) { theme = 'default'; }
-        var block = [];
-        item.value.split(' ').forEach(function (val) {
-            val = val.trim();
-            if (val.length < 1) {
-                return;
-            }
-            if (val.charAt(0) === '@' && val.length > 1) {
-                block.push(themeStyleValue(val.substr(1), theme));
-                return;
-            }
-            block.push(val);
-        });
-        return block.join(' ');
+        var content = item.value;
+        var res;
+        while (null !== (res = /(,|\s|\(|^)@([a-zA-Z_\.]+)/g.exec(content))) {
+            var val = themeStyleValue(res[2], theme);
+            content = content.replace(res[0], res[1] + val);
+        }
+        return content;
     };
     var defaultStyle = function (item) {
         return themeStyle(item);
@@ -805,6 +792,16 @@ function themeCss(items, themeOption) {
         for (var _i = 0, children_1 = children; _i < children_1.length; _i++) {
             var item = children_1[_i];
             if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
+                continue;
+            }
+            if (item.name[0].indexOf('@media') >= 0) {
+                finishItems.push(__assign(__assign({}, item), { children: [
+                        {
+                            type: BLOCK_TYPE.STYLE_GROUP,
+                            name: [cls],
+                            children: __spreadArray([], item.children)
+                        }
+                    ] }));
                 continue;
             }
             item.name = item.name.map(function (i) {

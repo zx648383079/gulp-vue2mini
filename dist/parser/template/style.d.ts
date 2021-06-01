@@ -16,8 +16,8 @@ export declare class StyleParser {
     render(file: CompliperFile): string;
     pushTheme(items: IThemeOption): void;
     extractTheme(content: string): void;
+    private renderImport;
     private hasTheme;
     private needTheme;
-    private sassImport;
 }
 export {};

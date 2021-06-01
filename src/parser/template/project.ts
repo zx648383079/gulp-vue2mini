@@ -89,7 +89,7 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
         const compile = (file: CompliperFile) => {
             this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                let content = Compiler.ts(this.fileContent(file), src.src);
+                let content = Compiler.ts(this.fileContent(file), file.src);
                 if (content && content.length > 0 && this.compliperMin) {
                     content = UglifyJS.minify(content).code;
                 }
@@ -98,11 +98,11 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
             }
             if (file.type === 'scss' || file.type === 'sass') {
                 let content = this.style.render(file);
-                content = Compiler.sass(content, src.src, file.type, {
+                content = Compiler.sass(content, file.src, file.type, {
                     importer: (url, _, next) => {
                         next({
                             contents: this.style.render(new CompliperFile(url, 0)),
-                        })
+                        });
                     }
                 });
                 if (content && content.length > 0 && this.compliperMin) {

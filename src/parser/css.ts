@@ -743,13 +743,7 @@ export function themeCss(items: IBlockItem[], themeOption?: any): IBlockItem[] {
         if (item.type !== BLOCK_TYPE.STYLE) {
             return false;
         }
-        for (let val of item.value.split(' ') as string[]) {
-            val = val.trim();
-            if (val.charAt(0) === '@' && val.length > 1) {
-                return true;
-            }
-        }
-        return false;
+        return /(,|\s|\(|^)@[a-z]/.test(item.value);
     };
     const themeStyleValue = (name: string, theme = 'default'): string => {
         if (themeOption[theme][name]) {
@@ -765,19 +759,13 @@ export function themeCss(items: IBlockItem[], themeOption?: any): IBlockItem[] {
         throw `[${theme}].${name} is error value`;
     }
     const themeStyle = (item: IBlockItem, theme = 'default'): string => {
-        const block: string[] = [];
-        item.value.split(' ').forEach((val: string) => {
-            val = val.trim();
-            if (val.length < 1) {
-                return;
-            }
-            if (val.charAt(0) === '@' && val.length > 1) {
-                block.push(themeStyleValue(val.substr(1), theme));
-                return;
-            }
-            block.push(val);
-        });
-        return block.join(' ');
+        let content = item.value as string;
+        let res;
+        while (null !== (res = /(,|\s|\(|^)@([a-zA-Z_\.]+)/g.exec(content))) {
+            const val = themeStyleValue(res[2], theme);
+            content = content.replace(res[0], res[1] + val);
+        }
+        return content;
     };
     const defaultStyle = (item: IBlockItem): string => {
         return themeStyle(item);
@@ -832,6 +820,16 @@ export function themeCss(items: IBlockItem[], themeOption?: any): IBlockItem[] {
         const cls = '.theme-' + theme;
         for (const item of children) {
             if (item.type !== BLOCK_TYPE.STYLE_GROUP) {
+                continue;
+            }
+            if (item.name[0].indexOf('@media') >= 0) {
+                finishItems.push({...item, children: [
+                    {
+                        type: BLOCK_TYPE.STYLE_GROUP,
+                        name: [cls],
+                        children: [...item.children as IBlockItem[]]
+                    }
+                ]});
                 continue;
             }
             item.name = (item.name as string[]).map(i => {

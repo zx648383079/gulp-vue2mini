@@ -85,7 +85,7 @@ var TemplateProject = (function (_super) {
         var compile = function (file) {
             _this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                var content = compiler_1.Compiler.ts(_this.fileContent(file), src.src);
+                var content = compiler_1.Compiler.ts(_this.fileContent(file), file.src);
                 if (content && content.length > 0 && _this.compliperMin) {
                     content = UglifyJS.minify(content).code;
                 }
@@ -94,7 +94,7 @@ var TemplateProject = (function (_super) {
             }
             if (file.type === 'scss' || file.type === 'sass') {
                 var content = _this.style.render(file);
-                content = compiler_1.Compiler.sass(content, src.src, file.type, {
+                content = compiler_1.Compiler.sass(content, file.src, file.type, {
                     importer: function (url, _, next) {
                         next({
                             contents: _this.style.render(new compiler_1.CompliperFile(url, 0)),

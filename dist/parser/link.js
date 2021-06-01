@@ -28,8 +28,10 @@ var LinkManager = (function () {
             if (_this.lockItems.indexOf(file) >= 0) {
                 return;
             }
-            _this.listeners.forEach(function (cb) {
-                cb.apply(void 0, __spreadArray([file, mtime, key], args));
+            _this.lock(file, function () {
+                _this.listeners.forEach(function (cb) {
+                    cb.apply(void 0, __spreadArray([file, mtime, key], args));
+                });
             });
         });
     };
@@ -50,9 +52,13 @@ var LinkManager = (function () {
         if (this.lockItems.indexOf(file) >= 0) {
             return;
         }
-        var len = this.lockItems.push(file);
+        this.lockItems.push(file);
         cb();
-        this.lockItems.splice(len - 1, 1);
+        var index = this.lockItems.indexOf(file);
+        if (index < 0) {
+            return;
+        }
+        this.lockItems.splice(index, 1);
     };
     LinkManager.prototype.remove = function (key, file) {
         if (!file) {

@@ -9,7 +9,7 @@ interface IThemeOption {
     }
 }
 
-const REGEX_SASS_IMPORT = /@(import|use)\s+["'](.+?)["'];/g;
+const REGEX_SASS_IMPORT = /@(import|use)\s+["'](.+?)["'];*/g;
 
 export class StyleParser {
     constructor(
@@ -31,7 +31,7 @@ export class StyleParser {
         const needTheme = this.needTheme(content);
         const hasTheme = this.hasTheme(content);
         if (!needTheme && !hasTheme) {
-            return content;
+            return this.renderImport(content, file);
         }
         let blockItems = cssToJson(content);
         if (hasTheme) {
@@ -44,10 +44,7 @@ export class StyleParser {
         }
         this.project.link.push('theme', file.src);
         content = blockToString(themeCss(blockItems, this.themeItems));
-        if (file.type === 'scss' || file.type === 'sass') {
-            this.sassImport(content, file.src);
-        }
-        return content;
+        return this.renderImport(content, file);
     }
 
     public pushTheme(items: IThemeOption) {
@@ -66,32 +63,29 @@ export class StyleParser {
         this.pushTheme(theme);
     }
 
+    private renderImport(content: string, file: CompliperFile) {
+        if (file.type !== 'scss' && file.type !== 'sass') {
+            return content;
+        }
+        if (content.length < 6) {
+            return content;
+        }
+        const ext = file.extname;
+        const folder = file.dirname;
+        let res;
+        while (null !== (res = REGEX_SASS_IMPORT.exec(content))) {
+            const importFile = path.resolve(folder, res[2].indexOf('.') > 0 ? res[2] : ('_' + res[2] + ext));
+            this.project.link.push(importFile, file.src);
+            content = content.replace(res[0], this.render(new CompliperFile(importFile, file.mtime)));
+        }
+        return content;
+    }
+
     private hasTheme(content: string): boolean {
         return content.indexOf('@theme ') >= 0;
     }
 
     private needTheme(content: string): boolean {
         return /:.+@[a-z]+/.test(content);
-    }
-
-    /**
-     * 添加文件绑定
-     * @param content 内容
-     * @param file 文件
-     */
-     private sassImport(content: string, file: string) {
-        if (content.length < 6) {
-            return;
-        }
-        const ext = path.extname(file);
-        const folder = path.dirname(file);
-        let res;
-        while (true) {
-            res = REGEX_SASS_IMPORT.exec(content);
-            if (!res) {
-                break;
-            }
-            this.project.link.push(path.resolve(folder, res[2].indexOf('.') > 0 ? res[2] : ('_' + res[2] + ext)), file);
-        }
     }
 }
