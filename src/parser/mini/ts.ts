@@ -1,4 +1,4 @@
-import { joinLine, LINE_SPLITE, splitLine } from '../util';
+import { joinLine, LINE_SPLITE, splitLine } from '../../util';
 import { MiniProject } from './project';
 
 const CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;

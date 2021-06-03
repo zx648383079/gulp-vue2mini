@@ -1,0 +1,11 @@
+import { CompilerFile } from '../compiler';
+export declare const LINE_SPLITE = "\r\n";
+export declare const splitLine: (content: string) => string[];
+export declare const joinLine: (lines: string[]) => string;
+export declare function firstUpper(val: string): string;
+export declare function studly(val: string, isFirstUpper?: boolean): string;
+export declare function eachFile(folder: string, cb: (file: CompilerFile) => void): void;
+export declare function isLineCode(code: string): boolean;
+export declare function isEmptyCode(code: string): boolean;
+export declare function cloneObject<T>(val: T): T;
+export declare function eachObject(obj: any, cb: (val: any, key?: string | number) => void | false): any;

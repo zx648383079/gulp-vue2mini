@@ -18,24 +18,26 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.StyleProject = void 0;
 var fs = require("fs");
 var compiler_1 = require("../../compiler");
-var css_1 = require("../css");
+var compiler_2 = require("../../compiler");
 var StyleProject = (function (_super) {
     __extends(StyleProject, _super);
     function StyleProject() {
-        return _super !== null && _super.apply(this, arguments) || this;
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.compiler = new compiler_1.SassCompiler();
+        return _this;
     }
     StyleProject.prototype.readyFile = function (src) {
-        return new compiler_1.CompliperFile(src.src, src.mtime, this.outputFile(src.src), 'css');
+        return new compiler_2.CompilerFile(src.src, src.mtime, this.outputFile(src.src), 'css');
     };
     StyleProject.prototype.compileFile = function (src) {
         var _this = this;
-        compiler_1.eachCompileFile(this.readyFile(src), function (file) {
+        compiler_2.eachCompileFile(this.readyFile(src), function (file) {
             if (file.type === 'css') {
-                fs.writeFileSync(file.dist, css_1.cssToScss(compiler_1.fileContent(file)));
+                fs.writeFileSync(file.dist, _this.compiler.render(compiler_2.fileContent(file)));
                 _this.logFile(src);
             }
         });
     };
     return StyleProject;
-}(compiler_1.BaseCompliper));
+}(compiler_2.BaseProjectCompiler));
 exports.StyleProject = StyleProject;

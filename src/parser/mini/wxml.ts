@@ -1,8 +1,8 @@
-import { htmlToJson } from '../html';
-import { Element } from '../element';
-import { Attribute } from '../attribute';
+import { Attribute, TemplateTokenizer } from '../../tokenizer';
 import { MiniProject } from './project';
-import { studly } from '../util';
+import { ElementToken } from '../../tokenizer';
+import { studly } from '../../util';
+import { Compiler } from '../../compiler';
 
 enum FuncType {
     BIND,
@@ -20,70 +20,39 @@ interface IConverterFunc {
     };
 }
 
-type REPLACE_FUNC = (value: any, tag: string, attrs: Attribute) => void;
+type REPLACE_FUNC = (this: WxmlCompiler,value: any, tag: string, attrs: Attribute) => void;
 
-/**
- * 生成input 绑定值方法
- * @param name 方法名
- * @param property 属性名
- */
-function createInputFunc(name: string, property: string, append: string[] = []): string {
-    const line = append.join('');
-    return `    ${name}(event: InputEvent) {
-        let data = this.data;
-        data.${property} = event.detail.value;${line}
-        this.setData(data);
-    }`;
-}
-/**
- * 生成tap点击方法
- * @param name 方法名
- * @param property 属性名
- * @param val 参数名
- */
-function createTapFunc(name: string, property: string, val: string): string {
-    return `    ${name}(e: TouchEvent) {
-        let data = this.data;
-        data.${property} = e.currentTarget.dataset.${val};
-        this.setData(data);
-    }`;
-}
-/**
- * 生成直接传多个值func
- * @param name 方法名
- * @param target 目标方法
- * @param args 值
- */
-function createTapCoverterFunc(name: string, target: string, args: string[]): string {
-    const lines: string[] = [];
-    args.forEach(item => {
-        lines.push('e.currentTarget.dataset.' + item);
-    });
-    lines.push('e');
-    const line = lines.join(', ');
-    return `    ${name}(e: TouchEvent) {
-        this.${target}(${line});
-    }`;
+interface FuncMap  {
+    [key: string]: REPLACE_FUNC | string| boolean
 }
 
+interface ITemplateResult {
+    template: string;
+    func?: string[];
+}
 
-/**
- * json 转 wxml
- * @param json 页面json
- */
-export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/, wxmlFunc: string[] = []): string {
-    const existFunc: IConverterFunc = {};
-    const disallowAttrs: string[] = [];
-    const replaceAttrs: {
-        [key: string]: REPLACE_FUNC | string| boolean
-    } = {
+export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResult> {
+
+    constructor(
+        private project: MiniProject,
+        private exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/,
+        private disallowAttrs: string[] = [],
+    ) {
+    }
+
+    
+
+    private readonly tokenizer = new TemplateTokenizer();
+    private existFunc: IConverterFunc = {};
+
+    private replaceAttrs: FuncMap = {
             'v-if': (value: string, _, attrs: Attribute) => {
                 attrs.set('wx:if', '{{ ' + value + ' }}');
             },
             'v-model': (value: string, tag: string, attrs: Attribute) => {
                 const func = studly(value, false) + 'Changed';
-                if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
-                    existFunc[func] = {
+                if (!Object.prototype.hasOwnProperty.call(this.existFunc, func)) {
+                    this.existFunc[func] = {
                         type: FuncType.BIND,
                         properties: [value],
                     };
@@ -95,7 +64,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                         if (!val) {
                             continue;
                         }
-                        converterTap(val, key, attrs);
+                        this.converterTap(val, key, attrs);
                         args.push('this.' + attrs.get(key) + '(e);');
                         attrs.delete(key);
                     }
@@ -110,7 +79,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                     inputFunc = 'bindinput';
                     append = getFunc([inputFunc, 'bind:input', '@input']);
                 }
-                existFunc[func].append = append;
+                this.existFunc[func].append = append;
                 attrs.set('value', '{{' + value + '}}');
                 attrs.set(inputFunc, func);
             },
@@ -118,10 +87,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 attrs.set('wx:elif', '{{ ' + value + ' }}');
             },
             'v-else': 'wx:else',
-            ':src': converterSrc,
-            ':class': converterClass,
-            'v-bind:class': converterClass,
-            'v-bind:src': converterSrc,
+            ':src': this.converterSrc,
+            ':class': this.converterClass,
+            'v-bind:class': this.converterClass,
+            'v-bind:src': this.converterSrc,
             'v-for': (value: string, _, attrs: Attribute) => {
                 let index = 'index';
                 let item = 'item';
@@ -137,140 +106,161 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
                 attrs.set('wx:for', '{{ ' + match[4] + ' }}').set('wx:for-index', index).set('wx:for-item', item);
             },
             'v-show': (value: string, _, attrs: Attribute) => {
-                attrs.set('hidden', '{{ ' + invertIf(value) + ' }}');
+                attrs.set('hidden', '{{ ' + this.invertIf(value) + ' }}');
             },
             href: 'url',
             ':key': false,
             '@click': (value: any, _: string, attrs: Attribute) => {
-                converterTap(value, 'bindtap', attrs);
+                this.converterTap(value, 'bindtap', attrs);
             },
             '@click.stop': (value: any, _: string, attrs: Attribute) => {
                 if (typeof value === 'string') {
-                    converterTap(value, 'catchtap', attrs);
+                    this.converterTap(value, 'catchtap', attrs);
                     return;
                 }
                 const func = 'catchTaped';
-                if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
-                    existFunc[func] = {
+                if (!Object.prototype.hasOwnProperty.call(this.existFunc, func)) {
+                    this.existFunc[func] = {
                         type: FuncType.FUNC,
                     };
                 }
                 attrs.set('catchtap', func);
             },
             'v-on:click': (value: any, _: string, attrs: Attribute) => {
-                converterTap(value, 'bindtap', attrs);
+                this.converterTap(value, 'bindtap', attrs);
             },
             '(click)': (value: any, _: string, attrs: Attribute) => {
-                converterTap(value, 'bindtap', attrs);
+                this.converterTap(value, 'bindtap', attrs);
             },
             '@touchstart': (value: any, _: string, attrs: Attribute) => {
-                converterTap(value, 'bindtouchstart', attrs);
+                this.converterTap(value, 'bindtouchstart', attrs);
             },
             '@touchmove': (value: any, _: string, attrs: Attribute) => {
-                converterTap(value, 'bindtouchmove', attrs);
+                this.converterTap(value, 'bindtouchmove', attrs);
             },
             '@touchend': (value: any, _: string, attrs: Attribute) => {
-                converterTap(value, 'bindtouchend', attrs);
+                this.converterTap(value, 'bindtouchend', attrs);
             },
         };
-    const content = json.toString((item, nextStr) => {
-        if (item.node === 'root') {
-            return nextStr;
+
+    public render(data: string|ElementToken): ITemplateResult {
+        if (typeof data !== 'object') {
+            data = this.tokenizer.render(data);
         }
-        if (item.node === 'text') {
-            if (/^\s+$/.test(item.text + '')) {
-                return '';
-            }
-            return `<text>${item.text}</text>`;
-        }
-        if (item.node === 'comment') {
-            return `<!-- ${item.text} -->`;
-        }
-        if (item.node !== 'element') {
-            return nextStr;
-        }
-        if (item.tag === 'img') {
-            const attrs = parseNodeAttr(item.attribute, 'image');
-            return `<image${attrs}></image>`;
-        }
-        if (item.tag === 'input') {
-            return parseInput(item);
-        }
-        if (item.tag === 'button') {
-            return parseButton(item, nextStr);
-        }
-        if (item.tag === 'form') {
-            const attrs = parseNodeAttr(item.attribute, item.tag);
-            return `<form${attrs}>${nextStr}</form>`;
-        }
-        if (['slider', 'icon', 'progress', 'switch', 'radio', 'checkbox', 'live-player', 'live-pusher'].indexOf(item.tag + '') >= 0) {
-            const attrs = parseNodeAttr(item.attribute, item.tag);
-            return `<${item.tag}${attrs}/>`;
-        }
-        if (['label', 'slot', 'style', 'text',
-            'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
-            'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
-            'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
-            'open-data', 'web-view', 'ad', 'official-account',
-            ].indexOf(item.tag + '') >= 0) {
-            const attrs = parseNodeAttr(item.attribute, item.tag);
-            nextStr = removeIfText(item.children, nextStr);
-            return `<${item.tag}${attrs}>${nextStr}</${item.tag}>`;
-        }
-        if (item.tag === 'textarea') {
-            if (nextStr.length > 0) {
-                item.attr('value', nextStr);
-            }
-            const attrs = parseNodeAttr(item.attribute, item.tag);
-            return `<textarea${attrs}/>`;
-        }
-        if (item.tag === 'a') {
-            const attrs = parseNodeAttr(item.attribute, 'navigator');
-            nextStr = removeIfText(item.children, nextStr);
-            return `<navigator${attrs}>${nextStr}</navigator>`;
-        }
-        if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
-        && (!item.children || (item.children.length === 1 && item.children[0].node === 'text'))) {
-            const attrs = parseNodeAttr(item.attribute, 'text');
-            nextStr =  !item.children ? '' : item.children[0].text + '';
-            return `<text${attrs}>${nextStr}</text>`;
-        }
-        const attr = parseNodeAttr(item.attribute);
-        // 默认将有 - 分隔符或含大写的作为自定义部件
-        if (item.tag && exclude.test(item.tag)) {
-            return `<${item.tag}${attr}>${nextStr}</${item.tag}>`;
-        }
-        return `<view${attr}>${nextStr}</view>`;
-    });
-    for (const key in existFunc) {
-        if (Object.prototype.hasOwnProperty.call(existFunc, key)) {
-            const item = existFunc[key];
-            if (item.type === FuncType.BIND) {
-                wxmlFunc.push(createInputFunc(key, (item.properties as any[])[0], item.append));
-                continue;
-            }
-            if (item.type === FuncType.FUNC) {
-                wxmlFunc.push(`${key}(){}`);
-                continue;
-            }
-            if (item.type === FuncType.TAP) {
-                const properties = item.properties as any[];
-                wxmlFunc.push(createTapFunc(key, properties[0], properties[1]));
-                continue;
-            }
-            if (item.type === FuncType.CONVERTER) {
-                const properties = item.properties as any[];
-                wxmlFunc.push(createTapCoverterFunc(key, properties[0], properties[1]));
-                continue;
-            }
-        }
+        this.existFunc = {};
+        return this.renderFull(data);
     }
-    return content;
+
+    public renderFull(json: ElementToken): ITemplateResult {
+        const content = json.toString((item, nextStr) => {
+            if (item.node === 'root') {
+                return nextStr;
+            }
+            if (item.node === 'text') {
+                if (/^\s+$/.test(item.text + '')) {
+                    return '';
+                }
+                return `<text>${item.text}</text>`;
+            }
+            if (item.node === 'comment') {
+                return `<!-- ${item.text} -->`;
+            }
+            if (item.node !== 'element') {
+                return nextStr;
+            }
+            if (item.tag === 'img') {
+                const attrs = this.parseNodeAttr(item.attribute, 'image');
+                return `<image${attrs}></image>`;
+            }
+            if (item.tag === 'input') {
+                return this.parseInput(item);
+            }
+            if (item.tag === 'button') {
+                return this.parseButton(item, nextStr);
+            }
+            if (item.tag === 'form') {
+                const attrs = this.parseNodeAttr(item.attribute, item.tag);
+                return `<form${attrs}>${nextStr}</form>`;
+            }
+            if (['slider', 'icon', 'progress', 'switch', 'radio', 'checkbox', 'live-player', 'live-pusher'].indexOf(item.tag + '') >= 0) {
+                const attrs = this.parseNodeAttr(item.attribute, item.tag);
+                return `<${item.tag}${attrs}/>`;
+            }
+            if (['label', 'slot', 'style', 'text',
+                'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
+                'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
+                'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
+                'open-data', 'web-view', 'ad', 'official-account',
+                ].indexOf(item.tag + '') >= 0) {
+                const attrs = this.parseNodeAttr(item.attribute, item.tag);
+                nextStr = this.removeIfText(item.children, nextStr);
+                return `<${item.tag}${attrs}>${nextStr}</${item.tag}>`;
+            }
+            if (item.tag === 'textarea') {
+                if (nextStr.length > 0) {
+                    item.attr('value', nextStr);
+                }
+                const attrs = this.parseNodeAttr(item.attribute, item.tag);
+                return `<textarea${attrs}/>`;
+            }
+            if (item.tag === 'a') {
+                const attrs = this.parseNodeAttr(item.attribute, 'navigator');
+                nextStr = this.removeIfText(item.children, nextStr);
+                return `<navigator${attrs}>${nextStr}</navigator>`;
+            }
+            if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
+            && (!item.children || (item.children.length === 1 && item.children[0].node === 'text'))) {
+                const attrs = this.parseNodeAttr(item.attribute, 'text');
+                nextStr =  !item.children ? '' : item.children[0].text + '';
+                return `<text${attrs}>${nextStr}</text>`;
+            }
+            const attr = this.parseNodeAttr(item.attribute);
+            // 默认将有 - 分隔符或含大写的作为自定义部件
+            if (item.tag && this.exclude.test(item.tag)) {
+                return `<${item.tag}${attr}>${nextStr}</${item.tag}>`;
+            }
+            return `<view${attr}>${nextStr}</view>`;
+        });
+        const res = {
+            template: content,
+            func: this.renderFunc(this.existFunc),
+        };
+        this.existFunc = {};
+        return res;
+    }
+
+    private renderFunc(funcMap: IConverterFunc): string[] {
+        const funcItems = [];
+        for (const key in funcMap) {
+            if (Object.prototype.hasOwnProperty.call(funcMap, key)) {
+                const item = this.existFunc[key];
+                if (item.type === FuncType.BIND) {
+                    funcItems.push(this.createInputFunc(key, (item.properties as any[])[0], item.append));
+                    continue;
+                }
+                if (item.type === FuncType.FUNC) {
+                    funcItems.push(`${key}(){}`);
+                    continue;
+                }
+                if (item.type === FuncType.TAP) {
+                    const properties = item.properties as any[];
+                    funcItems.push(this.createTapFunc(key, properties[0], properties[1]));
+                    continue;
+                }
+                if (item.type === FuncType.CONVERTER) {
+                    const properties = item.properties as any[];
+                    funcItems.push(this.createTapCoverterFunc(key, properties[0], properties[1]));
+                    continue;
+                }
+            }
+        }
+        return funcItems;
+    }
 
     /**
      * 抛弃一些不必要的text 标签
      */
-    function removeIfText(children: Element[] | undefined, str: string): string {
+    private removeIfText(children: ElementToken[] | undefined, str: string): string {
         if (!children || children.length > 1 || children[0].node !== 'text') {
             return str;
         }
@@ -281,7 +271,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
      * 取反判断语句
      * @param value 值
      */
-    function invertIf(value: string): string {
+    private invertIf(value: string): string {
         value = value.trim();
         if (value.charAt(0) === '!') {
             return value.substr(1);
@@ -303,11 +293,11 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         return `!(${value})`;
     }
 
-    function converterSrc(value: string, _: string, attrs: Attribute) {
+    private converterSrc(value: string, _: string, attrs: Attribute) {
         attrs.set('src', '{{ ' + value + ' }}');
     }
 
-    function converterClass(value: string, _: string, attrs: Attribute) {
+    private converterClass(value: string, _: string, attrs: Attribute) {
         let cls: any = attrs.get('class') || '';
         if (typeof cls === 'object' && cls instanceof Array) {
             cls = cls.join(' ');
@@ -333,7 +323,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             });
             for (const key in clsObj) {
                 if (Object.prototype.hasOwnProperty.call(clsObj, key)) {
-                    block.push('(' + key + '?' + qStr(clsObj[key][0].trim()) + ':' + qStr(clsObj[key][1].trim()) + ')');
+                    block.push('(' + key + '?' + this.qStr(clsObj[key][0].trim()) + ':' + this.qStr(clsObj[key][1].trim()) + ')');
                 }
             }
         } else if (value.charAt(0) === '[') {
@@ -348,7 +338,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         attrs.set('class', '{{ ' + block.join('+') + ' }}');
     }
 
-    function converterTap(value: string, attrKey: string = 'bindtap', attrs: Attribute): void {
+    private converterTap(value: string, attrKey: string = 'bindtap', attrs: Attribute): void {
         if (!attrKey) {
             attrKey = 'bindtap';
         }
@@ -357,8 +347,8 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             let dataKey = studly(key);
             const f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase(); // 只能接受
-            if (!Object.prototype.hasOwnProperty.call(existFunc, f)) {
-                existFunc[f] = {
+            if (!Object.prototype.hasOwnProperty.call(this.existFunc, f)) {
+                this.existFunc[f] = {
                     type: FuncType.TAP,
                     properties: [key, dataKey],
                 };
@@ -377,7 +367,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         }
         if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
             const [key, val] = value.split('=', 2);
-            addFun(key, qv(val.trim()));
+            addFun(key, this.qv(val.trim()));
             return;
         }
         match = value.match(/^([^\(\)]+)\((.*)\)$/);
@@ -395,30 +385,76 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         const lines: string[] = [];
         args.split(',').forEach((item, i) => {
             const key = 'arg' + i;
-            const val = qv(item.trim());
+            const val = this.qv(item.trim());
             lines.push(key);
             ext[`data-${key}`] = val;
         });
         const funcTo = 'converter' + func;
-        if (!Object.prototype.hasOwnProperty.call(existFunc, funcTo)) {
-            existFunc[funcTo] = {
+        if (!Object.prototype.hasOwnProperty.call(this.existFunc, funcTo)) {
+            this.existFunc[funcTo] = {
                 type: FuncType.CONVERTER,
                 properties: [func, lines],
                 amount: lines.length,
             };
-        } else if ((existFunc[funcTo].amount as number) < lines.length) {
-            existFunc[funcTo].properties = [func, lines];
-            existFunc[funcTo].amount = lines.length;
+        } else if ((this.existFunc[funcTo].amount as number) < lines.length) {
+            this.existFunc[funcTo].properties = [func, lines];
+            this.existFunc[funcTo].amount = lines.length;
         }
         attrs.set(attrKey, funcTo).set(ext);
         return;
     }
 
     /**
+     * 生成input 绑定值方法
+     * @param name 方法名
+     * @param property 属性名
+     */
+    private createInputFunc(name: string, property: string, append: string[] = []): string {
+        const line = append.join('');
+        return `    ${name}(event: InputEvent) {
+            let data = this.data;
+            data.${property} = event.detail.value;${line}
+            this.setData(data);
+        }`;
+    }
+
+    /**
+     * 生成tap点击方法
+     * @param name 方法名
+     * @param property 属性名
+     * @param val 参数名
+     */
+    private createTapFunc(name: string, property: string, val: string): string {
+        return `    ${name}(e: TouchEvent) {
+            let data = this.data;
+            data.${property} = e.currentTarget.dataset.${val};
+            this.setData(data);
+        }`;
+    }
+    /**
+     * 生成直接传多个值func
+     * @param name 方法名
+     * @param target 目标方法
+     * @param args 值
+     */
+    private createTapCoverterFunc(name: string, target: string, args: string[]): string {
+        const lines: string[] = [];
+        args.forEach(item => {
+            lines.push('e.currentTarget.dataset.' + item);
+        });
+        lines.push('e');
+        const line = lines.join(', ');
+        return `    ${name}(e: TouchEvent) {
+            this.${target}(${line});
+        }`;
+    }
+
+
+     /**
      * 转换成属性值 包含''
      * @param v 值
      */
-    function q(v: any): string {
+    private q(v: any): string {
         if (typeof v === 'object' && v instanceof Array) {
             v = v.join(' ');
         }
@@ -429,7 +465,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
      * 转换成字符串
      * @param v 值
      */
-    function qStr(v: any): string {
+    private qStr(v: any): string {
         if (/^[''](.+)['']$/.test(v)) {
             return v;
         }
@@ -440,7 +476,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
      * js 转换成 属性值 没有''
      * @param val 值
      */
-    function qv(val: string): string {
+    private qv(val: string): string {
         if (/^[\d\.]+$/.test(val)) {
             return val;
         }
@@ -456,7 +492,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
      * @param attrs 属性
      * @param tag 标签
      */
-    function parseNodeAttr(attrs?: Attribute, tag: string = 'view'): string {
+    private parseNodeAttr(attrs?: Attribute, tag: string = 'view'): string {
         if (!attrs) {
             return '';
         }
@@ -481,13 +517,13 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         };
         mapProperty((key, value) => {
             properties.delete(key);
-            if (disallowAttrs.indexOf(key) >= 0) {
+            if (this.disallowAttrs.indexOf(key) >= 0) {
                 return;
             }
-            if (replaceAttrs.hasOwnProperty(key)) {
-                const attr: string|REPLACE_FUNC| boolean = replaceAttrs[key];
+            if (this.replaceAttrs.hasOwnProperty(key)) {
+                const attr: string|REPLACE_FUNC| boolean = this.replaceAttrs[key];
                 if (typeof attr === 'function') {
-                    attr(value, tag, properties);
+                    attr.call(this, value, tag, properties);
                     return;
                 } else if (typeof attr === 'boolean') {
                     return;
@@ -506,10 +542,10 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
             if (Array.isArray(value)) {
                 value = value.join(' ');
             }
-            const name = parseEventName(key);
+            const name = this.parseEventName(key);
             if (name) {
                 // 修改 @自定义方法的生成
-                converterTap(value, name, properties);
+                this.converterTap(value, name, properties);
                 return;
             } else if (key.charAt(0) === ':') {
                 key = key.substr(1);
@@ -521,7 +557,7 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         return str.trim().length > 0 ? ' ' + str : '';
     }
 
-    function parseEventName(name: string): string | undefined {
+    private parseEventName(name: string): string | undefined {
         if (name.indexOf('bind:') === 0 || name.indexOf('bind') === 0) {
             return name;
         }
@@ -531,15 +567,15 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         return undefined;
     }
 
-    function parseButton(node: Element, str: string): string {
-        let attr = parseNodeAttr(node.attribute);
+    private parseButton(node: ElementToken, str: string): string {
+        let attr = this.parseNodeAttr(node.attribute);
         if (['reset', 'submit'].indexOf(node.attr('type') + '') >= 0) {
-            attr += ' form-type=' + q(node.attr('type'));
+            attr += ' form-type=' + this.q(node.attr('type'));
         }
         return `<button type='default'${attr}>${str}</button>`;
     }
 
-    function parseInput(node: Element) {
+    private parseInput(node: ElementToken) {
         let type = node.attr('type') || 'text';
         if (type === 'password') {
             type = 'text';
@@ -548,53 +584,21 @@ export function jsonToWxml(json: Element, exclude: RegExp = /^(.+[\-A-Z].+|[A-Z]
         node.attr('type', type);
         if (['button', 'reset', 'submit'].indexOf(type + '') >= 0) {
             node.tag = 'button';
-            return parseButton(node, node.attr('value') + '');
+            return this.parseButton(node, node.attr('value') + '');
         }
         if (type === 'checkbox') {
-            const attrs = parseNodeAttr(node.attribute, type);
+            const attrs = this.parseNodeAttr(node.attribute, type);
             return `<checkbox${attrs}/>`;
         }
         if (type === 'radio') {
-            const attrs = parseNodeAttr(node.attribute, type);
+            const attrs = this.parseNodeAttr(node.attribute, type);
             return `<radio${attrs}/>`;
         }
         if (['text', 'number', 'idcard', 'digit'].indexOf(type + '') < 0) {
             type = 'text';
         }
         node.attr('type', type);
-        const attr = parseNodeAttr(node.attribute, 'input');
+        const attr = this.parseNodeAttr(node.attribute, 'input');
         return `<input${attr}/>`;
-    }
-}
-
-export function htmlToWxml(content: string): string {
-    // if (content.indexOf('<view') >= 0) {
-    //     console.log('跳过。。。');
-    //     return content;
-    // }
-    const element = htmlToJson(content);
-    return jsonToWxml(element);
-}
-
-
-interface ITemplateResult {
-    template: string;
-    func?: string[];
-}
-
-export class TemplateParser {
-
-    constructor(
-        private project: MiniProject,
-        private exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/
-    ) {}
-
-    public render(content: string| Element): ITemplateResult {
-        const func: string[] = [];
-        const template = jsonToWxml(typeof content === 'object' ? content : htmlToJson(content), this.exclude, func);
-        return {
-            template,
-            func,
-        }
     }
 }

@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ScriptParser = void 0;
-var util_1 = require("../util");
+var util_1 = require("../../util");
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 var ScriptParser = (function () {
     function ScriptParser(project) {

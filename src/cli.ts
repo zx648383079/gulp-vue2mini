@@ -5,8 +5,8 @@ import { TemplateProject } from './parser/template/project';
 import { MiniProject } from './parser/mini/project';
 import { formatArgv } from './argv';
 import { StyleProject } from './parser/style/style';
-import { CompliperFile, ICompliper } from './compiler';
-import { eachFile } from './parser/util';
+import { CompilerFile, IProjectCompiler } from './compiler';
+import { eachFile } from './util';
 
 process.env.INIT_CWD = process.cwd();
 
@@ -53,7 +53,7 @@ const inputState = fs.statSync(input);
 
 const inputFolder = inputState.isDirectory() ? input : path.dirname(input);
 
-const createProject = (): ICompliper|undefined => {
+const createProject = (): IProjectCompiler|undefined => {
     if (argv.params.mini) {
         return new MiniProject(inputFolder, outputFolder, argv.params);
     }
@@ -75,7 +75,7 @@ if (!project) {
 
 const nowTime = new Date().getTime();
 
-const compilerFile = (file: CompliperFile) => {
+const renderFile = (file: CompilerFile) => {
     try {
         if (file.mtime < nowTime) {
             file.mtime = nowTime;
@@ -92,11 +92,11 @@ const compilerFile = (file: CompliperFile) => {
 if (argv.params.watch) {
     chokidar.watch(inputFolder).on('unlink', file => {
         project?.unlink(file);
-    }).on('add', compilerFile).on('change', compilerFile);
+    }).on('add', renderFile).on('change', renderFile);
 } else {
     if (inputState.isFile()) {
-        compilerFile(new CompliperFile(input, nowTime));
+        renderFile(new CompilerFile(input, nowTime));
     } else {
-        eachFile(inputFolder, compilerFile);
+        eachFile(inputFolder, renderFile);
     }
 }

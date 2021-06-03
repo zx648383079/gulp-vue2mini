@@ -15,7 +15,7 @@ function gulpTs(tsConfigFileName) {
             if (!file.isBuffer()) {
                 return callback();
             }
-            var content = compiler_1.Compiler.ts(String(file.contents), file.path, tsConfigFileName, true);
+            var content = compiler_1.PluginCompiler.ts(String(file.contents), file.path, tsConfigFileName, true);
             file.contents = Buffer.from(content);
             file.path = gulp_tempate_1.renameExt(file.path, 'js');
             return callback(undefined, file);

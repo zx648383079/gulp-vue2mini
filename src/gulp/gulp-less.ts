@@ -1,6 +1,6 @@
 import { Transform } from 'readable-stream';
 import * as vinyl from 'vinyl';
-import { Compiler } from '../compiler';
+import { PluginCompiler } from '../compiler';
 import { renameExt } from './gulp-tempate';
 import { transformCallback } from './types';
 
@@ -17,7 +17,7 @@ export function gulpLess(options: Less.Options = {}) {
             if (!file.isBuffer()) {
                 return callback();
             }
-            Compiler.less(String(file.contents), file.path, options).then(content => {
+            PluginCompiler.less(String(file.contents), file.path, options).then(content => {
                 file.contents = Buffer.from(content);
                 file.path = renameExt(file.path, 'css');
                 callback(undefined, file);

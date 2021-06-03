@@ -22,7 +22,7 @@ var css_1 = require("./css");
 var vue_1 = require("./vue");
 var compiler_1 = require("../../compiler");
 var ts_1 = require("./ts");
-var link_1 = require("../link");
+var link_1 = require("../../util/link");
 var wxml_1 = require("./wxml");
 var json_1 = require("./json");
 var MiniProject = (function (_super) {
@@ -31,7 +31,7 @@ var MiniProject = (function (_super) {
         var _this = _super !== null && _super.apply(this, arguments) || this;
         _this.link = new link_1.LinkManager();
         _this.script = new ts_1.ScriptParser(_this);
-        _this.template = new wxml_1.TemplateParser(_this);
+        _this.template = new wxml_1.WxmlCompiler(_this);
         _this.style = new css_1.StyleParser(_this);
         _this.json = new json_1.JsonParser(_this);
         _this.mix = new vue_1.VueParser(_this);
@@ -41,27 +41,27 @@ var MiniProject = (function (_super) {
         var ext = src.extname;
         var dist = this.outputFile(src);
         if (ext === '.ts') {
-            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.js'), 'ts');
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.js'), 'ts');
         }
         if (ext === '.scss' || ext === '.sass') {
             if (src.basename.startsWith('_')) {
                 return undefined;
             }
-            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (ext === '.less') {
-            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (['.ttf', '.json'].indexOf(ext) >= 0) {
             return undefined;
         }
         if (ext === '.css') {
-            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.wxss'), ext.substring(1));
         }
         if (ext === '.html' || ext === '.vue') {
             return this.readyMixFile(src, ext, dist);
         }
-        return compiler_1.CompliperFile.from(src, dist, ext.substring(1));
+        return compiler_1.CompilerFile.from(src, dist, ext.substring(1));
     };
     MiniProject.prototype.readyMixFile = function (src, content, ext, dist) {
         var _a, _b, _c;
@@ -82,15 +82,15 @@ var MiniProject = (function (_super) {
         }
         var res = this.mix.render(content, ext.substr(1).toLowerCase(), src.src);
         var files = [];
-        files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.json'), 'json', this.json.render(res.json, data)));
+        files.push(compiler_1.CompilerFile.from(src, dist.replace(ext, '.json'), 'json', this.json.render(res.json, data)));
         if (res.template) {
-            files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxml'), 'wxml', res.template));
+            files.push(compiler_1.CompilerFile.from(src, dist.replace(ext, '.wxml'), 'wxml', res.template));
         }
         if (res.script) {
-            files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.js'), res.script.type, res.script.content));
+            files.push(compiler_1.CompilerFile.from(src, dist.replace(ext, '.js'), res.script.type, res.script.content));
         }
         if (res.style) {
-            files.push(compiler_1.CompliperFile.from(src, dist.replace(ext, '.wxss'), res.style.type, res.style.content));
+            files.push(compiler_1.CompilerFile.from(src, dist.replace(ext, '.wxss'), res.style.type, res.style.content));
         }
         return files;
     };
@@ -99,17 +99,17 @@ var MiniProject = (function (_super) {
         var compile = function (file) {
             _this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                fs.writeFileSync(file.dist, compiler_1.Compiler.ts(compiler_1.fileContent(file), src.src));
+                fs.writeFileSync(file.dist, compiler_1.PluginCompiler.ts(compiler_1.fileContent(file), src.src));
                 return;
             }
             if (file.type === 'less') {
-                compiler_1.Compiler.less(compiler_1.fileContent(file), src.src).then(function (content) {
+                compiler_1.PluginCompiler.less(compiler_1.fileContent(file), src.src).then(function (content) {
                     fs.writeFileSync(file.dist, content);
                 });
                 return;
             }
             if (file.type === 'sass' || file.type === 'scss') {
-                var content = compiler_1.Compiler.sass(css_1.preImport(compiler_1.fileContent(file)), src.src, file.type);
+                var content = compiler_1.PluginCompiler.sass(css_1.preImport(compiler_1.fileContent(file)), src.src, file.type);
                 content = css_1.endImport(content);
                 fs.writeFileSync(file.dist, css_1.replaceTTF(content, src.dirname));
                 return;
@@ -126,5 +126,5 @@ var MiniProject = (function (_super) {
         });
     };
     return MiniProject;
-}(compiler_1.BaseCompliper));
+}(compiler_1.BaseProjectCompiler));
 exports.MiniProject = MiniProject;

@@ -1,20 +1,22 @@
 import * as fs from 'fs';
-import { BaseCompliper, CompliperFile, eachCompileFile, fileContent, ICompliper } from '../../compiler';
-import { cssToScss } from '../css';
+import { SassCompiler } from '../../compiler';
+import { BaseProjectCompiler, CompilerFile, eachCompileFile, fileContent, IProjectCompiler } from '../../compiler';
 
 /**
  * css 转 scss
  */
-export class StyleProject extends BaseCompliper implements ICompliper {
+export class StyleProject extends BaseProjectCompiler implements IProjectCompiler {
 
-    public readyFile(src: CompliperFile): undefined | CompliperFile | CompliperFile[] {
-        return new CompliperFile(src.src, src.mtime, this.outputFile(src.src), 'css');
+    private readonly compiler = new SassCompiler();
+
+    public readyFile(src: CompilerFile): undefined | CompilerFile | CompilerFile[] {
+        return new CompilerFile(src.src, src.mtime, this.outputFile(src.src), 'css');
     }
 
-    public compileFile(src: CompliperFile): void {
+    public compileFile(src: CompilerFile): void {
         eachCompileFile(this.readyFile(src), file => {
             if (file.type === 'css') {
-                fs.writeFileSync(file.dist, cssToScss(fileContent(file)));
+                fs.writeFileSync(file.dist, this.compiler.render(fileContent(file)));
                 this.logFile(src);
             }
         });

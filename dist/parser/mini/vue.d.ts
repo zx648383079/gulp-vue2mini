@@ -17,6 +17,7 @@ interface IVueResult {
 export declare class VueParser {
     private project;
     constructor(project: MiniProject);
+    private readonly tokenizer;
     render(content: string, ext: string, srcFile: string): IVueResult;
     private splitTsFile;
 }

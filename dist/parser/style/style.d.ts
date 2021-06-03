@@ -1,5 +1,6 @@
-import { BaseCompliper, CompliperFile, ICompliper } from '../../compiler';
-export declare class StyleProject extends BaseCompliper implements ICompliper {
-    readyFile(src: CompliperFile): undefined | CompliperFile | CompliperFile[];
-    compileFile(src: CompliperFile): void;
+import { BaseProjectCompiler, CompilerFile, IProjectCompiler } from '../../compiler';
+export declare class StyleProject extends BaseProjectCompiler implements IProjectCompiler {
+    private readonly compiler;
+    readyFile(src: CompilerFile): undefined | CompilerFile | CompilerFile[];
+    compileFile(src: CompilerFile): void;
 }

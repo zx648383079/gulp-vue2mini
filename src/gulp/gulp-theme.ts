@@ -1,7 +1,7 @@
 import { Transform } from 'readable-stream';
 import * as vinyl from 'vinyl';
+import { SassCompiler, ThemeStyleCompiler } from '../compiler';
 import { transformCallback } from './types';
-import { cssToScss, formatThemeCss } from '../parser/css';
 
 /**
  * 处理样式的多主题支持
@@ -16,7 +16,8 @@ export function gulpTheme() {
             if (!file.isBuffer()) {
                 return callback();
             }
-            const content = formatThemeCss(String(file.contents));
+            const compiler = new ThemeStyleCompiler();
+            const content = compiler.formatThemeCss(String(file.contents));
             file.contents = Buffer.from(content);
             return callback(undefined, file);
         }
@@ -37,7 +38,8 @@ export function gulpCssToScss() {
             if (!file.isBuffer()) {
                 return callback();
             }
-            const content = cssToScss(String(file.contents));
+            const compiler = new SassCompiler();
+            const content = compiler.render(String(file.contents));
             file.contents = Buffer.from(content);
             return callback(undefined, file);
         }

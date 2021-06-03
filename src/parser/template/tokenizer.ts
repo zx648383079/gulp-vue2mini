@@ -1,8 +1,9 @@
-import { CompliperFile } from '../../compiler';
-import { CacheManger } from '../cache';
+import { CacheManger } from '../../util/cache';
 import * as path from 'path';
-import { splitLine } from '../util';
 import { TemplateProject } from './project';
+import { CompilerFile } from '../../compiler';
+import { splitLine } from '../../util';
+import { Compiler } from '../../compiler';
 
 export type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random' | 'theme';
 export const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
@@ -29,7 +30,7 @@ export interface IThemeObject {
     [key: string]: IThemeOption;
 }
 
-export class TemplateTokenizer {
+export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
 
     constructor(
         private project: TemplateProject
@@ -42,7 +43,7 @@ export class TemplateTokenizer {
      * @param file 
      * @returns 
      */
-    public render(file: CompliperFile): IPage {
+    public render(file: CompilerFile): IPage {
         const time = file.mtime;
         if (this.cachesFiles.has(file.src, time)) {
             return this.cachesFiles.get(file.src) as IPage;

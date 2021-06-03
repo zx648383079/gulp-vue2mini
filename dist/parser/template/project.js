@@ -22,29 +22,27 @@ var compiler_1 = require("../../compiler");
 var UglifyJS = require("uglify-js");
 var CleanCSS = require("clean-css");
 var tokenizer_1 = require("./tokenizer");
-var link_1 = require("../link");
 var style_1 = require("./style");
 var template_1 = require("./template");
 var script_1 = require("./script");
-var cache_1 = require("../cache");
-var util_1 = require("../util");
+var util_1 = require("../../util");
 var TemplateProject = (function (_super) {
     __extends(TemplateProject, _super);
     function TemplateProject(inputFolder, outputFolder, options) {
         var _this = _super.call(this, inputFolder, outputFolder, options) || this;
-        _this.link = new link_1.LinkManager();
+        _this.link = new util_1.LinkManager();
         _this.script = new script_1.ScriptParser(_this);
         _this.template = new template_1.TemplateParser(_this);
         _this.style = new style_1.StyleParser(_this);
-        _this.tokenizer = new tokenizer_1.TemplateTokenizer(_this);
-        _this.cache = new cache_1.CacheManger();
+        _this.tokenizer = new tokenizer_1.ThemeTokenizer(_this);
+        _this.cache = new util_1.CacheManger();
         _this.link.on(function (file, mtime) {
-            _this.compileAFile(new compiler_1.CompliperFile(file, mtime));
+            _this.compileAFile(new compiler_1.CompilerFile(file, mtime));
         });
         _this.ready();
         return _this;
     }
-    Object.defineProperty(TemplateProject.prototype, "compliperMin", {
+    Object.defineProperty(TemplateProject.prototype, "compilerMin", {
         get: function () {
             return this.options && this.options.min;
         },
@@ -59,23 +57,23 @@ var TemplateProject = (function (_super) {
         var ext = src.extname;
         var dist = this.outputFile(src);
         if (ext === '.ts') {
-            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.js'), 'ts');
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.js'), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {
             if (src.basename.startsWith('_')) {
                 this.style.render(src);
                 return undefined;
             }
-            return compiler_1.CompliperFile.from(src, dist.replace(ext, '.css'), ext.substring(1));
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.css'), ext.substring(1));
         }
         if (ext === '.html') {
-            var file = compiler_1.CompliperFile.from(src, dist, 'html');
+            var file = compiler_1.CompilerFile.from(src, dist, 'html');
             if (!this.tokenizer.render(file).canRender) {
                 return undefined;
             }
             return file;
         }
-        return compiler_1.CompliperFile.from(src, dist, ext.substring(1));
+        return compiler_1.CompilerFile.from(src, dist, ext.substring(1));
     };
     TemplateProject.prototype.compileFile = function (src) {
         this.compileAFile(src);
@@ -85,8 +83,8 @@ var TemplateProject = (function (_super) {
         var compile = function (file) {
             _this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                var content = compiler_1.Compiler.ts(_this.fileContent(file), file.src);
-                if (content && content.length > 0 && _this.compliperMin) {
+                var content = compiler_1.PluginCompiler.ts(_this.fileContent(file), file.src);
+                if (content && content.length > 0 && _this.compilerMin) {
                     content = UglifyJS.minify(content).code;
                 }
                 fs.writeFileSync(file.dist, content);
@@ -94,14 +92,14 @@ var TemplateProject = (function (_super) {
             }
             if (file.type === 'scss' || file.type === 'sass') {
                 var content = _this.style.render(file);
-                content = compiler_1.Compiler.sass(content, file.src, file.type, {
+                content = compiler_1.PluginCompiler.sass(content, file.src, file.type, {
                     importer: function (url, _, next) {
                         next({
-                            contents: _this.style.render(new compiler_1.CompliperFile(url, 0)),
+                            contents: _this.style.render(new compiler_1.CompilerFile(url, 0)),
                         });
                     }
                 });
-                if (content && content.length > 0 && _this.compliperMin) {
+                if (content && content.length > 0 && _this.compilerMin) {
                     content = new CleanCSS().minify(content).styles;
                 }
                 fs.writeFileSync(file.dist, content);
@@ -139,7 +137,7 @@ var TemplateProject = (function (_super) {
         if (fs.existsSync(dist)) {
             fs.unlinkSync(dist);
         }
-        var file = src instanceof compiler_1.CompliperFile ? src.src : src;
+        var file = src instanceof compiler_1.CompilerFile ? src.src : src;
         this.link.remove(file);
         this.cache.delete(file);
     };
@@ -158,5 +156,5 @@ var TemplateProject = (function (_super) {
         });
     };
     return TemplateProject;
-}(compiler_1.BaseCompliper));
+}(compiler_1.BaseProjectCompiler));
 exports.TemplateProject = TemplateProject;

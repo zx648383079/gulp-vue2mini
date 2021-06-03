@@ -1,13 +1,10 @@
-import { blockToString, cssToJson, separateThemeStyle, themeCss } from '../css';
 import { TemplateProject } from './project';
 import * as path from 'path';
-import { CompliperFile } from '../../compiler';
+import { CompilerFile, IThemeStyleOption } from '../../compiler';
+import { StyleTokenizer } from '../../tokenizer';
+import { ThemeStyleCompiler } from '../../compiler';
 
-interface IThemeOption {
-    [key: string]: {
-        [name: string]: string;
-    }
-}
+
 
 const REGEX_SASS_IMPORT = /@(import|use)\s+["'](.+?)["'];*/g;
 
@@ -16,7 +13,9 @@ export class StyleParser {
         private project: TemplateProject
     ) {}
 
-    private themeItems: IThemeOption = {};
+    private themeItems: IThemeStyleOption = {};
+    private tokenizer = new StyleTokenizer();
+    private compiler = new ThemeStyleCompiler();
 
     public get length() {
         return Object.keys(this.themeItems).length;
@@ -26,16 +25,16 @@ export class StyleParser {
         return Object.prototype.hasOwnProperty.call(this.themeItems, theme) ? this.themeItems[theme] : undefined;
     }
     
-    public render(file: CompliperFile): string {
+    public render(file: CompilerFile): string {
         let content = this.project.fileContent(file);
         const needTheme = this.needTheme(content);
         const hasTheme = this.hasTheme(content);
         if (!needTheme && !hasTheme) {
             return this.renderImport(content, file);
         }
-        let blockItems = cssToJson(content);
+        let blockItems = this.tokenizer.render(content);
         if (hasTheme) {
-            const [theme, items] = separateThemeStyle(blockItems);
+            const [theme, items] = this.compiler.separateThemeStyle(blockItems);
             this.pushTheme(theme);
             blockItems = items;
             this.project.link.lock(file.src, () => {
@@ -43,11 +42,11 @@ export class StyleParser {
             });
         }
         this.project.link.push('theme', file.src);
-        content = blockToString(themeCss(blockItems, this.themeItems));
+        content = this.compiler.formatThemeCss(blockItems, this.themeItems);
         return this.renderImport(content, file);
     }
 
-    public pushTheme(items: IThemeOption) {
+    public pushTheme(items: IThemeStyleOption) {
         for (const key in items) {
             if (Object.prototype.hasOwnProperty.call(items, key)) {
                 this.themeItems[key] = Object.assign(Object.prototype.hasOwnProperty.call(this.themeItems, key) ? this.themeItems[key] : {}, items[key]);
@@ -59,11 +58,11 @@ export class StyleParser {
         if (!this.hasTheme(content)) {
             return;
         }
-        const [theme] = separateThemeStyle(cssToJson(content));
+        const [theme] = this.compiler.separateThemeStyle(this.tokenizer.render(content));
         this.pushTheme(theme);
     }
 
-    private renderImport(content: string, file: CompliperFile) {
+    private renderImport(content: string, file: CompilerFile) {
         if (file.type !== 'scss' && file.type !== 'sass') {
             return content;
         }
@@ -76,7 +75,7 @@ export class StyleParser {
         while (null !== (res = REGEX_SASS_IMPORT.exec(content))) {
             const importFile = path.resolve(folder, res[2].indexOf('.') > 0 ? res[2] : ('_' + res[2] + ext));
             this.project.link.push(importFile, file.src);
-            content = content.replace(res[0], this.render(new CompliperFile(importFile, file.mtime)));
+            content = content.replace(res[0], this.render(new CompilerFile(importFile, file.mtime)));
         }
         return content;
     }

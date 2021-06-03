@@ -1,14 +1,17 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StyleParser = void 0;
-var css_1 = require("../css");
 var path = require("path");
 var compiler_1 = require("../../compiler");
+var tokenizer_1 = require("../../tokenizer");
+var compiler_2 = require("../../compiler");
 var REGEX_SASS_IMPORT = /@(import|use)\s+["'](.+?)["'];*/g;
 var StyleParser = (function () {
     function StyleParser(project) {
         this.project = project;
         this.themeItems = {};
+        this.tokenizer = new tokenizer_1.StyleTokenizer();
+        this.compiler = new compiler_2.ThemeStyleCompiler();
     }
     Object.defineProperty(StyleParser.prototype, "length", {
         get: function () {
@@ -28,9 +31,9 @@ var StyleParser = (function () {
         if (!needTheme && !hasTheme) {
             return this.renderImport(content, file);
         }
-        var blockItems = css_1.cssToJson(content);
+        var blockItems = this.tokenizer.render(content);
         if (hasTheme) {
-            var _a = css_1.separateThemeStyle(blockItems), theme = _a[0], items = _a[1];
+            var _a = this.compiler.separateThemeStyle(blockItems), theme = _a[0], items = _a[1];
             this.pushTheme(theme);
             blockItems = items;
             this.project.link.lock(file.src, function () {
@@ -38,7 +41,7 @@ var StyleParser = (function () {
             });
         }
         this.project.link.push('theme', file.src);
-        content = css_1.blockToString(css_1.themeCss(blockItems, this.themeItems));
+        content = this.compiler.formatThemeCss(blockItems, this.themeItems);
         return this.renderImport(content, file);
     };
     StyleParser.prototype.pushTheme = function (items) {
@@ -52,7 +55,7 @@ var StyleParser = (function () {
         if (!this.hasTheme(content)) {
             return;
         }
-        var theme = css_1.separateThemeStyle(css_1.cssToJson(content))[0];
+        var theme = this.compiler.separateThemeStyle(this.tokenizer.render(content))[0];
         this.pushTheme(theme);
     };
     StyleParser.prototype.renderImport = function (content, file) {
@@ -68,7 +71,7 @@ var StyleParser = (function () {
         while (null !== (res = REGEX_SASS_IMPORT.exec(content))) {
             var importFile = path.resolve(folder, res[2].indexOf('.') > 0 ? res[2] : ('_' + res[2] + ext));
             this.project.link.push(importFile, file.src);
-            content = content.replace(res[0], this.render(new compiler_1.CompliperFile(importFile, file.mtime)));
+            content = content.replace(res[0], this.render(new compiler_1.CompilerFile(importFile, file.mtime)));
         }
         return content;
     };

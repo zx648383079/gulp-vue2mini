@@ -1,16 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TemplateTokenizer = exports.REGEX_ASSET = void 0;
-var cache_1 = require("../cache");
+exports.ThemeTokenizer = exports.REGEX_ASSET = void 0;
+var cache_1 = require("../../util/cache");
 var path = require("path");
-var util_1 = require("../util");
+var util_1 = require("../../util");
 exports.REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
-var TemplateTokenizer = (function () {
-    function TemplateTokenizer(project) {
+var ThemeTokenizer = (function () {
+    function ThemeTokenizer(project) {
         this.project = project;
         this.cachesFiles = new cache_1.CacheManger();
     }
-    TemplateTokenizer.prototype.render = function (file) {
+    ThemeTokenizer.prototype.render = function (file) {
         var _this = this;
         var time = file.mtime;
         if (this.cachesFiles.has(file.src, time)) {
@@ -72,7 +72,7 @@ var TemplateTokenizer = (function () {
         this.cachesFiles.set(file.src, page, time);
         return page;
     };
-    TemplateTokenizer.prototype.converterToken = function (line) {
+    ThemeTokenizer.prototype.converterToken = function (line) {
         var _a;
         line = line.trim();
         if (line.length < 0) {
@@ -119,6 +119,6 @@ var TemplateTokenizer = (function () {
             amount: parseInt(amount, 10) || 1,
         };
     };
-    return TemplateTokenizer;
+    return ThemeTokenizer;
 }());
-exports.TemplateTokenizer = TemplateTokenizer;
+exports.ThemeTokenizer = ThemeTokenizer;

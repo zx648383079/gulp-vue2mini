@@ -1,6 +1,5 @@
-import { htmlToJson } from '../html';
-import { Element } from '../element';
-import { joinLine } from '../util';
+import { ElementToken, TemplateTokenizer } from '../../tokenizer';
+import { joinLine } from '../../util';
 import { MiniProject } from './project';
 
 type STYLE_SCRIPT = 'style'| 'script';
@@ -30,6 +29,8 @@ export class VueParser {
         private project: MiniProject
     ) {}
 
+    private readonly tokenizer = new TemplateTokenizer();
+
     /**
      * 拆分文件
      * @param content 
@@ -50,7 +51,7 @@ export class VueParser {
         if ('ts' === ext) {
             return this.splitTsFile(content, []);
         }
-        const data = htmlToJson(content);
+        const data = this.tokenizer.render(content);
         if (!data.children) {
             return {};
         }
@@ -89,7 +90,7 @@ export class VueParser {
         }
         let tplFuns: string[] = [];
         if (items.html.length > 0) {
-            const wxml = this.project.template.render(new Element('root', undefined, undefined, items.html));
+            const wxml = this.project.template.render(new ElementToken('root', undefined, undefined, items.html));
             res.template = wxml.template;
             tplFuns = wxml.func || [];
         }

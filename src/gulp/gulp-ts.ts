@@ -1,6 +1,6 @@
 import { Transform } from 'readable-stream';
 import * as vinyl from 'vinyl';
-import { Compiler } from '../compiler';
+import { PluginCompiler } from '../compiler';
 import { renameExt } from './gulp-tempate';
 import { transformCallback } from './types';
 
@@ -18,7 +18,7 @@ export function gulpTs(tsConfigFileName: string = 'tsconfig.json') {
             if (!file.isBuffer()) {
                 return callback();
             }
-            const content =  Compiler.ts(String(file.contents), file.path, tsConfigFileName, true);
+            const content =  PluginCompiler.ts(String(file.contents), file.path, tsConfigFileName, true);
             file.contents = Buffer.from(content);
             file.path = renameExt(file.path, 'js');
             return callback(undefined, file);

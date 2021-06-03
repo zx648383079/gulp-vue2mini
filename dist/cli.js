@@ -8,7 +8,7 @@ var project_2 = require("./parser/mini/project");
 var argv_1 = require("./argv");
 var style_1 = require("./parser/style/style");
 var compiler_1 = require("./compiler");
-var util_1 = require("./parser/util");
+var util_1 = require("./util");
 process.env.INIT_CWD = process.cwd();
 var argv = argv_1.formatArgv(process.argv, {
     mini: false,
@@ -51,7 +51,7 @@ if (!project) {
     process.exit(0);
 }
 var nowTime = new Date().getTime();
-var compilerFile = function (file) {
+var renderFile = function (file) {
     try {
         if (file.mtime < nowTime) {
             file.mtime = nowTime;
@@ -68,13 +68,13 @@ var compilerFile = function (file) {
 if (argv.params.watch) {
     chokidar.watch(inputFolder).on('unlink', function (file) {
         project === null || project === void 0 ? void 0 : project.unlink(file);
-    }).on('add', compilerFile).on('change', compilerFile);
+    }).on('add', renderFile).on('change', renderFile);
 }
 else {
     if (inputState.isFile()) {
-        compilerFile(new compiler_1.CompliperFile(input, nowTime));
+        renderFile(new compiler_1.CompilerFile(input, nowTime));
     }
     else {
-        util_1.eachFile(inputFolder, compilerFile);
+        util_1.eachFile(inputFolder, renderFile);
     }
 }

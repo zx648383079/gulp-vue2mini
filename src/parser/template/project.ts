@@ -1,22 +1,20 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { BaseCompliper, Compiler, CompliperFile, eachCompileFile, fileContent, ICompliper } from '../../compiler';
+import { BaseProjectCompiler, CompilerFile, eachCompileFile, fileContent, IProjectCompiler, PluginCompiler } from '../../compiler';
 import * as UglifyJS from 'uglify-js';
 import * as CleanCSS from 'clean-css';
-import { TemplateTokenizer } from './tokenizer';
-import { LinkManager } from '../link';
+import { ThemeTokenizer } from './tokenizer';
 import { StyleParser } from './style';
 import { TemplateParser } from './template';
 import { ScriptParser } from './script';
-import { CacheManger } from '../cache';
-import { eachFile } from '../util';
+import { CacheManger, eachFile, LinkManager } from '../../util';
 
 
 
 /**
  * 模板项目转化
  */
-export class TemplateProject extends BaseCompliper implements ICompliper {
+export class TemplateProject extends BaseProjectCompiler implements IProjectCompiler {
 
     constructor(
         inputFolder: string,
@@ -25,7 +23,7 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
     ) {
         super(inputFolder, outputFolder, options);
         this.link.on((file: string, mtime: number) => {
-            this.compileAFile(new CompliperFile(file, mtime))
+            this.compileAFile(new CompilerFile(file, mtime))
         });
         this.ready();
     }
@@ -34,13 +32,13 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
     public readonly script = new ScriptParser(this);
     public readonly template = new TemplateParser(this);
     public readonly style = new StyleParser(this);
-    public readonly tokenizer = new TemplateTokenizer(this);
+    public readonly tokenizer = new ThemeTokenizer(this);
     public readonly cache = new CacheManger<string>();
 
     /**
      * 是否压缩最小化
      */
-    public get compliperMin(): boolean {
+    public get compilerMin(): boolean {
         return this.options && this.options.min;
     }
 
@@ -49,35 +47,35 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
      * @param file 文件路径
      * @param content 内容
      */
-    public renderFile(file: CompliperFile): string {
+    public renderFile(file: CompilerFile): string {
         const res = this.template.render(file);
         return res.template;
     }
 
-    public readyFile(src: CompliperFile): undefined | CompliperFile | CompliperFile[] {
+    public readyFile(src: CompilerFile): undefined | CompilerFile | CompilerFile[] {
         const ext = src.extname;
         const dist = this.outputFile(src);
         if (ext === '.ts') {
-            return CompliperFile.from(src, dist.replace(ext, '.js'), 'ts');
+            return CompilerFile.from(src, dist.replace(ext, '.js'), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {
             if (src.basename.startsWith('_')) {
                 this.style.render(src);
                 return undefined;
             }
-            return CompliperFile.from(src, dist.replace(ext, '.css'), ext.substring(1));
+            return CompilerFile.from(src, dist.replace(ext, '.css'), ext.substring(1));
         }
         if (ext === '.html') {
-            const file = CompliperFile.from(src, dist, 'html');
+            const file = CompilerFile.from(src, dist, 'html');
             if (!this.tokenizer.render(file).canRender) {
                 return undefined;
             }
             return file;
         }
-        return CompliperFile.from(src, dist, ext.substring(1));
+        return CompilerFile.from(src, dist, ext.substring(1));
     }
 
-    public compileFile(src: CompliperFile) {
+    public compileFile(src: CompilerFile) {
         this.compileAFile(src);
     }
 
@@ -85,12 +83,12 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
      * compileFile
      * @param mtime 更新时间
      */
-    public compileAFile(src: CompliperFile) {
-        const compile = (file: CompliperFile) => {
+    public compileAFile(src: CompilerFile) {
+        const compile = (file: CompilerFile) => {
             this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                let content = Compiler.ts(this.fileContent(file), file.src);
-                if (content && content.length > 0 && this.compliperMin) {
+                let content = PluginCompiler.ts(this.fileContent(file), file.src);
+                if (content && content.length > 0 && this.compilerMin) {
                     content = UglifyJS.minify(content).code;
                 }
                 fs.writeFileSync(file.dist, content);
@@ -98,14 +96,14 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
             }
             if (file.type === 'scss' || file.type === 'sass') {
                 let content = this.style.render(file);
-                content = Compiler.sass(content, file.src, file.type, {
+                content = PluginCompiler.sass(content, file.src, file.type, {
                     importer: (url, _, next) => {
                         next({
-                            contents: this.style.render(new CompliperFile(url, 0)),
+                            contents: this.style.render(new CompilerFile(url, 0)),
                         });
                     }
                 });
-                if (content && content.length > 0 && this.compliperMin) {
+                if (content && content.length > 0 && this.compilerMin) {
                     content = new CleanCSS().minify(content).styles;
                 }
                 fs.writeFileSync(file.dist, content);
@@ -132,7 +130,7 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
         this.link.trigger(src.src, src.mtime);
     }
 
-    public fileContent(file: CompliperFile): string {
+    public fileContent(file: CompilerFile): string {
         if (this.cache.has(file.src, file.mtime)) {
             file.content = this.cache.get(file.src);
             return file.content!;
@@ -141,12 +139,12 @@ export class TemplateProject extends BaseCompliper implements ICompliper {
         return file.content!;
     }
 
-    public unlink(src: string|CompliperFile) {
+    public unlink(src: string|CompilerFile) {
         const dist = this.outputFile(src);
         if (fs.existsSync(dist)) {
             fs.unlinkSync(dist);
         }
-        const file = src instanceof CompliperFile ? src.src : src;
+        const file = src instanceof CompilerFile ? src.src : src;
         this.link.remove(file);
         this.cache.delete(file);
     }

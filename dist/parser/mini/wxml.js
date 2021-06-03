@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TemplateParser = exports.htmlToWxml = exports.jsonToWxml = void 0;
-var html_1 = require("../html");
-var util_1 = require("../util");
+exports.WxmlCompiler = void 0;
+var tokenizer_1 = require("../../tokenizer");
+var util_1 = require("../../util");
 var FuncType;
 (function (FuncType) {
     FuncType[FuncType["BIND"] = 0] = "BIND";
@@ -10,226 +10,234 @@ var FuncType;
     FuncType[FuncType["CONVERTER"] = 2] = "CONVERTER";
     FuncType[FuncType["FUNC"] = 3] = "FUNC";
 })(FuncType || (FuncType = {}));
-function createInputFunc(name, property, append) {
-    if (append === void 0) { append = []; }
-    var line = append.join('');
-    return "    " + name + "(event: InputEvent) {\n        let data = this.data;\n        data." + property + " = event.detail.value;" + line + "\n        this.setData(data);\n    }";
-}
-function createTapFunc(name, property, val) {
-    return "    " + name + "(e: TouchEvent) {\n        let data = this.data;\n        data." + property + " = e.currentTarget.dataset." + val + ";\n        this.setData(data);\n    }";
-}
-function createTapCoverterFunc(name, target, args) {
-    var lines = [];
-    args.forEach(function (item) {
-        lines.push('e.currentTarget.dataset.' + item);
-    });
-    lines.push('e');
-    var line = lines.join(', ');
-    return "    " + name + "(e: TouchEvent) {\n        this." + target + "(" + line + ");\n    }";
-}
-function jsonToWxml(json, exclude, wxmlFunc) {
-    if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
-    if (wxmlFunc === void 0) { wxmlFunc = []; }
-    var existFunc = {};
-    var disallowAttrs = [];
-    var replaceAttrs = {
-        'v-if': function (value, _, attrs) {
-            attrs.set('wx:if', '{{ ' + value + ' }}');
-        },
-        'v-model': function (value, tag, attrs) {
-            var func = util_1.studly(value, false) + 'Changed';
-            if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
-                existFunc[func] = {
-                    type: FuncType.BIND,
-                    properties: [value],
-                };
-            }
-            var getFunc = function (keys) {
-                var args = [];
-                for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
-                    var key = keys_1[_i];
-                    var val = attrs.get(key);
-                    if (!val) {
-                        continue;
-                    }
-                    converterTap(val, key, attrs);
-                    args.push('this.' + attrs.get(key) + '(e);');
-                    attrs.delete(key);
+var WxmlCompiler = (function () {
+    function WxmlCompiler(project, exclude, disallowAttrs) {
+        var _this = this;
+        if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
+        if (disallowAttrs === void 0) { disallowAttrs = []; }
+        this.project = project;
+        this.exclude = exclude;
+        this.disallowAttrs = disallowAttrs;
+        this.tokenizer = new tokenizer_1.TemplateTokenizer();
+        this.existFunc = {};
+        this.replaceAttrs = {
+            'v-if': function (value, _, attrs) {
+                attrs.set('wx:if', '{{ ' + value + ' }}');
+            },
+            'v-model': function (value, tag, attrs) {
+                var func = util_1.studly(value, false) + 'Changed';
+                if (!Object.prototype.hasOwnProperty.call(_this.existFunc, func)) {
+                    _this.existFunc[func] = {
+                        type: FuncType.BIND,
+                        properties: [value],
+                    };
                 }
-                return args;
-            };
-            var inputFunc;
-            var append;
-            if (['picker', 'switch', 'slider'].indexOf(tag) >= 0) {
-                inputFunc = 'bindchange';
-                append = getFunc([inputFunc, '@change']);
-            }
-            else {
-                inputFunc = 'bindinput';
-                append = getFunc([inputFunc, 'bind:input', '@input']);
-            }
-            existFunc[func].append = append;
-            attrs.set('value', '{{' + value + '}}');
-            attrs.set(inputFunc, func);
-        },
-        'v-elseif': function (value, _, attrs) {
-            attrs.set('wx:elif', '{{ ' + value + ' }}');
-        },
-        'v-else': 'wx:else',
-        ':src': converterSrc,
-        ':class': converterClass,
-        'v-bind:class': converterClass,
-        'v-bind:src': converterSrc,
-        'v-for': function (value, _, attrs) {
-            var index = 'index';
-            var item = 'item';
-            var match = value.match(/\(?([\w_]+)(,\s?([\w_]+)\))?\s+in\s+([\w_\.]+)/);
-            if (match === null) {
-                attrs.set('wx:for', '{{ ' + value + ' }}');
-                return;
-            }
-            if (match[3]) {
-                index = match[3];
-            }
-            item = match[1];
-            attrs.set('wx:for', '{{ ' + match[4] + ' }}').set('wx:for-index', index).set('wx:for-item', item);
-        },
-        'v-show': function (value, _, attrs) {
-            attrs.set('hidden', '{{ ' + invertIf(value) + ' }}');
-        },
-        href: 'url',
-        ':key': false,
-        '@click': function (value, _, attrs) {
-            converterTap(value, 'bindtap', attrs);
-        },
-        '@click.stop': function (value, _, attrs) {
-            if (typeof value === 'string') {
-                converterTap(value, 'catchtap', attrs);
-                return;
-            }
-            var func = 'catchTaped';
-            if (!Object.prototype.hasOwnProperty.call(existFunc, func)) {
-                existFunc[func] = {
-                    type: FuncType.FUNC,
+                var getFunc = function (keys) {
+                    var args = [];
+                    for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+                        var key = keys_1[_i];
+                        var val = attrs.get(key);
+                        if (!val) {
+                            continue;
+                        }
+                        _this.converterTap(val, key, attrs);
+                        args.push('this.' + attrs.get(key) + '(e);');
+                        attrs.delete(key);
+                    }
+                    return args;
                 };
-            }
-            attrs.set('catchtap', func);
-        },
-        'v-on:click': function (value, _, attrs) {
-            converterTap(value, 'bindtap', attrs);
-        },
-        '(click)': function (value, _, attrs) {
-            converterTap(value, 'bindtap', attrs);
-        },
-        '@touchstart': function (value, _, attrs) {
-            converterTap(value, 'bindtouchstart', attrs);
-        },
-        '@touchmove': function (value, _, attrs) {
-            converterTap(value, 'bindtouchmove', attrs);
-        },
-        '@touchend': function (value, _, attrs) {
-            converterTap(value, 'bindtouchend', attrs);
-        },
-    };
-    var content = json.toString(function (item, nextStr) {
-        if (item.node === 'root') {
-            return nextStr;
-        }
-        if (item.node === 'text') {
-            if (/^\s+$/.test(item.text + '')) {
-                return '';
-            }
-            return "<text>" + item.text + "</text>";
-        }
-        if (item.node === 'comment') {
-            return "<!-- " + item.text + " -->";
-        }
-        if (item.node !== 'element') {
-            return nextStr;
-        }
-        if (item.tag === 'img') {
-            var attrs = parseNodeAttr(item.attribute, 'image');
-            return "<image" + attrs + "></image>";
-        }
-        if (item.tag === 'input') {
-            return parseInput(item);
-        }
-        if (item.tag === 'button') {
-            return parseButton(item, nextStr);
-        }
-        if (item.tag === 'form') {
-            var attrs = parseNodeAttr(item.attribute, item.tag);
-            return "<form" + attrs + ">" + nextStr + "</form>";
-        }
-        if (['slider', 'icon', 'progress', 'switch', 'radio', 'checkbox', 'live-player', 'live-pusher'].indexOf(item.tag + '') >= 0) {
-            var attrs = parseNodeAttr(item.attribute, item.tag);
-            return "<" + item.tag + attrs + "/>";
-        }
-        if (['label', 'slot', 'style', 'text',
-            'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
-            'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
-            'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
-            'open-data', 'web-view', 'ad', 'official-account',
-        ].indexOf(item.tag + '') >= 0) {
-            var attrs = parseNodeAttr(item.attribute, item.tag);
-            nextStr = removeIfText(item.children, nextStr);
-            return "<" + item.tag + attrs + ">" + nextStr + "</" + item.tag + ">";
-        }
-        if (item.tag === 'textarea') {
-            if (nextStr.length > 0) {
-                item.attr('value', nextStr);
-            }
-            var attrs = parseNodeAttr(item.attribute, item.tag);
-            return "<textarea" + attrs + "/>";
-        }
-        if (item.tag === 'a') {
-            var attrs = parseNodeAttr(item.attribute, 'navigator');
-            nextStr = removeIfText(item.children, nextStr);
-            return "<navigator" + attrs + ">" + nextStr + "</navigator>";
-        }
-        if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
-            && (!item.children || (item.children.length === 1 && item.children[0].node === 'text'))) {
-            var attrs = parseNodeAttr(item.attribute, 'text');
-            nextStr = !item.children ? '' : item.children[0].text + '';
-            return "<text" + attrs + ">" + nextStr + "</text>";
-        }
-        var attr = parseNodeAttr(item.attribute);
-        if (item.tag && exclude.test(item.tag)) {
-            return "<" + item.tag + attr + ">" + nextStr + "</" + item.tag + ">";
-        }
-        return "<view" + attr + ">" + nextStr + "</view>";
-    });
-    for (var key in existFunc) {
-        if (Object.prototype.hasOwnProperty.call(existFunc, key)) {
-            var item = existFunc[key];
-            if (item.type === FuncType.BIND) {
-                wxmlFunc.push(createInputFunc(key, item.properties[0], item.append));
-                continue;
-            }
-            if (item.type === FuncType.FUNC) {
-                wxmlFunc.push(key + "(){}");
-                continue;
-            }
-            if (item.type === FuncType.TAP) {
-                var properties = item.properties;
-                wxmlFunc.push(createTapFunc(key, properties[0], properties[1]));
-                continue;
-            }
-            if (item.type === FuncType.CONVERTER) {
-                var properties = item.properties;
-                wxmlFunc.push(createTapCoverterFunc(key, properties[0], properties[1]));
-                continue;
-            }
-        }
+                var inputFunc;
+                var append;
+                if (['picker', 'switch', 'slider'].indexOf(tag) >= 0) {
+                    inputFunc = 'bindchange';
+                    append = getFunc([inputFunc, '@change']);
+                }
+                else {
+                    inputFunc = 'bindinput';
+                    append = getFunc([inputFunc, 'bind:input', '@input']);
+                }
+                _this.existFunc[func].append = append;
+                attrs.set('value', '{{' + value + '}}');
+                attrs.set(inputFunc, func);
+            },
+            'v-elseif': function (value, _, attrs) {
+                attrs.set('wx:elif', '{{ ' + value + ' }}');
+            },
+            'v-else': 'wx:else',
+            ':src': this.converterSrc,
+            ':class': this.converterClass,
+            'v-bind:class': this.converterClass,
+            'v-bind:src': this.converterSrc,
+            'v-for': function (value, _, attrs) {
+                var index = 'index';
+                var item = 'item';
+                var match = value.match(/\(?([\w_]+)(,\s?([\w_]+)\))?\s+in\s+([\w_\.]+)/);
+                if (match === null) {
+                    attrs.set('wx:for', '{{ ' + value + ' }}');
+                    return;
+                }
+                if (match[3]) {
+                    index = match[3];
+                }
+                item = match[1];
+                attrs.set('wx:for', '{{ ' + match[4] + ' }}').set('wx:for-index', index).set('wx:for-item', item);
+            },
+            'v-show': function (value, _, attrs) {
+                attrs.set('hidden', '{{ ' + _this.invertIf(value) + ' }}');
+            },
+            href: 'url',
+            ':key': false,
+            '@click': function (value, _, attrs) {
+                _this.converterTap(value, 'bindtap', attrs);
+            },
+            '@click.stop': function (value, _, attrs) {
+                if (typeof value === 'string') {
+                    _this.converterTap(value, 'catchtap', attrs);
+                    return;
+                }
+                var func = 'catchTaped';
+                if (!Object.prototype.hasOwnProperty.call(_this.existFunc, func)) {
+                    _this.existFunc[func] = {
+                        type: FuncType.FUNC,
+                    };
+                }
+                attrs.set('catchtap', func);
+            },
+            'v-on:click': function (value, _, attrs) {
+                _this.converterTap(value, 'bindtap', attrs);
+            },
+            '(click)': function (value, _, attrs) {
+                _this.converterTap(value, 'bindtap', attrs);
+            },
+            '@touchstart': function (value, _, attrs) {
+                _this.converterTap(value, 'bindtouchstart', attrs);
+            },
+            '@touchmove': function (value, _, attrs) {
+                _this.converterTap(value, 'bindtouchmove', attrs);
+            },
+            '@touchend': function (value, _, attrs) {
+                _this.converterTap(value, 'bindtouchend', attrs);
+            },
+        };
     }
-    return content;
-    function removeIfText(children, str) {
+    WxmlCompiler.prototype.render = function (data) {
+        if (typeof data !== 'object') {
+            data = this.tokenizer.render(data);
+        }
+        this.existFunc = {};
+        return this.renderFull(data);
+    };
+    WxmlCompiler.prototype.renderFull = function (json) {
+        var _this = this;
+        var content = json.toString(function (item, nextStr) {
+            if (item.node === 'root') {
+                return nextStr;
+            }
+            if (item.node === 'text') {
+                if (/^\s+$/.test(item.text + '')) {
+                    return '';
+                }
+                return "<text>" + item.text + "</text>";
+            }
+            if (item.node === 'comment') {
+                return "<!-- " + item.text + " -->";
+            }
+            if (item.node !== 'element') {
+                return nextStr;
+            }
+            if (item.tag === 'img') {
+                var attrs = _this.parseNodeAttr(item.attribute, 'image');
+                return "<image" + attrs + "></image>";
+            }
+            if (item.tag === 'input') {
+                return _this.parseInput(item);
+            }
+            if (item.tag === 'button') {
+                return _this.parseButton(item, nextStr);
+            }
+            if (item.tag === 'form') {
+                var attrs = _this.parseNodeAttr(item.attribute, item.tag);
+                return "<form" + attrs + ">" + nextStr + "</form>";
+            }
+            if (['slider', 'icon', 'progress', 'switch', 'radio', 'checkbox', 'live-player', 'live-pusher'].indexOf(item.tag + '') >= 0) {
+                var attrs = _this.parseNodeAttr(item.attribute, item.tag);
+                return "<" + item.tag + attrs + "/>";
+            }
+            if (['label', 'slot', 'style', 'text',
+                'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
+                'swiper-item', 'movable-area', 'movable-view', 'cover-view', 'video',
+                'rich-text', 'picker', 'picker-view', 'picker-view-column', 'checkbox-group', 'radio-group', 'editor', 'navigator', 'functional-page-navigator', 'audio', 'image', 'camera', 'map', 'canvas',
+                'open-data', 'web-view', 'ad', 'official-account',
+            ].indexOf(item.tag + '') >= 0) {
+                var attrs = _this.parseNodeAttr(item.attribute, item.tag);
+                nextStr = _this.removeIfText(item.children, nextStr);
+                return "<" + item.tag + attrs + ">" + nextStr + "</" + item.tag + ">";
+            }
+            if (item.tag === 'textarea') {
+                if (nextStr.length > 0) {
+                    item.attr('value', nextStr);
+                }
+                var attrs = _this.parseNodeAttr(item.attribute, item.tag);
+                return "<textarea" + attrs + "/>";
+            }
+            if (item.tag === 'a') {
+                var attrs = _this.parseNodeAttr(item.attribute, 'navigator');
+                nextStr = _this.removeIfText(item.children, nextStr);
+                return "<navigator" + attrs + ">" + nextStr + "</navigator>";
+            }
+            if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
+                && (!item.children || (item.children.length === 1 && item.children[0].node === 'text'))) {
+                var attrs = _this.parseNodeAttr(item.attribute, 'text');
+                nextStr = !item.children ? '' : item.children[0].text + '';
+                return "<text" + attrs + ">" + nextStr + "</text>";
+            }
+            var attr = _this.parseNodeAttr(item.attribute);
+            if (item.tag && _this.exclude.test(item.tag)) {
+                return "<" + item.tag + attr + ">" + nextStr + "</" + item.tag + ">";
+            }
+            return "<view" + attr + ">" + nextStr + "</view>";
+        });
+        var res = {
+            template: content,
+            func: this.renderFunc(this.existFunc),
+        };
+        this.existFunc = {};
+        return res;
+    };
+    WxmlCompiler.prototype.renderFunc = function (funcMap) {
+        var funcItems = [];
+        for (var key in funcMap) {
+            if (Object.prototype.hasOwnProperty.call(funcMap, key)) {
+                var item = this.existFunc[key];
+                if (item.type === FuncType.BIND) {
+                    funcItems.push(this.createInputFunc(key, item.properties[0], item.append));
+                    continue;
+                }
+                if (item.type === FuncType.FUNC) {
+                    funcItems.push(key + "(){}");
+                    continue;
+                }
+                if (item.type === FuncType.TAP) {
+                    var properties = item.properties;
+                    funcItems.push(this.createTapFunc(key, properties[0], properties[1]));
+                    continue;
+                }
+                if (item.type === FuncType.CONVERTER) {
+                    var properties = item.properties;
+                    funcItems.push(this.createTapCoverterFunc(key, properties[0], properties[1]));
+                    continue;
+                }
+            }
+        }
+        return funcItems;
+    };
+    WxmlCompiler.prototype.removeIfText = function (children, str) {
         if (!children || children.length > 1 || children[0].node !== 'text') {
             return str;
         }
         return children[0].text + '';
-    }
-    function invertIf(value) {
+    };
+    WxmlCompiler.prototype.invertIf = function (value) {
         value = value.trim();
         if (value.charAt(0) === '!') {
             return value.substr(1);
@@ -250,11 +258,11 @@ function jsonToWxml(json, exclude, wxmlFunc) {
             }
         }
         return "!(" + value + ")";
-    }
-    function converterSrc(value, _, attrs) {
+    };
+    WxmlCompiler.prototype.converterSrc = function (value, _, attrs) {
         attrs.set('src', '{{ ' + value + ' }}');
-    }
-    function converterClass(value, _, attrs) {
+    };
+    WxmlCompiler.prototype.converterClass = function (value, _, attrs) {
         var cls = attrs.get('class') || '';
         if (typeof cls === 'object' && cls instanceof Array) {
             cls = cls.join(' ');
@@ -279,7 +287,7 @@ function jsonToWxml(json, exclude, wxmlFunc) {
             });
             for (var key in clsObj_1) {
                 if (Object.prototype.hasOwnProperty.call(clsObj_1, key)) {
-                    block.push('(' + key + '?' + qStr(clsObj_1[key][0].trim()) + ':' + qStr(clsObj_1[key][1].trim()) + ')');
+                    block.push('(' + key + '?' + this.qStr(clsObj_1[key][0].trim()) + ':' + this.qStr(clsObj_1[key][1].trim()) + ')');
                 }
             }
         }
@@ -294,8 +302,9 @@ function jsonToWxml(json, exclude, wxmlFunc) {
             block.push('(' + value + ')');
         }
         attrs.set('class', '{{ ' + block.join('+') + ' }}');
-    }
-    function converterTap(value, attrKey, attrs) {
+    };
+    WxmlCompiler.prototype.converterTap = function (value, attrKey, attrs) {
+        var _this = this;
         if (attrKey === void 0) { attrKey = 'bindtap'; }
         if (!attrKey) {
             attrKey = 'bindtap';
@@ -305,8 +314,8 @@ function jsonToWxml(json, exclude, wxmlFunc) {
             var dataKey = util_1.studly(key);
             var f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
-            if (!Object.prototype.hasOwnProperty.call(existFunc, f)) {
-                existFunc[f] = {
+            if (!Object.prototype.hasOwnProperty.call(_this.existFunc, f)) {
+                _this.existFunc[f] = {
                     type: FuncType.TAP,
                     properties: [key, dataKey],
                 };
@@ -325,7 +334,7 @@ function jsonToWxml(json, exclude, wxmlFunc) {
         }
         if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
             var _b = value.split('=', 2), key = _b[0], val = _b[1];
-            addFun(key, qv(val.trim()));
+            addFun(key, this.qv(val.trim()));
             return;
         }
         match = value.match(/^([^\(\)]+)\((.*)\)$/);
@@ -343,38 +352,55 @@ function jsonToWxml(json, exclude, wxmlFunc) {
         var lines = [];
         args.split(',').forEach(function (item, i) {
             var key = 'arg' + i;
-            var val = qv(item.trim());
+            var val = _this.qv(item.trim());
             lines.push(key);
             ext["data-" + key] = val;
         });
         var funcTo = 'converter' + func;
-        if (!Object.prototype.hasOwnProperty.call(existFunc, funcTo)) {
-            existFunc[funcTo] = {
+        if (!Object.prototype.hasOwnProperty.call(this.existFunc, funcTo)) {
+            this.existFunc[funcTo] = {
                 type: FuncType.CONVERTER,
                 properties: [func, lines],
                 amount: lines.length,
             };
         }
-        else if (existFunc[funcTo].amount < lines.length) {
-            existFunc[funcTo].properties = [func, lines];
-            existFunc[funcTo].amount = lines.length;
+        else if (this.existFunc[funcTo].amount < lines.length) {
+            this.existFunc[funcTo].properties = [func, lines];
+            this.existFunc[funcTo].amount = lines.length;
         }
         attrs.set(attrKey, funcTo).set(ext);
         return;
-    }
-    function q(v) {
+    };
+    WxmlCompiler.prototype.createInputFunc = function (name, property, append) {
+        if (append === void 0) { append = []; }
+        var line = append.join('');
+        return "    " + name + "(event: InputEvent) {\n            let data = this.data;\n            data." + property + " = event.detail.value;" + line + "\n            this.setData(data);\n        }";
+    };
+    WxmlCompiler.prototype.createTapFunc = function (name, property, val) {
+        return "    " + name + "(e: TouchEvent) {\n            let data = this.data;\n            data." + property + " = e.currentTarget.dataset." + val + ";\n            this.setData(data);\n        }";
+    };
+    WxmlCompiler.prototype.createTapCoverterFunc = function (name, target, args) {
+        var lines = [];
+        args.forEach(function (item) {
+            lines.push('e.currentTarget.dataset.' + item);
+        });
+        lines.push('e');
+        var line = lines.join(', ');
+        return "    " + name + "(e: TouchEvent) {\n            this." + target + "(" + line + ");\n        }";
+    };
+    WxmlCompiler.prototype.q = function (v) {
         if (typeof v === 'object' && v instanceof Array) {
             v = v.join(' ');
         }
         return '\'' + v + '\'';
-    }
-    function qStr(v) {
+    };
+    WxmlCompiler.prototype.qStr = function (v) {
         if (/^[''](.+)['']$/.test(v)) {
             return v;
         }
         return '\'' + v + '\'';
-    }
-    function qv(val) {
+    };
+    WxmlCompiler.prototype.qv = function (val) {
         if (/^[\d\.]+$/.test(val)) {
             return val;
         }
@@ -383,8 +409,9 @@ function jsonToWxml(json, exclude, wxmlFunc) {
             return match[1];
         }
         return '{{ ' + val + ' }}';
-    }
-    function parseNodeAttr(attrs, tag) {
+    };
+    WxmlCompiler.prototype.parseNodeAttr = function (attrs, tag) {
+        var _this = this;
         if (tag === void 0) { tag = 'view'; }
         if (!attrs) {
             return '';
@@ -409,13 +436,13 @@ function jsonToWxml(json, exclude, wxmlFunc) {
         };
         mapProperty(function (key, value) {
             properties.delete(key);
-            if (disallowAttrs.indexOf(key) >= 0) {
+            if (_this.disallowAttrs.indexOf(key) >= 0) {
                 return;
             }
-            if (replaceAttrs.hasOwnProperty(key)) {
-                var attr = replaceAttrs[key];
+            if (_this.replaceAttrs.hasOwnProperty(key)) {
+                var attr = _this.replaceAttrs[key];
                 if (typeof attr === 'function') {
-                    attr(value, tag, properties);
+                    attr.call(_this, value, tag, properties);
                     return;
                 }
                 else if (typeof attr === 'boolean') {
@@ -436,9 +463,9 @@ function jsonToWxml(json, exclude, wxmlFunc) {
             if (Array.isArray(value)) {
                 value = value.join(' ');
             }
-            var name = parseEventName(key);
+            var name = _this.parseEventName(key);
             if (name) {
-                converterTap(value, name, properties);
+                _this.converterTap(value, name, properties);
                 return;
             }
             else if (key.charAt(0) === ':') {
@@ -449,8 +476,8 @@ function jsonToWxml(json, exclude, wxmlFunc) {
         });
         var str = properties.toString();
         return str.trim().length > 0 ? ' ' + str : '';
-    }
-    function parseEventName(name) {
+    };
+    WxmlCompiler.prototype.parseEventName = function (name) {
         if (name.indexOf('bind:') === 0 || name.indexOf('bind') === 0) {
             return name;
         }
@@ -458,15 +485,15 @@ function jsonToWxml(json, exclude, wxmlFunc) {
             return 'bind:' + name.substr(1);
         }
         return undefined;
-    }
-    function parseButton(node, str) {
-        var attr = parseNodeAttr(node.attribute);
+    };
+    WxmlCompiler.prototype.parseButton = function (node, str) {
+        var attr = this.parseNodeAttr(node.attribute);
         if (['reset', 'submit'].indexOf(node.attr('type') + '') >= 0) {
-            attr += ' form-type=' + q(node.attr('type'));
+            attr += ' form-type=' + this.q(node.attr('type'));
         }
         return "<button type='default'" + attr + ">" + str + "</button>";
-    }
-    function parseInput(node) {
+    };
+    WxmlCompiler.prototype.parseInput = function (node) {
         var type = node.attr('type') || 'text';
         if (type === 'password') {
             type = 'text';
@@ -475,44 +502,23 @@ function jsonToWxml(json, exclude, wxmlFunc) {
         node.attr('type', type);
         if (['button', 'reset', 'submit'].indexOf(type + '') >= 0) {
             node.tag = 'button';
-            return parseButton(node, node.attr('value') + '');
+            return this.parseButton(node, node.attr('value') + '');
         }
         if (type === 'checkbox') {
-            var attrs = parseNodeAttr(node.attribute, type);
+            var attrs = this.parseNodeAttr(node.attribute, type);
             return "<checkbox" + attrs + "/>";
         }
         if (type === 'radio') {
-            var attrs = parseNodeAttr(node.attribute, type);
+            var attrs = this.parseNodeAttr(node.attribute, type);
             return "<radio" + attrs + "/>";
         }
         if (['text', 'number', 'idcard', 'digit'].indexOf(type + '') < 0) {
             type = 'text';
         }
         node.attr('type', type);
-        var attr = parseNodeAttr(node.attribute, 'input');
+        var attr = this.parseNodeAttr(node.attribute, 'input');
         return "<input" + attr + "/>";
-    }
-}
-exports.jsonToWxml = jsonToWxml;
-function htmlToWxml(content) {
-    var element = html_1.htmlToJson(content);
-    return jsonToWxml(element);
-}
-exports.htmlToWxml = htmlToWxml;
-var TemplateParser = (function () {
-    function TemplateParser(project, exclude) {
-        if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
-        this.project = project;
-        this.exclude = exclude;
-    }
-    TemplateParser.prototype.render = function (content) {
-        var func = [];
-        var template = jsonToWxml(typeof content === 'object' ? content : html_1.htmlToJson(content), this.exclude, func);
-        return {
-            template: template,
-            func: func,
-        };
     };
-    return TemplateParser;
+    return WxmlCompiler;
 }());
-exports.TemplateParser = TemplateParser;
+exports.WxmlCompiler = WxmlCompiler;

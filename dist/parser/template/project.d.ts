@@ -1,24 +1,23 @@
-import { BaseCompliper, CompliperFile, ICompliper } from '../../compiler';
-import { TemplateTokenizer } from './tokenizer';
-import { LinkManager } from '../link';
+import { BaseProjectCompiler, CompilerFile, IProjectCompiler } from '../../compiler';
+import { ThemeTokenizer } from './tokenizer';
 import { StyleParser } from './style';
 import { TemplateParser } from './template';
 import { ScriptParser } from './script';
-import { CacheManger } from '../cache';
-export declare class TemplateProject extends BaseCompliper implements ICompliper {
+import { CacheManger, LinkManager } from '../../util';
+export declare class TemplateProject extends BaseProjectCompiler implements IProjectCompiler {
     constructor(inputFolder: string, outputFolder: string, options?: any);
     readonly link: LinkManager;
     readonly script: ScriptParser;
     readonly template: TemplateParser;
     readonly style: StyleParser;
-    readonly tokenizer: TemplateTokenizer;
+    readonly tokenizer: ThemeTokenizer;
     readonly cache: CacheManger<string>;
-    get compliperMin(): boolean;
-    renderFile(file: CompliperFile): string;
-    readyFile(src: CompliperFile): undefined | CompliperFile | CompliperFile[];
-    compileFile(src: CompliperFile): void;
-    compileAFile(src: CompliperFile): void;
-    fileContent(file: CompliperFile): string;
-    unlink(src: string | CompliperFile): void;
+    get compilerMin(): boolean;
+    renderFile(file: CompilerFile): string;
+    readyFile(src: CompilerFile): undefined | CompilerFile | CompilerFile[];
+    compileFile(src: CompilerFile): void;
+    compileAFile(src: CompilerFile): void;
+    fileContent(file: CompilerFile): string;
+    unlink(src: string | CompilerFile): void;
     ready(): void;
 }

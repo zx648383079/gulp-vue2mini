@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VueParser = void 0;
-var html_1 = require("../html");
-var element_1 = require("../element");
-var util_1 = require("../util");
+var tokenizer_1 = require("../../tokenizer");
+var util_1 = require("../../util");
 var VueParser = (function () {
     function VueParser(project) {
         this.project = project;
+        this.tokenizer = new tokenizer_1.TemplateTokenizer();
     }
     VueParser.prototype.render = function (content, ext, srcFile) {
         if (ext === 'json') {
@@ -21,7 +21,7 @@ var VueParser = (function () {
         if ('ts' === ext) {
             return this.splitTsFile(content, []);
         }
-        var data = html_1.htmlToJson(content);
+        var data = this.tokenizer.render(content);
         if (!data.children) {
             return {};
         }
@@ -61,7 +61,7 @@ var VueParser = (function () {
         }
         var tplFuns = [];
         if (items.html.length > 0) {
-            var wxml = this.project.template.render(new element_1.Element('root', undefined, undefined, items.html));
+            var wxml = this.project.template.render(new tokenizer_1.ElementToken('root', undefined, undefined, items.html));
             res.template = wxml.template;
             tplFuns = wxml.func || [];
         }

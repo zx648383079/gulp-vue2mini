@@ -3,13 +3,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.TemplateParser = void 0;
 var path = require("path");
 var compiler_1 = require("../../compiler");
-var html_1 = require("../html");
-var util_1 = require("../util");
-var tokenizer_1 = require("./tokenizer");
-var element_1 = require("../element");
+var tokenizer_1 = require("../../tokenizer");
+var util_1 = require("../../util");
+var tokenizer_2 = require("./tokenizer");
 var TemplateParser = (function () {
     function TemplateParser(project) {
         this.project = project;
+        this.tokenizer = new tokenizer_1.TemplateTokenizer();
+        this.compiler = new compiler_1.TemplateCompiler();
     }
     TemplateParser.prototype.render = function (file) {
         var _this = this;
@@ -43,7 +44,7 @@ var TemplateParser = (function () {
                     lines.push(token.content);
                     return;
                 }
-                var next = _this.project.tokenizer.render(new compiler_1.CompliperFile(token.content));
+                var next = _this.project.tokenizer.render(new compiler_1.CompilerFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
@@ -63,7 +64,7 @@ var TemplateParser = (function () {
     TemplateParser.prototype.mergeStyle = function (content, file, time) {
         var currentFolder = path.dirname(file);
         var replacePath = function (text) {
-            return text.replace(tokenizer_1.REGEX_ASSET, function ($0, _, $2) {
+            return text.replace(tokenizer_2.REGEX_ASSET, function ($0, _, $2) {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
                     return $0;
                 }
@@ -77,7 +78,7 @@ var TemplateParser = (function () {
                 return $0.replace($2, fileName);
             });
         };
-        var data = html_1.htmlToJson(replacePath(content));
+        var data = this.tokenizer.render(replacePath(content));
         var headers = [];
         var footers = [];
         var styles = [];
@@ -130,9 +131,9 @@ var TemplateParser = (function () {
                 lines.push(item.text);
             }
         });
-        var style = this.project.style.render(new compiler_1.CompliperFile(file + styleLang, time, '', styleLang, util_1.joinLine(lines)));
+        var style = this.project.style.render(new compiler_1.CompilerFile(file + styleLang, time, '', styleLang, util_1.joinLine(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
-            style = compiler_1.Compiler.sass(style, file, styleLang);
+            style = compiler_1.PluginCompiler.sass(style, file, styleLang);
         }
         lines = [];
         scripts.forEach(function (item) {
@@ -142,7 +143,7 @@ var TemplateParser = (function () {
         });
         var script = this.project.script.render(util_1.joinLine(lines));
         if (script.length > 0 && scriptLang === 'ts') {
-            script = compiler_1.Compiler.ts(script, file);
+            script = compiler_1.PluginCompiler.ts(script, file);
         }
         var pushStyle = function (root) {
             var _a, _b;
@@ -154,7 +155,7 @@ var TemplateParser = (function () {
                     root.children = !root.children ? headers : root.children.concat(headers);
                 }
                 if (style.length > 0) {
-                    (_a = root.children) === null || _a === void 0 ? void 0 : _a.push(element_1.Element.create('style', [element_1.Element.text(style)]));
+                    (_a = root.children) === null || _a === void 0 ? void 0 : _a.push(tokenizer_1.ElementToken.create('style', [tokenizer_1.ElementToken.text(style)]));
                 }
                 headers = [];
                 return;
@@ -164,7 +165,7 @@ var TemplateParser = (function () {
                     root.children = !root.children ? footers : root.children.concat(footers);
                 }
                 if (script.length > 0) {
-                    (_b = root.children) === null || _b === void 0 ? void 0 : _b.push(element_1.Element.create('script', [element_1.Element.text(script)]));
+                    (_b = root.children) === null || _b === void 0 ? void 0 : _b.push(tokenizer_1.ElementToken.create('script', [tokenizer_1.ElementToken.text(script)]));
                 }
                 footers = [];
                 return;
@@ -172,7 +173,8 @@ var TemplateParser = (function () {
             root.map(pushStyle);
         };
         data.map(pushStyle);
-        return html_1.jsonToHtml(data, this.project.compliperMin ? '' : '    ');
+        this.compiler.indent = this.project.compilerMin ? '' : '    ';
+        return this.compiler.render(data);
     };
     TemplateParser.prototype.extractStyle = function (content) {
         var regex = /<style[\s\S]+?>([\s\S]+?)<\/style>/g;

@@ -1,10 +1,9 @@
 import * as path from 'path';
-import { Compiler, CompliperFile } from '../../compiler';
-import { htmlToJson, jsonToHtml } from '../html';
-import { joinLine } from '../util';
+import { CompilerFile, PluginCompiler, TemplateCompiler } from '../../compiler';
+import { ElementToken, TemplateTokenizer } from '../../tokenizer';
+import { joinLine } from '../../util';
 import { TemplateProject } from './project';
 import { IPage, REGEX_ASSET } from './tokenizer';
-import { Element } from '../element';
 
 interface ITemplateResultItem {
     type: string;
@@ -22,7 +21,10 @@ export class TemplateParser {
         private project: TemplateProject
     ) {}
 
-    public render(file: CompliperFile): ITemplateResult {
+    private readonly tokenizer = new TemplateTokenizer();
+    private readonly compiler = new TemplateCompiler();
+
+    public render(file: CompilerFile): ITemplateResult {
         const page = this.project.tokenizer.render(file);
         if (!page.canRender) {
             return {
@@ -54,7 +56,7 @@ export class TemplateParser {
                     lines.push(token.content);
                     return;
                 }
-                const next = this.project.tokenizer.render(new CompliperFile(token.content));
+                const next = this.project.tokenizer.render(new CompilerFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
@@ -95,14 +97,14 @@ export class TemplateParser {
                 return $0.replace($2, fileName);
             });
         };
-        const data = htmlToJson(replacePath(content));
-        let headers: Element[] = [];
-        let footers: Element[] = [];
-        let styles: Element[] = [];
-        let scripts: Element[] = [];
+        const data = this.tokenizer.render(replacePath(content));
+        let headers: ElementToken[] = [];
+        let footers: ElementToken[] = [];
+        let styles: ElementToken[] = [];
+        let scripts: ElementToken[] = [];
         let styleLang = 'css';
         let scriptLang = 'js';
-        const eachElement = (root: Element) => {
+        const eachElement = (root: ElementToken) => {
             if (root.node !== 'element') {
                 root.map(eachElement);
                 return;
@@ -148,9 +150,9 @@ export class TemplateParser {
                 lines.push(item.text as string);
             }
         });
-        let style = this.project.style.render(new CompliperFile(file + styleLang, time, '', styleLang, joinLine(lines)));
+        let style = this.project.style.render(new CompilerFile(file + styleLang, time, '', styleLang, joinLine(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
-            style = Compiler.sass(style, file, styleLang);
+            style = PluginCompiler.sass(style, file, styleLang);
         }
         lines = [];
         scripts.forEach(item => {
@@ -160,10 +162,10 @@ export class TemplateParser {
         });
         let script = this.project.script.render(joinLine(lines));
         if (script.length > 0 && scriptLang === 'ts') {
-            script = Compiler.ts(script, file);
+            script = PluginCompiler.ts(script, file);
         }
 
-        const pushStyle = (root: Element) => {
+        const pushStyle = (root: ElementToken) => {
             if (root.node !== 'element') {
                 return;
             }
@@ -172,7 +174,7 @@ export class TemplateParser {
                     root.children = !root.children ? headers : root.children.concat(headers);
                 }
                 if (style.length > 0) {
-                    root.children?.push(Element.create('style', [Element.text(style)]));
+                    root.children?.push(ElementToken.create('style', [ElementToken.text(style)]));
                 }
                 headers = [];
                 return;
@@ -182,7 +184,7 @@ export class TemplateParser {
                     root.children = !root.children ? footers : root.children.concat(footers);
                 }
                 if (script.length > 0) {
-                    root.children?.push(Element.create('script', [Element.text(script)]));
+                    root.children?.push(ElementToken.create('script', [ElementToken.text(script)]));
                 }
                 footers = [];
                 return;
@@ -190,7 +192,8 @@ export class TemplateParser {
             root.map(pushStyle);
         };
         data.map(pushStyle);
-        return jsonToHtml(data, this.project.compliperMin ? '' : '    ');
+        this.compiler.indent = this.project.compilerMin ? '' : '    ';
+        return this.compiler.render(data);
     }
 
     public extractStyle(content: string): string {

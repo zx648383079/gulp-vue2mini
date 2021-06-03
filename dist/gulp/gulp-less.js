@@ -15,7 +15,7 @@ function gulpLess(options) {
             if (!file.isBuffer()) {
                 return callback();
             }
-            compiler_1.Compiler.less(String(file.contents), file.path, options).then(function (content) {
+            compiler_1.PluginCompiler.less(String(file.contents), file.path, options).then(function (content) {
                 file.contents = Buffer.from(content);
                 file.path = gulp_tempate_1.renameExt(file.path, 'css');
                 callback(undefined, file);
