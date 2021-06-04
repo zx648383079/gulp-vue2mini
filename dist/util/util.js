@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
+exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
 var fs = require("fs");
 var path = require("path");
 var compiler_1 = require("../compiler");
@@ -118,3 +118,22 @@ function eachObject(obj, cb) {
     }
 }
 exports.eachObject = eachObject;
+function regexReplace(content, pattern, cb) {
+    if (content.length < 1) {
+        return content;
+    }
+    var matches = [];
+    var match;
+    while (null !== (match = pattern.exec(content))) {
+        matches.push(match);
+    }
+    var block = [];
+    for (var i = matches.length - 1; i >= 0; i--) {
+        match = matches[i];
+        block.push(content.substr(match.index + match[0].length));
+        block.push(cb(match));
+        content = content.substr(0, match.index);
+    }
+    return content + block.reverse().join('');
+}
+exports.regexReplace = regexReplace;

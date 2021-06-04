@@ -37,6 +37,9 @@ var TemplateProject = (function (_super) {
         _this.tokenizer = new tokenizer_1.ThemeTokenizer(_this);
         _this.cache = new util_1.CacheManger();
         _this.link.on(function (file, mtime) {
+            if (!_this.isBooted) {
+                return;
+            }
             _this.compileAFile(new compiler_1.CompilerFile(file, mtime));
         });
         _this.ready();
@@ -93,11 +96,7 @@ var TemplateProject = (function (_super) {
             if (file.type === 'scss' || file.type === 'sass') {
                 var content = _this.style.render(file);
                 content = compiler_1.PluginCompiler.sass(content, file.src, file.type, {
-                    importer: function (url, _, next) {
-                        next({
-                            contents: _this.style.render(new compiler_1.CompilerFile(url, 0)),
-                        });
-                    }
+                    importer: _this.style.importer,
                 });
                 if (content && content.length > 0 && _this.compilerMin) {
                     content = new CleanCSS().minify(content).styles;

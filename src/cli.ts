@@ -73,13 +73,19 @@ if (!project) {
     process.exit(0);
 }
 
-const nowTime = new Date().getTime();
+const initTime = new Date().getTime();
 
-const renderFile = (file: CompilerFile) => {
+const renderFile = (file: CompilerFile|string) => {
+    if (typeof file !== 'object') {
+        file = new CompilerFile(file);
+    }
+    if (argv.params.watch && file.mtime && file.mtime > initTime) {
+        project.booted();
+    }
     try {
-        if (file.mtime < nowTime) {
-            file.mtime = nowTime;
-        } 
+        if (file.mtime < initTime) {
+            file.mtime = initTime;
+        }
         project?.compileFile(file);
     } catch (error) {
         project?.logFile(file, ' Failure \n' + error.message);
@@ -92,10 +98,14 @@ const renderFile = (file: CompilerFile) => {
 if (argv.params.watch) {
     chokidar.watch(inputFolder).on('unlink', file => {
         project?.unlink(file);
-    }).on('add', renderFile).on('change', renderFile);
+    }).on('add', (file, stats) => {
+        renderFile(new CompilerFile(file, stats?.mtimeMs))
+    }).on('change', (file, stats) => {
+        renderFile(new CompilerFile(file, stats?.mtimeMs))
+    });
 } else {
     if (inputState.isFile()) {
-        renderFile(new CompilerFile(input, nowTime));
+        renderFile(new CompilerFile(input, initTime));
     } else {
         eachFile(inputFolder, renderFile);
     }

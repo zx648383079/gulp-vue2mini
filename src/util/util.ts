@@ -151,3 +151,29 @@ export function eachObject(obj: any, cb: (val: any, key?: string|number) => void
         }
     }
 }
+
+/**
+ * 正则匹配替换
+ * @param content 
+ * @param pattern 
+ * @param cb 
+ * @returns 
+ */
+export function regexReplace(content: string, pattern: RegExp, cb: (match: RegExpExecArray) => string): string {
+    if (content.length < 1) {
+        return content;
+    }
+    const matches: RegExpExecArray[] = [];
+    let match: RegExpExecArray|null;
+    while (null !== (match = pattern.exec(content))) {
+        matches.push(match as RegExpExecArray);
+    }
+    const block: string[] = [];
+    for (let i = matches.length - 1; i >= 0; i--) {
+        match = matches[i];
+        block.push(content.substr(match.index + match[0].length));
+        block.push(cb(match));
+        content = content.substr(0, match.index);
+    }
+    return content + block.reverse().join('');
+}

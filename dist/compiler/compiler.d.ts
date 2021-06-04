@@ -15,6 +15,7 @@ export declare class CompilerFile {
 }
 export interface IProjectCompiler {
     readyFile(src: CompilerFile): undefined | CompilerFile | CompilerFile[];
+    booted(): void;
     compileFile(src: CompilerFile): void;
     outputFile(src: string | CompilerFile): string;
     unlink(src: string | CompilerFile): void;
@@ -25,6 +26,8 @@ export declare class BaseProjectCompiler {
     readonly outputFolder: string;
     options?: any;
     constructor(inputFolder: string, outputFolder: string, options?: any);
+    isBooted: boolean;
+    booted(): void;
     mkIfNotFolder(folder: string): void;
     outputFile(file: string | CompilerFile): string;
     unlink(src: string | CompilerFile): void;

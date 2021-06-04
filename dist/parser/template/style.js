@@ -5,7 +5,7 @@ var path = require("path");
 var compiler_1 = require("../../compiler");
 var tokenizer_1 = require("../../tokenizer");
 var compiler_2 = require("../../compiler");
-var REGEX_SASS_IMPORT = /@(import|use)\s+["'](.+?)["'];*/g;
+var util_1 = require("../../util");
 var StyleParser = (function () {
     function StyleParser(project) {
         this.project = project;
@@ -25,7 +25,7 @@ var StyleParser = (function () {
     };
     StyleParser.prototype.render = function (file) {
         var _this = this;
-        var content = this.project.fileContent(file);
+        var content = file.content ? file.content : this.project.fileContent(file);
         var needTheme = this.needTheme(content);
         var hasTheme = this.hasTheme(content);
         if (!needTheme && !hasTheme) {
@@ -59,6 +59,7 @@ var StyleParser = (function () {
         this.pushTheme(theme);
     };
     StyleParser.prototype.renderImport = function (content, file) {
+        var _this = this;
         if (file.type !== 'scss' && file.type !== 'sass') {
             return content;
         }
@@ -67,19 +68,22 @@ var StyleParser = (function () {
         }
         var ext = file.extname;
         var folder = file.dirname;
-        var res;
-        while (null !== (res = REGEX_SASS_IMPORT.exec(content))) {
-            var importFile = path.resolve(folder, res[2].indexOf('.') > 0 ? res[2] : ('_' + res[2] + ext));
-            this.project.link.push(importFile, file.src);
-            content = content.replace(res[0], this.render(new compiler_1.CompilerFile(importFile, file.mtime)));
-        }
-        return content;
+        return util_1.regexReplace(content, /@(import|use)\s+["'](.+?)["'];*/g, function (match) {
+            var importFile = path.resolve(folder, match[2].indexOf('.') > 0 ? match[2] : ('_' + match[2] + ext));
+            _this.project.link.push(importFile, file.src);
+            return _this.render(new compiler_1.CompilerFile(importFile, file.mtime));
+        });
     };
     StyleParser.prototype.hasTheme = function (content) {
         return content.indexOf('@theme ') >= 0;
     };
     StyleParser.prototype.needTheme = function (content) {
         return /:.+@[a-z]+/.test(content);
+    };
+    StyleParser.prototype.importer = function (url, prev, done) {
+        done({
+            contents: this.render(new compiler_1.CompilerFile(url, 0)),
+        });
     };
     return StyleParser;
 }());

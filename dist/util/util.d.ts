@@ -9,3 +9,4 @@ export declare function isLineCode(code: string): boolean;
 export declare function isEmptyCode(code: string): boolean;
 export declare function cloneObject<T>(val: T): T;
 export declare function eachObject(obj: any, cb: (val: any, key?: string | number) => void | false): any;
+export declare function regexReplace(content: string, pattern: RegExp, cb: (match: RegExpExecArray) => string): string;

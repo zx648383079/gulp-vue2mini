@@ -23,6 +23,9 @@ export class TemplateProject extends BaseProjectCompiler implements IProjectComp
     ) {
         super(inputFolder, outputFolder, options);
         this.link.on((file: string, mtime: number) => {
+            if (!this.isBooted) {
+                return;
+            }
             this.compileAFile(new CompilerFile(file, mtime))
         });
         this.ready();
@@ -97,11 +100,7 @@ export class TemplateProject extends BaseProjectCompiler implements IProjectComp
             if (file.type === 'scss' || file.type === 'sass') {
                 let content = this.style.render(file);
                 content = PluginCompiler.sass(content, file.src, file.type, {
-                    importer: (url, _, next) => {
-                        next({
-                            contents: this.style.render(new CompilerFile(url, 0)),
-                        });
-                    }
+                    importer: this.style.importer,
                 });
                 if (content && content.length > 0 && this.compilerMin) {
                     content = new CleanCSS().minify(content).styles;

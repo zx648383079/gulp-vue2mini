@@ -50,11 +50,17 @@ if (!project) {
     console.log(helpText);
     process.exit(0);
 }
-var nowTime = new Date().getTime();
+var initTime = new Date().getTime();
 var renderFile = function (file) {
+    if (typeof file !== 'object') {
+        file = new compiler_1.CompilerFile(file);
+    }
+    if (argv.params.watch && file.mtime && file.mtime > initTime) {
+        project.booted();
+    }
     try {
-        if (file.mtime < nowTime) {
-            file.mtime = nowTime;
+        if (file.mtime < initTime) {
+            file.mtime = initTime;
         }
         project === null || project === void 0 ? void 0 : project.compileFile(file);
     }
@@ -68,11 +74,15 @@ var renderFile = function (file) {
 if (argv.params.watch) {
     chokidar.watch(inputFolder).on('unlink', function (file) {
         project === null || project === void 0 ? void 0 : project.unlink(file);
-    }).on('add', renderFile).on('change', renderFile);
+    }).on('add', function (file, stats) {
+        renderFile(new compiler_1.CompilerFile(file, stats === null || stats === void 0 ? void 0 : stats.mtimeMs));
+    }).on('change', function (file, stats) {
+        renderFile(new compiler_1.CompilerFile(file, stats === null || stats === void 0 ? void 0 : stats.mtimeMs));
+    });
 }
 else {
     if (inputState.isFile()) {
-        renderFile(new compiler_1.CompilerFile(input, nowTime));
+        renderFile(new compiler_1.CompilerFile(input, initTime));
     }
     else {
         util_1.eachFile(inputFolder, renderFile);

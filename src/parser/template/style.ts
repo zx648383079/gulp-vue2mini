@@ -3,10 +3,10 @@ import * as path from 'path';
 import { CompilerFile, IThemeStyleOption } from '../../compiler';
 import { StyleTokenizer } from '../../tokenizer';
 import { ThemeStyleCompiler } from '../../compiler';
+import { regexReplace } from '../../util';
+import { ImporterReturnType } from 'sass';
 
 
-
-const REGEX_SASS_IMPORT = /@(import|use)\s+["'](.+?)["'];*/g;
 
 export class StyleParser {
     constructor(
@@ -26,7 +26,7 @@ export class StyleParser {
     }
     
     public render(file: CompilerFile): string {
-        let content = this.project.fileContent(file);
+        let content = file.content ? file.content : this.project.fileContent(file);
         const needTheme = this.needTheme(content);
         const hasTheme = this.hasTheme(content);
         if (!needTheme && !hasTheme) {
@@ -71,13 +71,11 @@ export class StyleParser {
         }
         const ext = file.extname;
         const folder = file.dirname;
-        let res;
-        while (null !== (res = REGEX_SASS_IMPORT.exec(content))) {
-            const importFile = path.resolve(folder, res[2].indexOf('.') > 0 ? res[2] : ('_' + res[2] + ext));
+        return regexReplace(content, /@(import|use)\s+["'](.+?)["'];*/g, match => {
+            const importFile = path.resolve(folder, match[2].indexOf('.') > 0 ? match[2] : ('_' + match[2] + ext));
             this.project.link.push(importFile, file.src);
-            content = content.replace(res[0], this.render(new CompilerFile(importFile, file.mtime)));
-        }
-        return content;
+            return this.render(new CompilerFile(importFile, file.mtime));
+        });
     }
 
     private hasTheme(content: string): boolean {
@@ -86,5 +84,11 @@ export class StyleParser {
 
     private needTheme(content: string): boolean {
         return /:.+@[a-z]+/.test(content);
+    }
+
+    public importer(url: string, prev: string, done: (data: ImporterReturnType) => void) {
+        done({
+            contents: this.render(new CompilerFile(url, 0)),
+        });
     }
 }

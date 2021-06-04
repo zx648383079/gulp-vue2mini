@@ -18,6 +18,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeStyleCompiler = void 0;
 var tokenizer_1 = require("../tokenizer");
+var util_1 = require("../util");
 var style_1 = require("./style");
 var ThemeStyleCompiler = (function () {
     function ThemeStyleCompiler(autoDark, tokenizer, compiler) {
@@ -81,14 +82,11 @@ var ThemeStyleCompiler = (function () {
         return finishItems;
     };
     ThemeStyleCompiler.prototype.themeStyle = function (themeOption, item, theme) {
+        var _this = this;
         if (theme === void 0) { theme = 'default'; }
-        var content = item.content;
-        var res;
-        while (null !== (res = /(,|\s|\(|^)@([a-zA-Z_\.]+)/g.exec(content))) {
-            var val = this.themeStyleValue(themeOption, res[2], theme);
-            content = content.replace(res[0], res[1] + val);
-        }
-        return content;
+        return util_1.regexReplace(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, function (match) {
+            return match[1] + _this.themeStyleValue(themeOption, match[2], theme);
+        });
     };
     ThemeStyleCompiler.prototype.splitThemeStyle = function (themeOption, data) {
         var source = [];

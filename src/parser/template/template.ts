@@ -150,9 +150,11 @@ export class TemplateParser {
                 lines.push(item.text as string);
             }
         });
-        let style = this.project.style.render(new CompilerFile(file + styleLang, time, '', styleLang, joinLine(lines)));
+        let style = this.project.style.render(new CompilerFile(file, time, '', styleLang, joinLine(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
-            style = PluginCompiler.sass(style, file, styleLang);
+            style = PluginCompiler.sass(style, file, styleLang, {
+                importer: this.project.style.importer,
+            });
         }
         lines = [];
         scripts.forEach(item => {

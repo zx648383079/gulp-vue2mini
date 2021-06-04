@@ -1,5 +1,6 @@
 import { TemplateProject } from './project';
 import { CompilerFile, IThemeStyleOption } from '../../compiler';
+import { ImporterReturnType } from 'sass';
 export declare class StyleParser {
     private project;
     constructor(project: TemplateProject);
@@ -16,4 +17,5 @@ export declare class StyleParser {
     private renderImport;
     private hasTheme;
     private needTheme;
+    importer(url: string, prev: string, done: (data: ImporterReturnType) => void): void;
 }

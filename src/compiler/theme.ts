@@ -1,4 +1,5 @@
 import { StyleToken, StyleTokenizer, StyleTokenType } from '../tokenizer';
+import { regexReplace } from '../util';
 import { Compiler } from './base';
 import { StyleCompiler } from './style';
 
@@ -70,13 +71,9 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
     }
 
     private themeStyle(themeOption: IThemeStyleOption, item: StyleToken, theme = 'default'): string {
-        let content = item.content as string;
-        let res;
-        while (null !== (res = /(,|\s|\(|^)@([a-zA-Z_\.]+)/g.exec(content))) {
-            const val = this.themeStyleValue(themeOption, res[2], theme);
-            content = content.replace(res[0], res[1] + val);
-        }
-        return content;
+        return regexReplace(item.content as string, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
+            return match[1] + this.themeStyleValue(themeOption, match[2], theme);
+        });
     }
 
     private splitThemeStyle(themeOption: IThemeStyleOption, data: StyleToken[]): StyleToken[][] {

@@ -96,7 +96,11 @@ var BaseProjectCompiler = (function () {
         this.inputFolder = inputFolder;
         this.outputFolder = outputFolder;
         this.options = options;
+        this.isBooted = false;
     }
+    BaseProjectCompiler.prototype.booted = function () {
+        this.isBooted = true;
+    };
     BaseProjectCompiler.prototype.mkIfNotFolder = function (folder) {
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder, { recursive: true });

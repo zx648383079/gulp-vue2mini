@@ -42,6 +42,7 @@ export class CompilerFile {
 
 export interface IProjectCompiler {
     readyFile(src: CompilerFile): undefined | CompilerFile | CompilerFile[];
+    booted(): void;
     compileFile(src: CompilerFile): void;
     outputFile(src: string|CompilerFile): string;
     unlink(src: string|CompilerFile): void;
@@ -55,6 +56,12 @@ export class BaseProjectCompiler {
         public options?: any
     ) {
 
+    }
+
+    public isBooted = false;
+
+    public booted() {
+        this.isBooted = true;
     }
 
     /**
