@@ -1,4 +1,9 @@
 "use strict";
+var __spreadArray = (this && this.__spreadArray) || function (to, from) {
+    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
+        to[j] = from[i];
+    return to;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeTokenizer = exports.REGEX_ASSET = void 0;
 var cache_1 = require("../../util/cache");
@@ -21,6 +26,7 @@ var ThemeTokenizer = (function () {
         var canRender = true;
         var currentFolder = file.dirname;
         var ext = file.extname;
+        var pageData = {};
         var replacePath = function (text) {
             return text.replace(exports.REGEX_ASSET, function ($0, _, $2) {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
@@ -42,6 +48,11 @@ var ThemeTokenizer = (function () {
                     type: 'text',
                     content: replacePath(line)
                 });
+                return;
+            }
+            if (token.type === 'set') {
+                var _a = token.content.split('=', 2), key = _a[0], val = _a[1];
+                pageData[key.trim()] = val;
                 return;
             }
             if (token.type === 'comment' && i < 1) {
@@ -67,7 +78,8 @@ var ThemeTokenizer = (function () {
             tokens: tokens,
             isLayout: isLayout,
             file: file.src,
-            canRender: canRender
+            canRender: canRender,
+            data: pageData
         };
         this.cachesFiles.set(file.src, page, time);
         return page;
@@ -101,9 +113,16 @@ var ThemeTokenizer = (function () {
         else if (content === '...') {
             type = 'content';
         }
-        else if (content.indexOf('~') === 0 && line.indexOf('@@') > 2) {
+        else if (content.charAt(0) === '~' && line.indexOf('@@') > 2) {
             type = 'random';
             content = line.substr(2);
+        }
+        else if (content.charAt(0) === '=') {
+            type = 'echo';
+            content = content.substr(1);
+        }
+        else if (content.indexOf('=') > 0) {
+            type = 'set';
         }
         if (type === 'extend' && /[\<\>]/.test(content)) {
             return;
@@ -118,6 +137,20 @@ var ThemeTokenizer = (function () {
             comment: comment,
             amount: parseInt(amount, 10) || 1,
         };
+    };
+    ThemeTokenizer.prototype.mergeData = function () {
+        var items = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            items[_i] = arguments[_i];
+        }
+        return Object.assign.apply(Object, __spreadArray([{}], items.filter(function (i) { return !!i; })));
+    };
+    ThemeTokenizer.prototype.echoValue = function (data, key) {
+        key = key.trim();
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            return data[key];
+        }
+        throw new Error('[' + key + ']: page data error');
     };
     return ThemeTokenizer;
 }());

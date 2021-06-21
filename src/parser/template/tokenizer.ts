@@ -5,8 +5,12 @@ import { CompilerFile } from '../../compiler';
 import { splitLine } from '../../util';
 import { Compiler } from '../../compiler';
 
-export type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random' | 'theme';
+export type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random' | 'theme' | 'set' | 'echo';
 export const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
+
+export interface IPageData {
+    [key: string]: string;
+}
 
 export interface IToken {
     type: TYPE_MAP;
@@ -20,6 +24,7 @@ export interface IPage {
     canRender: boolean;
     file: string;
     tokens: IToken[];
+    data: IPageData;
 }
 
 export interface IThemeOption {
@@ -53,6 +58,7 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
         let canRender = true;
         const currentFolder = file.dirname;
         const ext = file.extname;
+        const pageData: IPageData = {};
         const replacePath = (text: string) => {
             return text.replace(REGEX_ASSET, ($0: string, _, $2: string) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
@@ -74,6 +80,11 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
                     type: 'text',
                     content: replacePath(line)
                 });
+                return;
+            }
+            if (token.type === 'set') {
+                const [key, val] = token.content.split('=', 2);
+                pageData[key.trim()] = val;
                 return;
             }
             if (token.type === 'comment' && i < 1) {
@@ -99,7 +110,8 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
             tokens,
             isLayout,
             file: file.src,
-            canRender
+            canRender,
+            data: pageData
         };
         this.cachesFiles.set(file.src, page, time);
         return page;
@@ -135,9 +147,14 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
             type = 'comment';
         } else if (content === '...') {
             type = 'content';
-        } else if (content.indexOf('~') === 0 && line.indexOf('@@') > 2) {
+        } else if (content.charAt(0) === '~' && line.indexOf('@@') > 2) {
             type = 'random';
             content = line.substr(2);
+        } else if (content.charAt(0) === '=') {
+            type = 'echo';
+            content = content.substr(1);
+        } else if (content.indexOf('=') > 0) {
+            type = 'set';
         }
         if (type === 'extend' && /[\<\>]/.test(content)) {
             // 如果包含 <> 字符则不符合规则
@@ -154,5 +171,17 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
             comment,
             amount: parseInt(amount, 10) || 1,
         };
+    }
+
+    public mergeData(...items: IPageData[]): IPageData {
+        return Object.assign({}, ...items.filter(i => !!i));
+    }
+
+    public echoValue(data: IPageData, key: string): string {
+        key = key.trim();
+        if (Object.prototype.hasOwnProperty.call(data, key)) {
+            return data[key];
+        }
+        throw new Error('[' + key + ']: page data error');
     }
 }

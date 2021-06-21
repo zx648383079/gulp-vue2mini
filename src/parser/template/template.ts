@@ -3,7 +3,7 @@ import { CompilerFile, PluginCompiler, TemplateCompiler } from '../../compiler';
 import { ElementToken, TemplateTokenizer } from '../../tokenizer';
 import { joinLine } from '../../util';
 import { TemplateProject } from './project';
-import { IPage, REGEX_ASSET } from './tokenizer';
+import { IPage, IPageData, REGEX_ASSET } from './tokenizer';
 
 interface ITemplateResultItem {
     type: string;
@@ -25,18 +25,23 @@ export class TemplateParser {
     private readonly compiler = new TemplateCompiler();
 
     public render(file: CompilerFile): ITemplateResult {
-        const page = this.project.tokenizer.render(file);
+        const tokenizer = this.project.tokenizer;
+        const page = tokenizer.render(file);
         if (!page.canRender) {
             return {
                 template: '',
             };
         }
-
-        let layout: IPage | null = null;
+        let layout: IPage|null = null;
+        let pageData: IPageData = tokenizer.mergeData(page.data);
         const renderPage = (item: IPage, data?: string) => {
             const lines: string[] = [];
             item.tokens.forEach(token => {
-                if (token.type === 'comment' || token.type === 'layout') {
+                if (token.type === 'comment' || token.type === 'layout' || token.type === 'set') {
+                    return;
+                }
+                if (token.type === 'echo') {
+                    lines.push(tokenizer.echoValue(pageData, token.content));
                     return;
                 }
                 if (token.type === 'content') {
@@ -56,11 +61,12 @@ export class TemplateParser {
                     lines.push(token.content);
                     return;
                 }
-                const next = this.project.tokenizer.render(new CompilerFile(token.content));
+                const next = tokenizer.render(new CompilerFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
                 }
+                pageData = tokenizer.mergeData(pageData, next.data);
                 let amount = token.amount || 1;
                 for (; amount > 0; amount --) {
                     lines.push(renderPage(next));
@@ -68,9 +74,13 @@ export class TemplateParser {
             });
             return joinLine(lines);
         };
-        const content = renderPage(page);
+        let content = renderPage(page);
+        if (layout) {
+            pageData = tokenizer.mergeData(pageData, (layout as IPage).data);
+            content = renderPage(layout, content);
+        }
         return {
-            template: this.mergeStyle(layout ? renderPage(layout, content) : content, file.src, file.mtime)
+            template: this.mergeStyle(content, file.src, file.mtime)
         };
     }
 

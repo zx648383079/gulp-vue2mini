@@ -37,6 +37,8 @@ export declare class PluginCompiler {
     static ts(input: string, file: string, tsConfigFileName?: string, sourceMap?: boolean): string;
     static sass(input: string, file: string, lang?: string, options?: sass.Options): string;
     static less(input: string, file: string, options?: Less.Options): Promise<string>;
+    private static sassImporter;
+    private static lessImporter;
 }
 export declare const consoleLog: (file: string, tip?: string, rootFolder?: string | undefined) => void;
 export declare const eachCompileFile: (files: undefined | CompilerFile | CompilerFile[], callback: (file: CompilerFile) => void) => void;

@@ -125,7 +125,7 @@ export class PluginCompiler {
     }
 
     public static sass(input: string, file: string, lang = 'scss', options: sass.Options = {}): string {
-        const output = sass.renderSync(Object.assign({}, options, {
+        const output = PluginCompiler.sassImporter().renderSync(Object.assign({}, options, {
             data: input,
             file,
             // includePaths: [],
@@ -136,9 +136,27 @@ export class PluginCompiler {
 
     public static async less(input: string, file: string, options: Less.Options = {}): Promise<string> {
         options.filename = file;
-        const less: LessStatic = require('less');
-        const output = await less.render(input, options);
+        const output = await PluginCompiler.lessImporter().render(input, options);
         return output.css;
+    }
+
+    private static sassImporter(): any {
+        let sassImplPkg = 'sass';
+        try {
+            require.resolve('sass');
+        } catch (error) {
+            try {
+                require.resolve('node-sass');
+                sassImplPkg = 'node-sass';
+            } catch (ignoreError) {
+                sassImplPkg = 'sass';
+            }
+        }
+        return require(sassImplPkg);
+    }
+
+    private static lessImporter(): LessStatic {
+        return require('less');
     }
 }
 

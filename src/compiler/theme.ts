@@ -1,13 +1,8 @@
+import { IThemeObject } from '../parser/template/tokenizer';
 import { StyleToken, StyleTokenizer, StyleTokenType } from '../tokenizer';
 import { regexReplace } from '../util';
 import { Compiler } from './base';
 import { StyleCompiler } from './style';
-
-export interface IThemeStyleOption {
-    [key: string]: {
-        [name: string]: string;
-    }
-}
 
 export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
 
@@ -23,7 +18,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return this.formatThemeCss(data);
     }
 
-    public themeCss(items: StyleToken[], themeOption?: IThemeStyleOption): StyleToken[] {
+    public themeCss(items: StyleToken[], themeOption?: IThemeObject): StyleToken[] {
         if (!themeOption) {
             [themeOption, items] = this.separateThemeStyle(items);
         }
@@ -70,13 +65,13 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return finishItems;
     }
 
-    private themeStyle(themeOption: IThemeStyleOption, item: StyleToken, theme = 'default'): string {
+    private themeStyle(themeOption: IThemeObject, item: StyleToken, theme = 'default'): string {
         return regexReplace(item.content as string, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
             return match[1] + this.themeStyleValue(themeOption, match[2], theme);
         });
     }
 
-    private splitThemeStyle(themeOption: IThemeStyleOption, data: StyleToken[]): StyleToken[][] {
+    private splitThemeStyle(themeOption: IThemeObject, data: StyleToken[]): StyleToken[][] {
         const source = [];
         const append = [];
         for (const item of data) {
@@ -100,7 +95,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return [source, append];
     }
 
-    private cloneStyle(themeOption: IThemeStyleOption, data: StyleToken[], theme: string): StyleToken[] {
+    private cloneStyle(themeOption: IThemeObject, data: StyleToken[], theme: string): StyleToken[] {
         const children = [];
         for (const item of data) {
             if (this.isThemeStyle(item)) {
@@ -116,7 +111,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return children;
     }
 
-    private themeStyleValue(themeOption: IThemeStyleOption, name: string, theme = 'default'): string {
+    private themeStyleValue(themeOption: IThemeObject, name: string, theme = 'default'): string {
         if (themeOption![theme][name]) {
             return themeOption![theme][name];
         }
@@ -138,9 +133,10 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
     }
 
     public formatThemeCss(items: StyleToken[]): string;
-    public formatThemeCss(items: StyleToken[], themeOption: IThemeStyleOption): string;
+    public formatThemeCss(items: StyleToken[], themeOption: IThemeObject): string;
     public formatThemeCss(content: string): string;
-    public formatThemeCss(content: string|StyleToken[], themeOption?: IThemeStyleOption): string {
+    public formatThemeCss(content: string, themeOption: IThemeObject): string;
+    public formatThemeCss(content: string|StyleToken[], themeOption?: IThemeObject): string {
         let items: StyleToken[];
         if (typeof content !== 'object') {
             if (content.trim().length < 1) {

@@ -8,9 +8,7 @@ export declare class StyleParser {
     private tokenizer;
     private compiler;
     get length(): number;
-    get(theme: string): {
-        [name: string]: string;
-    } | undefined;
+    get(theme: string): any;
     render(file: CompilerFile): string;
     pushTheme(items: IThemeStyleOption): void;
     extractTheme(content: string): void;

@@ -13,18 +13,23 @@ var TemplateParser = (function () {
         this.compiler = new compiler_1.TemplateCompiler();
     }
     TemplateParser.prototype.render = function (file) {
-        var _this = this;
-        var page = this.project.tokenizer.render(file);
+        var tokenizer = this.project.tokenizer;
+        var page = tokenizer.render(file);
         if (!page.canRender) {
             return {
                 template: '',
             };
         }
         var layout = null;
+        var pageData = tokenizer.mergeData(page.data);
         var renderPage = function (item, data) {
             var lines = [];
             item.tokens.forEach(function (token) {
-                if (token.type === 'comment' || token.type === 'layout') {
+                if (token.type === 'comment' || token.type === 'layout' || token.type === 'set') {
+                    return;
+                }
+                if (token.type === 'echo') {
+                    lines.push(tokenizer.echoValue(pageData, token.content));
                     return;
                 }
                 if (token.type === 'content') {
@@ -44,11 +49,12 @@ var TemplateParser = (function () {
                     lines.push(token.content);
                     return;
                 }
-                var next = _this.project.tokenizer.render(new compiler_1.CompilerFile(token.content));
+                var next = tokenizer.render(new compiler_1.CompilerFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
                 }
+                pageData = tokenizer.mergeData(pageData, next.data);
                 var amount = token.amount || 1;
                 for (; amount > 0; amount--) {
                     lines.push(renderPage(next));
@@ -57,8 +63,12 @@ var TemplateParser = (function () {
             return util_1.joinLine(lines);
         };
         var content = renderPage(page);
+        if (layout) {
+            pageData = tokenizer.mergeData(pageData, layout.data);
+            content = renderPage(layout, content);
+        }
         return {
-            template: this.mergeStyle(layout ? renderPage(layout, content) : content, file.src, file.mtime)
+            template: this.mergeStyle(content, file.src, file.mtime)
         };
     };
     TemplateParser.prototype.mergeStyle = function (content, file, time) {
