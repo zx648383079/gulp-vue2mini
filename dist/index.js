@@ -12,5 +12,4 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var gulp_1 = require("./gulp");
 __exportStar(require("./gulp"), exports);
-__exportStar(require("./webpack"), exports);
 exports.default = gulp_1.template;
