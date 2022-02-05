@@ -1,8 +1,12 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from) {
-    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-        to[j] = from[i];
-    return to;
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeTokenizer = exports.REGEX_ASSET = void 0;
@@ -41,7 +45,7 @@ var ThemeTokenizer = (function () {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        util_1.splitLine(this.project.fileContent(file)).forEach(function (line, i) {
+        (0, util_1.splitLine)(this.project.fileContent(file)).forEach(function (line, i) {
             var token = _this.converterToken(line);
             if (!token) {
                 tokens.push({
@@ -93,12 +97,12 @@ var ThemeTokenizer = (function () {
         if (line.charAt(0) !== '@') {
             return;
         }
-        var content = line.substr(1);
+        var content = line.substring(1);
         var comment = '';
         var i = content.indexOf(' ');
         if (i > 0) {
-            comment = content.substr(i).trim();
-            content = content.substr(0, i);
+            comment = content.substring(i).trim();
+            content = content.substring(0, i);
         }
         if (content.length < 1) {
             return;
@@ -115,11 +119,11 @@ var ThemeTokenizer = (function () {
         }
         else if (content.charAt(0) === '~' && line.indexOf('@@') > 2) {
             type = 'random';
-            content = line.substr(2);
+            content = line.substring(2);
         }
         else if (content.charAt(0) === '=') {
             type = 'echo';
-            content = content.substr(1);
+            content = content.substring(1);
         }
         else if (content.indexOf('=') > 0) {
             type = 'set';
@@ -143,7 +147,7 @@ var ThemeTokenizer = (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             items[_i] = arguments[_i];
         }
-        return Object.assign.apply(Object, __spreadArray([{}], items.filter(function (i) { return !!i; })));
+        return Object.assign.apply(Object, __spreadArray([{}], items.filter(function (i) { return !!i; }), false));
     };
     ThemeTokenizer.prototype.echoValue = function (data, key) {
         key = key.trim();

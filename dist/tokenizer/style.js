@@ -1,8 +1,12 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from) {
-    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-        to[j] = from[i];
-    return to;
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
 };
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -46,7 +50,7 @@ var StyleTokenizer = (function () {
                 }
                 reader.moveNext();
                 code = reader.current;
-                if (!_this.isIndent && util_1.isEmptyCode(code)) {
+                if (!_this.isIndent && (0, util_1.isEmptyCode)(code)) {
                     continue;
                 }
                 if (code === '/' && _this.isComment(reader)) {
@@ -105,7 +109,7 @@ var StyleTokenizer = (function () {
             return {
                 type: StyleTokenType.STYLE_GROUP,
                 name: nameItems,
-                children: __spreadArray(__spreadArray([], comments), _this.renderBlock(reader, indentLength)),
+                children: __spreadArray(__spreadArray([], comments, true), _this.renderBlock(reader, indentLength), true),
             };
         };
         this.minIndex = function () {
@@ -146,7 +150,7 @@ var StyleTokenizer = (function () {
         if (end === void 0) { end = 0; }
         while (start > end) {
             var code = reader.readSeek(--start);
-            if (util_1.isLineCode(code)) {
+            if ((0, util_1.isLineCode)(code)) {
                 return start;
             }
         }
@@ -187,7 +191,7 @@ var StyleTokenizer = (function () {
                 if (line.startsWith(search)) {
                     return {
                         type: key,
-                        content: line.substr(search.length).trim(),
+                        content: line.substring(search.length).trim(),
                     };
                 }
             }
@@ -260,7 +264,7 @@ var StyleTokenizer = (function () {
                 var pos = reader.position;
                 while (reader.moveNext()) {
                     var code = reader.current;
-                    if (!util_1.isLineCode(code)) {
+                    if (!(0, util_1.isLineCode)(code)) {
                         continue;
                     }
                     this.moveNewLine(reader);
@@ -280,7 +284,7 @@ var StyleTokenizer = (function () {
         return {
             type: StyleTokenType.STYLE_GROUP,
             name: nameItems,
-            children: __spreadArray(__spreadArray([], comments), this.renderBlock(reader, indentLength)),
+            children: __spreadArray(__spreadArray([], comments, true), this.renderBlock(reader, indentLength), true),
         };
     };
     StyleTokenizer.prototype.indentSize = function (reader, pos) {
@@ -288,7 +292,7 @@ var StyleTokenizer = (function () {
         var count = 0;
         while (pos < reader.length) {
             var code = reader.readSeek(pos++);
-            if (util_1.isLineCode(code)) {
+            if ((0, util_1.isLineCode)(code)) {
                 if (count > 0) {
                     break;
                 }
@@ -314,16 +318,16 @@ var StyleTokenizer = (function () {
         else if (code == '\r') {
             source += reader.readSeek(source + 1) === '\n' ? 2 : 1;
         }
-        else if (!util_1.isEmptyCode(code)) {
+        else if (!(0, util_1.isEmptyCode)(code)) {
             return source;
         }
         var pos = source;
         while (pos < reader.length - 1) {
             code = reader.readSeek(++pos);
-            if (util_1.isLineCode(code)) {
+            if ((0, util_1.isLineCode)(code)) {
                 return this.jumpEmptyLine(reader, pos);
             }
-            if (!util_1.isEmptyCode(code)) {
+            if (!(0, util_1.isEmptyCode)(code)) {
                 return source;
             }
         }
@@ -343,13 +347,13 @@ var StyleTokenizer = (function () {
             if (inComment && code === '*' && reader.readSeek(pos + 1) === '/') {
                 while (pos < reader.length) {
                     code = reader.readSeek(++pos);
-                    if (!util_1.isLineCode(code)) {
+                    if (!(0, util_1.isLineCode)(code)) {
                         continue;
                     }
                     return this.indentSize(reader, this.jumpEmptyLine(reader, pos));
                 }
             }
-            if (!inComment && util_1.isLineCode(code)) {
+            if (!inComment && (0, util_1.isLineCode)(code)) {
                 return this.indentSize(reader, this.jumpEmptyLine(reader, pos));
             }
         }
@@ -371,7 +375,7 @@ var StyleTokenizer = (function () {
             if (code === ',') {
                 return true;
             }
-            if (!util_1.isLineCode(code)) {
+            if (!(0, util_1.isLineCode)(code)) {
                 return false;
             }
         }

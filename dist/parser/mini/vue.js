@@ -57,7 +57,7 @@ var VueParser = (function () {
         }
         var res = {};
         if (items.style.lines.length > 0) {
-            res.style = { type: items.style.type, content: this.project.style.render(util_1.joinLine(items.style.lines), srcFile) };
+            res.style = { type: items.style.type, content: this.project.style.render((0, util_1.joinLine)(items.style.lines), srcFile) };
         }
         var tplFuns = [];
         if (items.html.length > 0) {
@@ -66,7 +66,7 @@ var VueParser = (function () {
             tplFuns = wxml.func || [];
         }
         if (items.script.lines.length > 0) {
-            var json = this.splitTsFile(util_1.joinLine(items.script.lines), tplFuns);
+            var json = this.splitTsFile((0, util_1.joinLine)(items.script.lines), tplFuns);
             res.script = { type: items.script.type, content: json.script ? json.script.content : '' };
             res.json = json.json;
         }

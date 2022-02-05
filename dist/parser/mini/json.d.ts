@@ -1,7 +1,6 @@
 import { MiniProject } from './project';
 export declare class JsonParser {
-    private project;
-    constructor(project: MiniProject);
+    constructor(_: MiniProject);
     render(...args: any[]): string;
     merge(...args: any[]): any;
 }

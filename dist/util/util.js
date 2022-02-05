@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
+exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
 var fs = require("fs");
 var path = require("path");
 var compiler_1 = require("../compiler");
@@ -130,10 +130,18 @@ function regexReplace(content, pattern, cb) {
     var block = [];
     for (var i = matches.length - 1; i >= 0; i--) {
         match = matches[i];
-        block.push(content.substr(match.index + match[0].length));
+        block.push(content.substring(match.index + match[0].length));
         block.push(cb(match));
-        content = content.substr(0, match.index);
+        content = content.substring(0, match.index);
     }
     return content + block.reverse().join('');
 }
 exports.regexReplace = regexReplace;
+function getExtensionName(fileName) {
+    var i = fileName.lastIndexOf('.');
+    if (i < 0) {
+        return '';
+    }
+    return fileName.substring(i + 1);
+}
+exports.getExtensionName = getExtensionName;

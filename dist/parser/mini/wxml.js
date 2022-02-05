@@ -11,11 +11,10 @@ var FuncType;
     FuncType[FuncType["FUNC"] = 3] = "FUNC";
 })(FuncType || (FuncType = {}));
 var WxmlCompiler = (function () {
-    function WxmlCompiler(project, exclude, disallowAttrs) {
+    function WxmlCompiler(_, exclude, disallowAttrs) {
         var _this = this;
         if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
         if (disallowAttrs === void 0) { disallowAttrs = []; }
-        this.project = project;
         this.exclude = exclude;
         this.disallowAttrs = disallowAttrs;
         this.tokenizer = new tokenizer_1.TemplateTokenizer();
@@ -25,7 +24,7 @@ var WxmlCompiler = (function () {
                 attrs.set('wx:if', '{{ ' + value + ' }}');
             },
             'v-model': function (value, tag, attrs) {
-                var func = util_1.studly(value, false) + 'Changed';
+                var func = (0, util_1.studly)(value, false) + 'Changed';
                 if (!Object.prototype.hasOwnProperty.call(_this.existFunc, func)) {
                     _this.existFunc[func] = {
                         type: FuncType.BIND,
@@ -137,17 +136,17 @@ var WxmlCompiler = (function () {
                 if (/^\s+$/.test(item.text + '')) {
                     return '';
                 }
-                return "<text>" + item.text + "</text>";
+                return "<text>".concat(item.text, "</text>");
             }
             if (item.node === 'comment') {
-                return "<!-- " + item.text + " -->";
+                return "<!-- ".concat(item.text, " -->");
             }
             if (item.node !== 'element') {
                 return nextStr;
             }
             if (item.tag === 'img') {
                 var attrs = _this.parseNodeAttr(item.attribute, 'image');
-                return "<image" + attrs + "></image>";
+                return "<image".concat(attrs, "></image>");
             }
             if (item.tag === 'input') {
                 return _this.parseInput(item);
@@ -157,11 +156,11 @@ var WxmlCompiler = (function () {
             }
             if (item.tag === 'form') {
                 var attrs = _this.parseNodeAttr(item.attribute, item.tag);
-                return "<form" + attrs + ">" + nextStr + "</form>";
+                return "<form".concat(attrs, ">").concat(nextStr, "</form>");
             }
             if (['slider', 'icon', 'progress', 'switch', 'radio', 'checkbox', 'live-player', 'live-pusher'].indexOf(item.tag + '') >= 0) {
                 var attrs = _this.parseNodeAttr(item.attribute, item.tag);
-                return "<" + item.tag + attrs + "/>";
+                return "<".concat(item.tag).concat(attrs, "/>");
             }
             if (['label', 'slot', 'style', 'text',
                 'script', 'template', 'view', 'scroll-view', 'swiper', 'block',
@@ -171,31 +170,31 @@ var WxmlCompiler = (function () {
             ].indexOf(item.tag + '') >= 0) {
                 var attrs = _this.parseNodeAttr(item.attribute, item.tag);
                 nextStr = _this.removeIfText(item.children, nextStr);
-                return "<" + item.tag + attrs + ">" + nextStr + "</" + item.tag + ">";
+                return "<".concat(item.tag).concat(attrs, ">").concat(nextStr, "</").concat(item.tag, ">");
             }
             if (item.tag === 'textarea') {
                 if (nextStr.length > 0) {
                     item.attr('value', nextStr);
                 }
                 var attrs = _this.parseNodeAttr(item.attribute, item.tag);
-                return "<textarea" + attrs + "/>";
+                return "<textarea".concat(attrs, "/>");
             }
             if (item.tag === 'a') {
                 var attrs = _this.parseNodeAttr(item.attribute, 'navigator');
                 nextStr = _this.removeIfText(item.children, nextStr);
-                return "<navigator" + attrs + ">" + nextStr + "</navigator>";
+                return "<navigator".concat(attrs, ">").concat(nextStr, "</navigator>");
             }
             if (['i', 'span', 'strong', 'font', 'em', 'b'].indexOf(item.tag + '') >= 0
                 && (!item.children || (item.children.length === 1 && item.children[0].node === 'text'))) {
                 var attrs = _this.parseNodeAttr(item.attribute, 'text');
                 nextStr = !item.children ? '' : item.children[0].text + '';
-                return "<text" + attrs + ">" + nextStr + "</text>";
+                return "<text".concat(attrs, ">").concat(nextStr, "</text>");
             }
             var attr = _this.parseNodeAttr(item.attribute);
             if (item.tag && _this.exclude.test(item.tag)) {
-                return "<" + item.tag + attr + ">" + nextStr + "</" + item.tag + ">";
+                return "<".concat(item.tag).concat(attr, ">").concat(nextStr, "</").concat(item.tag, ">");
             }
-            return "<view" + attr + ">" + nextStr + "</view>";
+            return "<view".concat(attr, ">").concat(nextStr, "</view>");
         });
         var res = {
             template: content,
@@ -214,7 +213,7 @@ var WxmlCompiler = (function () {
                     continue;
                 }
                 if (item.type === FuncType.FUNC) {
-                    funcItems.push(key + "(){}");
+                    funcItems.push("".concat(key, "(){}"));
                     continue;
                 }
                 if (item.type === FuncType.TAP) {
@@ -240,7 +239,7 @@ var WxmlCompiler = (function () {
     WxmlCompiler.prototype.invertIf = function (value) {
         value = value.trim();
         if (value.charAt(0) === '!') {
-            return value.substr(1);
+            return value.substring(1);
         }
         var maps = [
             ['<=', '>'],
@@ -257,7 +256,7 @@ var WxmlCompiler = (function () {
                 return value.replace(item[0], item[1]);
             }
         }
-        return "!(" + value + ")";
+        return "!(".concat(value, ")");
     };
     WxmlCompiler.prototype.converterSrc = function (value, _, attrs) {
         attrs.set('src', '{{ ' + value + ' }}');
@@ -274,12 +273,12 @@ var WxmlCompiler = (function () {
         value = value.trim();
         if (value.charAt(0) === '{') {
             var clsObj_1 = {};
-            value.substr(1, value.length - 2).split(',').forEach(function (item) {
+            value.substring(1, value.length - 1).split(',').forEach(function (item) {
                 var _a = item.split(':', 2), key = _a[0], con = _a[1];
                 key = key.trim();
                 con = con.trim();
                 var isNot = con.charAt(0) === '!';
-                var name = isNot ? con.substr(1).trim() : con;
+                var name = isNot ? con.substring(1).trim() : con;
                 if (!Object.prototype.hasOwnProperty.call(clsObj_1, name)) {
                     clsObj_1[name] = ['', ''];
                 }
@@ -292,7 +291,7 @@ var WxmlCompiler = (function () {
             }
         }
         else if (value.charAt(0) === '[') {
-            value.substr(1, value.length - 2).split(',').forEach(function (item) {
+            value.substring(1, value.length - 1).split(',').forEach(function (item) {
                 block.push('\' \'');
                 block.push('(' + item + ')');
             });
@@ -311,7 +310,7 @@ var WxmlCompiler = (function () {
         }
         var addFun = function (key, val) {
             key = key.trim();
-            var dataKey = util_1.studly(key);
+            var dataKey = (0, util_1.studly)(key);
             var f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
             if (!Object.prototype.hasOwnProperty.call(_this.existFunc, f)) {
@@ -320,7 +319,7 @@ var WxmlCompiler = (function () {
                     properties: [key, dataKey],
                 };
             }
-            attrs.set(attrKey, f).set("data-" + dataKey, val);
+            attrs.set(attrKey, f).set("data-".concat(dataKey), val);
         };
         var match = value.match(/(([\+\-]{2})|([\+\-\*\/]\=))/);
         if (match) {
@@ -354,7 +353,7 @@ var WxmlCompiler = (function () {
             var key = 'arg' + i;
             var val = _this.qv(item.trim());
             lines.push(key);
-            ext["data-" + key] = val;
+            ext["data-".concat(key)] = val;
         });
         var funcTo = 'converter' + func;
         if (!Object.prototype.hasOwnProperty.call(this.existFunc, funcTo)) {
@@ -374,10 +373,10 @@ var WxmlCompiler = (function () {
     WxmlCompiler.prototype.createInputFunc = function (name, property, append) {
         if (append === void 0) { append = []; }
         var line = append.join('');
-        return "    " + name + "(event: InputEvent) {\n            let data = this.data;\n            data." + property + " = event.detail.value;" + line + "\n            this.setData(data);\n        }";
+        return "    ".concat(name, "(event: InputEvent) {\n            let data = this.data;\n            data.").concat(property, " = event.detail.value;").concat(line, "\n            this.setData(data);\n        }");
     };
     WxmlCompiler.prototype.createTapFunc = function (name, property, val) {
-        return "    " + name + "(e: TouchEvent) {\n            let data = this.data;\n            data." + property + " = e.currentTarget.dataset." + val + ";\n            this.setData(data);\n        }";
+        return "    ".concat(name, "(e: TouchEvent) {\n            let data = this.data;\n            data.").concat(property, " = e.currentTarget.dataset.").concat(val, ";\n            this.setData(data);\n        }");
     };
     WxmlCompiler.prototype.createTapCoverterFunc = function (name, target, args) {
         var lines = [];
@@ -386,7 +385,7 @@ var WxmlCompiler = (function () {
         });
         lines.push('e');
         var line = lines.join(', ');
-        return "    " + name + "(e: TouchEvent) {\n            this." + target + "(" + line + ");\n        }";
+        return "    ".concat(name, "(e: TouchEvent) {\n            this.").concat(target, "(").concat(line, ");\n        }");
     };
     WxmlCompiler.prototype.q = function (v) {
         if (typeof v === 'object' && v instanceof Array) {
@@ -469,7 +468,7 @@ var WxmlCompiler = (function () {
                 return;
             }
             else if (key.charAt(0) === ':') {
-                key = key.substr(1);
+                key = key.substring(1);
                 value = '{{ ' + value + ' }}';
             }
             properties.set(key, value);
@@ -482,7 +481,7 @@ var WxmlCompiler = (function () {
             return name;
         }
         if (name.charAt(0) === '@') {
-            return 'bind:' + name.substr(1);
+            return 'bind:' + name.substring(1);
         }
         return undefined;
     };
@@ -491,7 +490,7 @@ var WxmlCompiler = (function () {
         if (['reset', 'submit'].indexOf(node.attr('type') + '') >= 0) {
             attr += ' form-type=' + this.q(node.attr('type'));
         }
-        return "<button type='default'" + attr + ">" + str + "</button>";
+        return "<button type='default'".concat(attr, ">").concat(str, "</button>");
     };
     WxmlCompiler.prototype.parseInput = function (node) {
         var type = node.attr('type') || 'text';
@@ -506,18 +505,18 @@ var WxmlCompiler = (function () {
         }
         if (type === 'checkbox') {
             var attrs = this.parseNodeAttr(node.attribute, type);
-            return "<checkbox" + attrs + "/>";
+            return "<checkbox".concat(attrs, "/>");
         }
         if (type === 'radio') {
             var attrs = this.parseNodeAttr(node.attribute, type);
-            return "<radio" + attrs + "/>";
+            return "<radio".concat(attrs, "/>");
         }
         if (['text', 'number', 'idcard', 'digit'].indexOf(type + '') < 0) {
             type = 'text';
         }
         node.attr('type', type);
         var attr = this.parseNodeAttr(node.attribute, 'input');
-        return "<input" + attr + "/>";
+        return "<input".concat(attr, "/>");
     };
     return WxmlCompiler;
 }());

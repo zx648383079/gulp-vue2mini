@@ -17,7 +17,7 @@ function gulpLess(options) {
             }
             compiler_1.PluginCompiler.less(String(file.contents), file.path, options).then(function (content) {
                 file.contents = Buffer.from(content);
-                file.path = gulp_tempate_1.renameExt(file.path, 'css');
+                file.path = (0, gulp_tempate_1.renameExt)(file.path, 'css');
                 callback(undefined, file);
             }).catch(function (err) {
                 err.lineNumber = err.line;

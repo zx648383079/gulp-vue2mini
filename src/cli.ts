@@ -27,10 +27,10 @@ Usage: vue2mini <command>
     --theme 编译模板
     --css 转css为scss
     --help 帮助
-    --input 源码文件或文件夹，默认为src
-    --output 编译后保存的文件夹，默认为dist
-    --min 压缩ts和sass 生成的文件代码，仅对模板有效
-    --watch 监听脚本变动，自动处理
+    --input 源码文件或文件夹,默认为src
+    --output 编译后保存的文件夹,默认为dist
+    --min 压缩ts和sass 生成的文件代码,仅对模板有效
+    --watch 监听脚本变动,自动处理
     --debug 开启debug模式显示具体错误来源
 
 Example:
@@ -87,7 +87,7 @@ const renderFile = (file: CompilerFile|string) => {
             file.mtime = initTime;
         }
         project?.compileFile(file);
-    } catch (error) {
+    } catch (error: any) {
         project?.logFile(file, ' Failure \n' + error.message);
         if (argv.params.debug) {
             console.log(error);

@@ -4,7 +4,7 @@ import { MiniProject } from './project';
 export class JsonParser {
 
     constructor(
-        private project: MiniProject
+        _: MiniProject
     ) {}
     
     public render(... args: any[]): string {

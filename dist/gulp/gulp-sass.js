@@ -19,9 +19,9 @@ function gulpSass(options) {
             if (path.basename(file.path).indexOf('_') === 0) {
                 return callback();
             }
-            var content = compiler_1.PluginCompiler.sass(String(file.contents), file.path, file.extname.substr(1), options);
+            var content = compiler_1.PluginCompiler.sass(String(file.contents), file.path, file.extname.substring(1), options);
             file.contents = Buffer.from(content);
-            file.path = gulp_tempate_1.renameExt(file.path, 'css');
+            file.path = (0, gulp_tempate_1.renameExt)(file.path, 'css');
             return callback(undefined, file);
         }
     });

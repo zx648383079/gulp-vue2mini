@@ -7,8 +7,7 @@ interface IScriptResult {
     isApp?: boolean;
 }
 export declare class ScriptParser {
-    private project;
-    constructor(project: MiniProject);
+    constructor(_: MiniProject);
     render(source: string, templateFunc?: string[]): IScriptResult;
     private parseJson;
     private parseMethodToObject;

@@ -40,6 +40,7 @@ exports.fileContent = exports.eachCompileFile = exports.consoleLog = exports.Plu
 var path = require("path");
 var ts = require("typescript");
 var fs = require("fs");
+var url_1 = require("url");
 var CompilerFile = (function () {
     function CompilerFile(src, mtime, dist, type, content) {
         if (mtime === void 0) { mtime = 0; }
@@ -116,7 +117,7 @@ var BaseProjectCompiler = (function () {
     };
     BaseProjectCompiler.prototype.logFile = function (file, tip) {
         if (tip === void 0) { tip = 'Finished'; }
-        exports.consoleLog(file instanceof CompilerFile ? file.src : file, tip, this.inputFolder);
+        (0, exports.consoleLog)(file instanceof CompilerFile ? file.src : file, tip, this.inputFolder);
     };
     return BaseProjectCompiler;
 }());
@@ -153,10 +154,18 @@ var PluginCompiler = (function () {
     PluginCompiler.sass = function (input, file, lang, options) {
         if (lang === void 0) { lang = 'scss'; }
         if (options === void 0) { options = {}; }
-        var output = PluginCompiler.sassImporter().renderSync(Object.assign({}, options, {
-            data: input,
-            file: file,
-            indentedSyntax: lang === 'sass'
+        if (!options.importers) {
+            options.importers = [{
+                    findFileUrl: function (url) {
+                        if (/^[a-z]+:/i.test(url))
+                            return null;
+                        return new URL(url, (0, url_1.pathToFileURL)(file));
+                    }
+                }];
+        }
+        var output = PluginCompiler.sassImporter().compileString(input, Object.assign({}, options, {
+            url: new URL(file),
+            syntax: lang === 'sass' ? 'indented' : 'scss'
         }));
         return output.css.toString();
     };
@@ -177,20 +186,7 @@ var PluginCompiler = (function () {
         });
     };
     PluginCompiler.sassImporter = function () {
-        var sassImplPkg = 'sass';
-        try {
-            require.resolve('sass');
-        }
-        catch (error) {
-            try {
-                require.resolve('node-sass');
-                sassImplPkg = 'node-sass';
-            }
-            catch (ignoreError) {
-                sassImplPkg = 'sass';
-            }
-        }
-        return require(sassImplPkg);
+        return require('sass');
     };
     PluginCompiler.lessImporter = function () {
         return require('less');

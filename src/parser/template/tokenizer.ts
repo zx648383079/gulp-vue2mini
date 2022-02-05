@@ -129,12 +129,12 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
         if (line.charAt(0) !== '@') {
             return;
         }
-        let content = line.substr(1);
+        let content = line.substring(1);
         let comment = '';
         const i = content.indexOf(' ');
         if (i > 0) {
-            comment = content.substr(i).trim();
-            content = content.substr(0, i);
+            comment = content.substring(i).trim();
+            content = content.substring(0, i);
         }
         if (content.length < 1) {
             return;
@@ -149,10 +149,10 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
             type = 'content';
         } else if (content.charAt(0) === '~' && line.indexOf('@@') > 2) {
             type = 'random';
-            content = line.substr(2);
+            content = line.substring(2);
         } else if (content.charAt(0) === '=') {
             type = 'echo';
-            content = content.substr(1);
+            content = content.substring(1);
         } else if (content.indexOf('=') > 0) {
             type = 'set';
         }

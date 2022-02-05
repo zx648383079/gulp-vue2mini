@@ -46,7 +46,7 @@ exports.renameExt = renameExt;
 function replacePath(file, search, value) {
     var regex = new RegExp('[\\\\/]' + search + '$');
     if (regex.test(file)) {
-        return file.substr(0, file.length - search.length) + value;
+        return file.substring(0, file.length - search.length) + value;
     }
     var split = '/';
     if (file.indexOf('\\') > 0) {
@@ -72,14 +72,14 @@ function template(tag, srcFolder, distFolder, tplExt) {
                 return callback(undefined, file);
             }
             if (tag === 'presass') {
-                var str = css_1.preImport(String(file.contents));
+                var str = (0, css_1.preImport)(String(file.contents));
                 file.contents = Buffer.from(str);
                 file.path = replacePath(file.path, distFolder, srcFolder);
                 return callback(undefined, file);
             }
             if (tag === 'endsass') {
-                var str = css_1.endImport(String(file.contents));
-                str = css_1.replaceTTF(str, replacePath(file.base, distFolder, srcFolder));
+                var str = (0, css_1.endImport)(String(file.contents));
+                str = (0, css_1.replaceTTF)(str, replacePath(file.base, distFolder, srcFolder));
                 file.contents = Buffer.from(str);
                 file.path = renameExt(replacePath(file.path, srcFolder, distFolder), 'wxss');
                 return callback(undefined, file);

@@ -171,9 +171,22 @@ export function regexReplace(content: string, pattern: RegExp, cb: (match: RegEx
     const block: string[] = [];
     for (let i = matches.length - 1; i >= 0; i--) {
         match = matches[i];
-        block.push(content.substr(match.index + match[0].length));
+        block.push(content.substring(match.index + match[0].length));
         block.push(cb(match));
-        content = content.substr(0, match.index);
+        content = content.substring(0, match.index);
     }
     return content + block.reverse().join('');
+}
+
+/**
+ * 获取拓展名
+ * @param fileName 
+ * @returns 无.
+ */
+export function getExtensionName(fileName: string): string {
+    const i = fileName.lastIndexOf('.');
+    if (i < 0) {
+        return '';
+    }
+    return fileName.substring(i + 1);
 }

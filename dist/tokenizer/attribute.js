@@ -98,7 +98,7 @@ var Attribute = (function () {
             if (Array.isArray(value)) {
                 value = value.join(' ');
             }
-            data.push(key + "=\"" + value + "\"");
+            data.push("".concat(key, "=\"").concat(value, "\""));
         });
         return data.join(' ');
     };

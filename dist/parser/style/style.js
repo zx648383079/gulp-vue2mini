@@ -31,9 +31,9 @@ var StyleProject = (function (_super) {
     };
     StyleProject.prototype.compileFile = function (src) {
         var _this = this;
-        compiler_2.eachCompileFile(this.readyFile(src), function (file) {
+        (0, compiler_2.eachCompileFile)(this.readyFile(src), function (file) {
             if (file.type === 'css') {
-                fs.writeFileSync(file.dist, _this.compiler.render(compiler_2.fileContent(file)));
+                fs.writeFileSync(file.dist, _this.compiler.render((0, compiler_2.fileContent)(file)));
                 _this.logFile(src);
             }
         });

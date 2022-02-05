@@ -39,7 +39,7 @@ var TemplateTokenizer = (function () {
         var code;
         while (reader.moveNext()) {
             code = reader.current;
-            if (util_1.isEmptyCode(code)) {
+            if ((0, util_1.isEmptyCode)(code)) {
                 continue;
             }
             if (code !== '<') {
@@ -254,7 +254,7 @@ var TemplateTokenizer = (function () {
     TemplateTokenizer.prototype.moveEndTag = function (reader, tag) {
         var po = -1;
         reader.each(function (code, i) {
-            if (util_1.isEmptyCode(code)) {
+            if ((0, util_1.isEmptyCode)(code)) {
                 return;
             }
             if (code === '<') {

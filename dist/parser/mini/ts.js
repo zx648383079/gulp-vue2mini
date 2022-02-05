@@ -4,8 +4,7 @@ exports.ScriptParser = void 0;
 var util_1 = require("../../util");
 var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
 var ScriptParser = (function () {
-    function ScriptParser(project) {
-        this.project = project;
+    function ScriptParser(_) {
     }
     ScriptParser.prototype.render = function (source, templateFunc) {
         var content = source.replace(/import.+?from\s+.+?\.vue["'];/, '')
@@ -24,7 +23,7 @@ var ScriptParser = (function () {
             isApp: match[4] === 'WxApp',
             isComponent: match[4] === 'WxComponent',
             isPage: match[4] === 'WxPage',
-            script: !reg.test(content) ? content + util_1.LINE_SPLITE + match[4].substr(2) + '(new ' + match[3] + '());' : content,
+            script: !reg.test(content) ? content + util_1.LINE_SPLITE + match[4].substring(2) + '(new ' + match[3] + '());' : content,
         };
         if (res.isApp || res.isPage || res.isComponent) {
             res.json = this.parseJson(source);
@@ -50,7 +49,7 @@ var ScriptParser = (function () {
             }
             return;
         };
-        var lines = util_1.splitLine(content);
+        var lines = (0, util_1.splitLine)(content);
         var num = 0;
         var inMethod = 0;
         var method;
@@ -85,7 +84,7 @@ var ScriptParser = (function () {
                 lines[i] = '';
                 if (leftNum > 0) {
                     if (num === 0) {
-                        data[method + ''].items.push(util_1.joinLine(block));
+                        data[method + ''].items.push((0, util_1.joinLine)(block));
                         inMethod = 0;
                         continue;
                     }
@@ -97,7 +96,7 @@ var ScriptParser = (function () {
             block.push(line);
             lines[i] = '';
             if (num === 0) {
-                data[method + ''].items.push(util_1.joinLine(block));
+                data[method + ''].items.push((0, util_1.joinLine)(block));
                 inMethod = 0;
                 continue;
             }
@@ -112,7 +111,7 @@ var ScriptParser = (function () {
                 delete data[key];
             }
         }
-        content = util_1.joinLine(lines);
+        content = (0, util_1.joinLine)(lines);
         for (var key in data) {
             if (!data.hasOwnProperty(key)) {
                 continue;
@@ -145,7 +144,7 @@ var ScriptParser = (function () {
             }
             tplFuns = lines;
         }
-        return util_1.joinLine([content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]));
+        return (0, util_1.joinLine)([content.substring(0, pos + 1)].concat(tplFuns, [content.substring(pos + 2)]));
     };
     return ScriptParser;
 }());

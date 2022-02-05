@@ -60,7 +60,7 @@ var TemplateParser = (function () {
                     lines.push(renderPage(next));
                 }
             });
-            return util_1.joinLine(lines);
+            return (0, util_1.joinLine)(lines);
         };
         var content = renderPage(page);
         if (layout) {
@@ -141,7 +141,7 @@ var TemplateParser = (function () {
                 lines.push(item.text);
             }
         });
-        var style = this.project.style.render(new compiler_1.CompilerFile(file, time, '', styleLang, util_1.joinLine(lines)));
+        var style = this.project.style.render(new compiler_1.CompilerFile(file, time, '', styleLang, (0, util_1.joinLine)(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = compiler_1.PluginCompiler.sass(style, file, styleLang, {
                 importer: this.project.style.importer,
@@ -153,7 +153,7 @@ var TemplateParser = (function () {
                 lines.push(item.text);
             }
         });
-        var script = this.project.script.render(util_1.joinLine(lines));
+        var script = this.project.script.render((0, util_1.joinLine)(lines));
         if (script.length > 0 && scriptLang === 'ts') {
             script = compiler_1.PluginCompiler.ts(script, file);
         }

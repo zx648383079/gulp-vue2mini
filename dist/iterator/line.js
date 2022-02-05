@@ -5,7 +5,7 @@ var util_1 = require("../util/util");
 var LineIterator = (function () {
     function LineIterator(content) {
         this.index = -1;
-        this.lines = content instanceof Array ? content : util_1.splitLine(content);
+        this.lines = content instanceof Array ? content : (0, util_1.splitLine)(content);
     }
     Object.defineProperty(LineIterator.prototype, "length", {
         get: function () {

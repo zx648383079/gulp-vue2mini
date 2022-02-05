@@ -1,10 +1,11 @@
 import { TemplateProject } from './project';
 import * as path from 'path';
-import { CompilerFile, IThemeStyleOption } from '../../compiler';
+import { CompilerFile } from '../../compiler';
 import { StyleTokenizer } from '../../tokenizer';
 import { ThemeStyleCompiler } from '../../compiler';
-import { regexReplace } from '../../util';
-import { ImporterReturnType } from 'sass';
+import { getExtensionName, regexReplace } from '../../util';
+import { Importer } from 'sass';
+import { IThemeObject } from './tokenizer';
 
 
 
@@ -13,7 +14,7 @@ export class StyleParser {
         private project: TemplateProject
     ) {}
 
-    private themeItems: IThemeStyleOption = {};
+    private themeItems: IThemeObject = {};
     private tokenizer = new StyleTokenizer();
     private compiler = new ThemeStyleCompiler();
 
@@ -46,7 +47,7 @@ export class StyleParser {
         return this.renderImport(content, file);
     }
 
-    public pushTheme(items: IThemeStyleOption) {
+    public pushTheme(items: IThemeObject) {
         for (const key in items) {
             if (Object.prototype.hasOwnProperty.call(items, key)) {
                 this.themeItems[key] = Object.assign(Object.prototype.hasOwnProperty.call(this.themeItems, key) ? this.themeItems[key] : {}, items[key]);
@@ -86,9 +87,16 @@ export class StyleParser {
         return /:.+@[a-z]+/.test(content);
     }
 
-    public importer(url: string, prev: string, done: (data: ImporterReturnType) => void) {
-        done({
-            contents: this.render(new CompilerFile(url, 0)),
-        });
-    }
+    public importer: Importer<'sync'> = {
+        canonicalize: (url: string, _: {fromImport: boolean}) => {
+            return new URL(url);
+        },
+        load: url => {
+            const fileName = url.toString();
+            return {
+                contents: this.render(new CompilerFile(fileName, 0)),
+                syntax: getExtensionName(fileName) === 'sass' ? 'indented' : 'scss'
+            };
+        }
+    };
 }

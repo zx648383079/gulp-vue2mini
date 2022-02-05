@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as ts from 'typescript';
 import * as sass from 'sass';
 import * as fs from 'fs';
+import { pathToFileURL } from 'url';
 
 export class CompilerFile {
     constructor(
@@ -124,12 +125,20 @@ export class PluginCompiler {
         return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
     }
 
-    public static sass(input: string, file: string, lang = 'scss', options: sass.Options = {}): string {
-        const output = PluginCompiler.sassImporter().renderSync(Object.assign({}, options, {
-            data: input,
-            file,
-            // includePaths: [],
-            indentedSyntax: lang === 'sass'
+    public static sass(input: string, file: string, lang = 'scss', options: sass.StringOptions<'sync'> = {}): string {
+        if (!options.importers) {
+            options.importers = [{
+                findFileUrl(url: string) {
+                    // Load paths only support relative URLs.
+                    if (/^[a-z]+:/i.test(url)) return null;
+                    return new URL(url, pathToFileURL(file));
+                }
+            }];
+        }
+        const output: sass.CompileResult = PluginCompiler.sassImporter().compileString(input, Object.assign({}, options, {
+            // loadPaths: [],
+            url: new URL(file),
+            syntax: lang === 'sass' ? 'indented' : 'scss'
         }));
         return output.css.toString();
     }
@@ -140,19 +149,8 @@ export class PluginCompiler {
         return output.css;
     }
 
-    private static sassImporter(): any {
-        let sassImplPkg = 'sass';
-        try {
-            require.resolve('sass');
-        } catch (error) {
-            try {
-                require.resolve('node-sass');
-                sassImplPkg = 'node-sass';
-            } catch (ignoreError) {
-                sassImplPkg = 'sass';
-            }
-        }
-        return require(sassImplPkg);
+    private static sassImporter() {
+        return require('sass');
     }
 
     private static lessImporter(): LessStatic {

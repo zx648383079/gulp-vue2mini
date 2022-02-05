@@ -14,7 +14,7 @@ interface IScriptResult {
 export class ScriptParser {
 
     constructor(
-        private project: MiniProject
+        _: MiniProject
     ) {}
 
     /**
@@ -40,7 +40,7 @@ export class ScriptParser {
             isApp: match[4] === 'WxApp',
             isComponent: match[4] === 'WxComponent',
             isPage: match[4] === 'WxPage',
-            script: !reg.test(content) ? content + LINE_SPLITE + match[4].substr(2) + '(new ' + match[3] + '());' : content,
+            script: !reg.test(content) ? content + LINE_SPLITE + match[4].substring(2) + '(new ' + match[3] + '());' : content,
         };
         if (res.isApp || res.isPage || res.isComponent) {
             res.json = this.parseJson(source)
@@ -187,6 +187,6 @@ export class ScriptParser {
             }
             tplFuns = lines;
         }
-        return joinLine([content.substr(0, pos + 1)].concat(tplFuns, [content.substr(pos + 2)]));
+        return joinLine([content.substring(0, pos + 1)].concat(tplFuns, [content.substring(pos + 2)]));
     }
 }

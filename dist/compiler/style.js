@@ -32,7 +32,7 @@ var StyleCompiler = (function () {
                 if (text.indexOf('\n') < 0) {
                     return spaces + '// ' + item.content + util_1.LINE_SPLITE;
                 }
-                return spaces + '/* ' + util_1.splitLine(text).map(function (i) { return i.trim(); }).join(util_1.LINE_SPLITE + spaces) + ' */' + util_1.LINE_SPLITE;
+                return spaces + '/* ' + (0, util_1.splitLine)(text).map(function (i) { return i.trim(); }).join(util_1.LINE_SPLITE + spaces) + ' */' + util_1.LINE_SPLITE;
             }
             if (Object.prototype.hasOwnProperty.call(tokenizer_1.StyleTokenCoverter, item.type)) {
                 return endTextJoin(spaces, tokenizer_1.StyleTokenCoverter[item.type], ' ', item.content) + util_1.LINE_SPLITE;

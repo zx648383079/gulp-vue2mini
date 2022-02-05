@@ -47,7 +47,7 @@ function formatArgv(argv, defaultParams) {
         if (names[names.length - 1] === '-') {
             return;
         }
-        prev = names.indexOf('--') === 0 ? [names.substr(2)] : names.substr(1).split('');
+        prev = names.indexOf('--') === 0 ? [names.substring(2)] : names.substring(1).split('');
         if (vals !== undefined) {
             parse(vals);
         }

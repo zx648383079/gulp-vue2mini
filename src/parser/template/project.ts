@@ -8,6 +8,7 @@ import { StyleParser } from './style';
 import { TemplateParser } from './template';
 import { ScriptParser } from './script';
 import { CacheManger, eachFile, LinkManager } from '../../util';
+import { StringOptions } from 'sass';
 
 
 
@@ -99,7 +100,7 @@ export class TemplateProject extends BaseProjectCompiler implements IProjectComp
             }
             if (file.type === 'scss' || file.type === 'sass') {
                 let content = this.style.render(file);
-                content = PluginCompiler.sass(content, file.src, file.type, {
+                content = PluginCompiler.sass(content, file.src, file.type, <StringOptions<'sync'>>{
                     importer: this.style.importer,
                 });
                 if (content && content.length > 0 && this.compilerMin) {
@@ -150,7 +151,7 @@ export class TemplateProject extends BaseProjectCompiler implements IProjectComp
 
     public ready() {
         eachFile(this.inputFolder, file => {
-            const ext = file.extname.substr(1);
+            const ext = file.extname.substring(1);
             if (ext === 'html') {
                 this.style.extractTheme(this.template.extractStyle(this.fileContent(file)))
                 return;

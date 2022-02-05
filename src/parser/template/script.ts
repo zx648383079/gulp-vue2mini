@@ -2,7 +2,7 @@ import { TemplateProject } from './project';
 
 export class ScriptParser {
     constructor(
-        private project: TemplateProject
+        _: TemplateProject
     ) {}
 
     public render(content: string): string {

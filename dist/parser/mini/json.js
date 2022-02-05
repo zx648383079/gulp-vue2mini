@@ -1,14 +1,17 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from) {
-    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-        to[j] = from[i];
-    return to;
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JsonParser = void 0;
 var JsonParser = (function () {
-    function JsonParser(project) {
-        this.project = project;
+    function JsonParser(_) {
     }
     JsonParser.prototype.render = function () {
         var args = [];
@@ -43,7 +46,7 @@ var JsonParser = (function () {
         if (items.length < 1) {
             return {};
         }
-        return Object.assign.apply(Object, __spreadArray([{}], items));
+        return Object.assign.apply(Object, __spreadArray([{}], items, false));
     };
     return JsonParser;
 }());

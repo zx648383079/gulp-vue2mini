@@ -1,4 +1,13 @@
 "use strict";
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SassCompiler = void 0;
 var tokenizer_1 = require("../tokenizer");
@@ -85,7 +94,7 @@ var SassCompiler = (function () {
                 appendTag();
                 var i = pos;
                 while (i < name.length) {
-                    if (!util_1.isEmptyCode(name.charAt(i))) {
+                    if (!(0, util_1.isEmptyCode)(name.charAt(i))) {
                         break;
                     }
                     i++;
@@ -96,7 +105,7 @@ var SassCompiler = (function () {
             }
             if (code === '.') {
                 appendTag();
-                tag = (args.length > 0 && !util_1.isEmptyCode(name.charAt(pos - 2)) ? '&' : '') + code;
+                tag = (args.length > 0 && !(0, util_1.isEmptyCode)(name.charAt(pos - 2)) ? '&' : '') + code;
                 continue;
             }
             if (code === ':') {
@@ -111,7 +120,7 @@ var SassCompiler = (function () {
                 pos = i;
                 continue;
             }
-            if (util_1.isEmptyCode(code)) {
+            if ((0, util_1.isEmptyCode)(code)) {
                 appendTag();
                 tag = '';
                 continue;
@@ -124,9 +133,13 @@ var SassCompiler = (function () {
     SassCompiler.prototype.splitBlock = function (items) {
         var _this = this;
         var data = [];
-        var resetName = function (names) {
-            return names.map(function (i) {
-                return i.indexOf('&') === 0 ? i.substring(1) : (' ' + i);
+        var resetName = function (names, hasPrefix) {
+            if (hasPrefix === void 0) { hasPrefix = false; }
+            return names.map(function (val, j) {
+                if (j === 0) {
+                    return val.indexOf('&') === 0 && !hasPrefix ? val.substring(1) : val;
+                }
+                return val.indexOf('&') === 0 ? val.substring(1) : (' ' + val);
             }).join('');
         };
         var findTreeName = function (names) {
@@ -135,41 +148,75 @@ var SassCompiler = (function () {
                     return [i];
                 });
             }
+            var reverseArgs = [];
             var args = [];
             var cache = [];
-            var getName = function (i, j) {
+            var getCacheName = function (i, j) {
                 if (cache.length <= i) {
                     cache.push(_this.splitRuleName(names[i]));
                 }
-                var pos = cache[i].length - 1 - j;
-                if (pos < 0) {
+                var pos = j < 0 ? cache[i].length + j : j;
+                if (pos >= cache[i].length) {
                     return '';
                 }
                 return cache[i][pos];
             };
+            var getReverseName = function (i, j) {
+                return getCacheName(i, -1 - j);
+            };
             var index = 0;
-            iloop: while (true) {
-                var name_1 = getName(0, index);
+            var isEnd = false;
+            while (true) {
+                var name_1 = getCacheName(0, index);
                 if (name_1 === '') {
                     break;
                 }
+                isEnd = false;
                 for (var i = 1; i < names.length; i++) {
-                    if (name_1 !== getName(i, index)) {
-                        break iloop;
+                    if (name_1 !== getCacheName(i, index)) {
+                        isEnd = true;
+                        break;
                     }
+                }
+                if (isEnd) {
+                    break;
                 }
                 args.push([name_1]);
                 index++;
             }
-            index = args.length;
-            if (index < 1) {
+            index = 0;
+            while (true) {
+                var name_2 = getReverseName(0, index);
+                if (name_2 === '' || cache[0].length - index - 1 <= args.length) {
+                    break;
+                }
+                isEnd = false;
+                for (var i = 1; i < names.length; i++) {
+                    if (name_2 !== getReverseName(i, index)) {
+                        isEnd = true;
+                        break;
+                    }
+                    if (cache[i].length - index - 1 <= args.length) {
+                        isEnd = true;
+                        break;
+                    }
+                }
+                if (isEnd) {
+                    break;
+                }
+                reverseArgs.push([name_2]);
+                index++;
+            }
+            if (reverseArgs.length < 1 && args.length < 1) {
                 return [names];
             }
-            args.push(names.map(function (i, j) {
+            reverseArgs.push(names.map(function (i, j) {
                 var c = cache.length > j ? cache[j] : _this.splitRuleName(i);
-                return resetName(c.splice(0, c.length - index));
+                var start = args.length;
+                var end = c.length - reverseArgs.length;
+                return resetName(c.splice(start, end - start), start > 0);
             }));
-            return args.reverse();
+            return __spreadArray(__spreadArray([], args, true), reverseArgs.reverse(), true);
         };
         var arrEq = function (a, b) {
             if (a.length !== b.length) {

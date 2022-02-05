@@ -30,7 +30,7 @@ function replaceTTF(content, folder) {
         var ttf = ttfMatch[1];
         ttf = path.resolve(folder, ttf);
         ttf = ttfToBase64(ttf);
-        content = content.replace(macth, "@font-face {\n            " + name_1 + ";\n            src: " + ttf + ";\n        }");
+        content = content.replace(macth, "@font-face {\n            ".concat(name_1, ";\n            src: ").concat(ttf, ";\n        }"));
     }
     return content;
 }
@@ -63,10 +63,9 @@ function endImport(content) {
 }
 exports.endImport = endImport;
 var StyleParser = (function () {
-    function StyleParser(project) {
-        this.project = project;
+    function StyleParser(_) {
     }
-    StyleParser.prototype.render = function (content, file) {
+    StyleParser.prototype.render = function (content, _) {
         return content;
     };
     return StyleParser;

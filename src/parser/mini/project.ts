@@ -66,7 +66,7 @@ export class MiniProject extends BaseProjectCompiler implements IProjectCompiler
             const json = fs.readFileSync(jsonPath).toString();
             data = json.trim().length > 0 ? JSON.parse(json) : {};
         }
-        const res = this.mix.render(content, ext!.substr(1).toLowerCase(), src.src);
+        const res = this.mix.render(content, ext!.substring(1).toLowerCase(), src.src);
         const files: CompilerFile[] = [];
         files.push(CompilerFile.from(src, dist!.replace(ext!, '.json'), 'json', this.json.render(res.json, data)));
         if (res.template) {

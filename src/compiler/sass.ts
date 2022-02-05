@@ -134,53 +134,94 @@ export class SassCompiler implements Compiler<StyleToken[]|string, string> {
 
     public splitBlock(items: StyleToken[]): StyleToken[] {
         const data: StyleToken[] = [];
-        const resetName = (names: string[]): string => {
-            return names.map(i => {
-                return i.indexOf('&') === 0 ? i.substring(1) : (' ' + i);
+        // 合并
+        const resetName = (names: string[], hasPrefix = false): string => {
+            return names.map((val, j) => {
+                if (j === 0) {
+                    return val.indexOf('&') === 0 && !hasPrefix ? val.substring(1) : val;
+                }
+                return val.indexOf('&') === 0 ? val.substring(1) : (' ' + val);
             }).join('');
         };
+        // 转成 [[第一级], [第二级的格式]...]
         const findTreeName = (names: string[]): string[][] => {
             if (names.length < 2) {
                 return this.splitRuleName(names[0]).map(i => {
                     return [i];
                 });
             }
+            const reverseArgs: string[][] = [];
             const args: string[][] = [];
             const cache: string[][] = [];
-            const getName = (i: number, j: number): string => {
+            const getCacheName = (i: number, j: number): string => {
                 if (cache.length <= i) {
                     cache.push(this.splitRuleName(names[i]));
                 }
-                const pos = cache[i].length - 1 - j;
-                if (pos < 0) {
+                const pos = j < 0 ? cache[i].length + j : j;
+                if (pos >= cache[i].length) {
                     return '';
                 }
                 return cache[i][pos];
             };
+            const getReverseName = (i: number, j: number): string => {
+                return getCacheName(i, - 1 - j);
+            };
             let index = 0;
-            iloop:
+            let isEnd = false;
+            // 正序查相同
             while (true) {
-                const name = getName(0, index);
+                const name = getCacheName(0, index);
                 if (name === '') {
                     break;
                 }
+                isEnd = false;
                 for (let i = 1; i < names.length; i++) {
-                    if (name !== getName(i, index)) {
-                        break iloop;
+                    if (name !== getCacheName(i, index)) {
+                        isEnd = true;
+                        break;
                     }
+                }
+                if (isEnd) {
+                    break;
                 }
                 args.push([name]);
                 index ++;
             }
-            index = args.length;
-            if (index < 1) {
+            // 倒序查相同
+            index = 0;
+            while (true) {
+                const name = getReverseName(0, index);
+                // cache[i].length - index - 1 <= args.length 倒序查找的值不能小于正序查找的位置
+                if (name === '' || cache[0].length - index - 1 <= args.length) {
+                    break;
+                }
+                isEnd = false;
+                for (let i = 1; i < names.length; i++) {
+                    if (name !== getReverseName(i, index)) {
+                        isEnd = true;
+                        break;
+                    }
+                    if (cache[i].length - index - 1 <= args.length) {
+                        isEnd = true;
+                        break;
+                    }
+                }
+                if (isEnd) {
+                    break;
+                }
+                reverseArgs.push([name]);
+                index ++;
+            }
+            if (reverseArgs.length < 1 && args.length < 1) {
                 return [names];
             }
-            args.push(names.map((i, j) => {
+            reverseArgs.push(names.map((i, j) => {
                 const c = cache.length > j ? cache[j] : this.splitRuleName(i);
-                return resetName(c.splice(0, c.length - index));
+                const start = args.length;
+                const end = c.length - reverseArgs.length;
+                return resetName(c.splice(start, end - start), start > 0);
             }));
-            return args.reverse();
+            return [...args, ...reverseArgs.reverse()];
         };
         const arrEq = (a: string[], b: string[]): boolean => {
             if (a.length !== b.length) {

@@ -154,7 +154,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
     public separateThemeStyle(items: StyleToken[]): any[] {
         const themeOption: any = {};
         const appendTheme = (item: StyleToken) => {
-            const name = (item.name as string[])[0].substr(7).trim();
+            const name = (item.name as string[])[0].substring(7).trim();
             if (!themeOption[name]) {
                 themeOption[name] = {};
             }

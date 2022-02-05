@@ -14,20 +14,20 @@ function htmlBeautify(indent) {
         }
         var spaces = indent.length > 0 ? util_1.LINE_SPLITE + indent.repeat(level - 1) : indent;
         if (item.node === 'comment') {
-            return spaces + "<!-- " + item.text + " -->";
+            return "".concat(spaces, "<!-- ").concat(item.text, " -->");
         }
         var attr = item.attributeString();
         if (attr.length > 0) {
             attr = ' ' + attr;
         }
         if (item.tag === '!DOCTYPE') {
-            return "<" + item.tag + attr + ">";
+            return "<".concat(item.tag).concat(attr, ">");
         }
         if (tokenizer_1.SINGLE_TAGS.indexOf(item.tag) >= 0) {
-            return spaces + "<" + item.tag + attr + "/>";
+            return "".concat(spaces, "<").concat(item.tag).concat(attr, "/>");
         }
         var endSpaces = item.children && !item.isTextChild() ? spaces : '';
-        return spaces + "<" + item.tag + attr + ">" + content + endSpaces + "</" + item.tag + ">";
+        return "".concat(spaces, "<").concat(item.tag).concat(attr, ">").concat(content).concat(endSpaces, "</").concat(item.tag, ">");
     };
 }
 exports.htmlBeautify = htmlBeautify;

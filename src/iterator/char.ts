@@ -69,7 +69,7 @@ export class CharIterator implements Iterator<string> {
                 }
                 continue;
             }
-            if (this.content.substr(this.position + 1, item.length) === item) {
+            if (this.content.substring(this.position + 1, this.position + 1 + item.length) === item) {
                 return true;
             }
         }
@@ -84,7 +84,7 @@ export class CharIterator implements Iterator<string> {
             return undefined;
         }
         const len = length < 0 ? -length : length;
-        return this.content.substr(pos, len);
+        return this.content.substring(pos, pos + len);
     }
 
     /**
@@ -94,7 +94,7 @@ export class CharIterator implements Iterator<string> {
      * @returns 
      */
     readSeek(pos: number, length = 1) {
-        return this.content.substr(pos, length);
+        return this.content.substring(pos, pos + length);
     }
     /**
      * 读取数据

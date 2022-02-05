@@ -2,8 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ScriptParser = void 0;
 var ScriptParser = (function () {
-    function ScriptParser(project) {
-        this.project = project;
+    function ScriptParser(_) {
     }
     ScriptParser.prototype.render = function (content) {
         return content;

@@ -1,6 +1,7 @@
 import { TemplateProject } from './project';
-import { CompilerFile, IThemeStyleOption } from '../../compiler';
-import { ImporterReturnType } from 'sass';
+import { CompilerFile } from '../../compiler';
+import { Importer } from 'sass';
+import { IThemeObject } from './tokenizer';
 export declare class StyleParser {
     private project;
     constructor(project: TemplateProject);
@@ -8,12 +9,12 @@ export declare class StyleParser {
     private tokenizer;
     private compiler;
     get length(): number;
-    get(theme: string): any;
+    get(theme: string): import("./tokenizer").IThemeOption | undefined;
     render(file: CompilerFile): string;
-    pushTheme(items: IThemeStyleOption): void;
+    pushTheme(items: IThemeObject): void;
     extractTheme(content: string): void;
     private renderImport;
     private hasTheme;
     private needTheme;
-    importer(url: string, prev: string, done: (data: ImporterReturnType) => void): void;
+    importer: Importer<'sync'>;
 }

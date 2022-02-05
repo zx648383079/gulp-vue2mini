@@ -161,7 +161,7 @@ export class StyleTokenizer implements Tokenizer<string|CharIterator, StyleToken
                 if (line.startsWith(search)) {
                     return {
                         type: key as any,
-                        content: line.substr(search.length).trim(),
+                        content: line.substring(search.length).trim(),
                     };
                 }
             }

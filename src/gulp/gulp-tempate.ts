@@ -64,7 +64,7 @@ export function renameExt(path: string, ext: string): string {
 export function replacePath(file: string, search: string, value: string): string {
     const regex = new RegExp('[\\\\/]' + search + '$');
     if (regex.test(file)) {
-        return file.substr(0, file.length - search.length) + value;
+        return file.substring(0, file.length - search.length) + value;
     }
     let split = '/';
     if (file.indexOf('\\') > 0) {

@@ -87,7 +87,7 @@ var CharIterator = (function () {
                 }
                 continue;
             }
-            if (this.content.substr(this.position + 1, item.length) === item) {
+            if (this.content.substring(this.position + 1, this.position + 1 + item.length) === item) {
                 return true;
             }
         }
@@ -104,11 +104,11 @@ var CharIterator = (function () {
             return undefined;
         }
         var len = length < 0 ? -length : length;
-        return this.content.substr(pos, len);
+        return this.content.substring(pos, pos + len);
     };
     CharIterator.prototype.readSeek = function (pos, length) {
         if (length === void 0) { length = 1; }
-        return this.content.substr(pos, length);
+        return this.content.substring(pos, pos + length);
     };
     CharIterator.prototype.readRange = function (begin, end) {
         var _a;

@@ -8,10 +8,23 @@ var compiler_2 = require("../../compiler");
 var util_1 = require("../../util");
 var StyleParser = (function () {
     function StyleParser(project) {
+        var _this = this;
         this.project = project;
         this.themeItems = {};
         this.tokenizer = new tokenizer_1.StyleTokenizer();
         this.compiler = new compiler_2.ThemeStyleCompiler();
+        this.importer = {
+            canonicalize: function (url, _) {
+                return new URL(url);
+            },
+            load: function (url) {
+                var fileName = url.toString();
+                return {
+                    contents: _this.render(new compiler_1.CompilerFile(fileName, 0)),
+                    syntax: (0, util_1.getExtensionName)(fileName) === 'sass' ? 'indented' : 'scss'
+                };
+            }
+        };
     }
     Object.defineProperty(StyleParser.prototype, "length", {
         get: function () {
@@ -68,7 +81,7 @@ var StyleParser = (function () {
         }
         var ext = file.extname;
         var folder = file.dirname;
-        return util_1.regexReplace(content, /@(import|use)\s+["'](.+?)["'];*/g, function (match) {
+        return (0, util_1.regexReplace)(content, /@(import|use)\s+["'](.+?)["'];*/g, function (match) {
             var importFile = path.resolve(folder, match[2].indexOf('.') > 0 ? match[2] : ('_' + match[2] + ext));
             _this.project.link.push(importFile, file.src);
             return _this.render(new compiler_1.CompilerFile(importFile, file.mtime));
@@ -79,11 +92,6 @@ var StyleParser = (function () {
     };
     StyleParser.prototype.needTheme = function (content) {
         return /:.+@[a-z]+/.test(content);
-    };
-    StyleParser.prototype.importer = function (url, prev, done) {
-        done({
-            contents: this.render(new compiler_1.CompilerFile(url, 0)),
-        });
     };
     return StyleParser;
 }());

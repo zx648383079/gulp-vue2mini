@@ -10,10 +10,14 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
-var __spreadArray = (this && this.__spreadArray) || function (to, from) {
-    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-        to[j] = from[i];
-    return to;
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeStyleCompiler = void 0;
@@ -58,7 +62,7 @@ var ThemeStyleCompiler = (function () {
                             {
                                 type: tokenizer_1.StyleTokenType.STYLE_GROUP,
                                 name: [cls],
-                                children: __spreadArray([], item.children)
+                                children: __spreadArray([], item.children, true)
                             }
                         ] }));
                     continue;
@@ -84,7 +88,7 @@ var ThemeStyleCompiler = (function () {
     ThemeStyleCompiler.prototype.themeStyle = function (themeOption, item, theme) {
         var _this = this;
         if (theme === void 0) { theme = 'default'; }
-        return util_1.regexReplace(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, function (match) {
+        return (0, util_1.regexReplace)(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, function (match) {
             return match[1] + _this.themeStyleValue(themeOption, match[2], theme);
         });
     };
@@ -124,7 +128,7 @@ var ThemeStyleCompiler = (function () {
                 children.push(item);
                 continue;
             }
-            children.push(__assign(__assign({}, item), { name: __spreadArray([], item.name), children: this.cloneStyle(themeOption, item.children, theme) }));
+            children.push(__assign(__assign({}, item), { name: __spreadArray([], item.name, true), children: this.cloneStyle(themeOption, item.children, theme) }));
         }
         return children;
     };
@@ -140,7 +144,7 @@ var ThemeStyleCompiler = (function () {
                 return themeOption[theme][name];
             }
         }
-        throw "[" + theme + "]." + name + " is error value";
+        throw "[".concat(theme, "].").concat(name, " is error value");
     };
     ThemeStyleCompiler.prototype.isThemeStyle = function (item) {
         if (item.type !== tokenizer_1.StyleTokenType.STYLE) {
@@ -167,7 +171,7 @@ var ThemeStyleCompiler = (function () {
         var themeOption = {};
         var appendTheme = function (item) {
             var _a;
-            var name = item.name[0].substr(7).trim();
+            var name = item.name[0].substring(7).trim();
             if (!themeOption[name]) {
                 themeOption[name] = {};
             }

@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { StringOptions } from 'sass';
 import { CompilerFile, PluginCompiler, TemplateCompiler } from '../../compiler';
 import { ElementToken, TemplateTokenizer } from '../../tokenizer';
 import { joinLine } from '../../util';
@@ -162,7 +163,7 @@ export class TemplateParser {
         });
         let style = this.project.style.render(new CompilerFile(file, time, '', styleLang, joinLine(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
-            style = PluginCompiler.sass(style, file, styleLang, {
+            style = PluginCompiler.sass(style, file, styleLang, <StringOptions<'sync'>>{
                 importer: this.project.style.importer,
             });
         }

@@ -34,7 +34,7 @@ interface ITemplateResult {
 export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResult> {
 
     constructor(
-        private project: MiniProject,
+        _: MiniProject,
         private exclude: RegExp = /^(.+[\-A-Z].+|[A-Z].+)$/,
         private disallowAttrs: string[] = [],
     ) {
@@ -274,7 +274,7 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
     private invertIf(value: string): string {
         value = value.trim();
         if (value.charAt(0) === '!') {
-            return value.substr(1);
+            return value.substring(1);
         }
         const maps = [
             ['<=', '>'],
@@ -310,12 +310,12 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
         if (value.charAt(0) === '{') {
             // 进行合并
             const clsObj: {[key: string]: string[]} = {};
-            value.substr(1, value.length - 2).split(',').forEach(item => {
+            value.substring(1, value.length - 1).split(',').forEach(item => {
                 let [key, con] = item.split(':', 2);
                 key = key.trim();
                 con = con.trim();
                 const isNot = con.charAt(0) === '!';
-                const name = isNot ? con.substr(1).trim() : con;
+                const name = isNot ? con.substring(1).trim() : con;
                 if (!Object.prototype.hasOwnProperty.call(clsObj, name)) {
                     clsObj[name] = ['', ''];
                 }
@@ -327,7 +327,7 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
                 }
             }
         } else if (value.charAt(0) === '[') {
-            value.substr(1, value.length - 2).split(',').forEach(item => {
+            value.substring(1, value.length - 1).split(',').forEach(item => {
                 block.push('\' \'');
                 block.push('(' + item + ')');
             });
@@ -548,7 +548,7 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
                 this.converterTap(value, name, properties);
                 return;
             } else if (key.charAt(0) === ':') {
-                key = key.substr(1);
+                key = key.substring(1);
                 value = '{{ ' + value + ' }}';
             }
             properties.set(key, value);
@@ -562,7 +562,7 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
             return name;
         }
         if (name.charAt(0) === '@') {
-            return 'bind:' + name.substr(1);
+            return 'bind:' + name.substring(1);
         }
         return undefined;
     }

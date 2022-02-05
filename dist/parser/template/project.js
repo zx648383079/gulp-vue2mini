@@ -114,7 +114,7 @@ var TemplateProject = (function (_super) {
             }
             fs.copyFileSync(file.src, file.dist);
         };
-        compiler_1.eachCompileFile(this.readyFile(src), function (file) {
+        (0, compiler_1.eachCompileFile)(this.readyFile(src), function (file) {
             if (src.mtime && src.mtime > 0 && file.distMtime >= src.mtime) {
                 return;
             }
@@ -128,7 +128,7 @@ var TemplateProject = (function (_super) {
             file.content = this.cache.get(file.src);
             return file.content;
         }
-        this.cache.set(file.src, compiler_1.fileContent(file), file.mtime);
+        this.cache.set(file.src, (0, compiler_1.fileContent)(file), file.mtime);
         return file.content;
     };
     TemplateProject.prototype.unlink = function (src) {
@@ -142,8 +142,8 @@ var TemplateProject = (function (_super) {
     };
     TemplateProject.prototype.ready = function () {
         var _this = this;
-        util_1.eachFile(this.inputFolder, function (file) {
-            var ext = file.extname.substr(1);
+        (0, util_1.eachFile)(this.inputFolder, function (file) {
+            var ext = file.extname.substring(1);
             if (ext === 'html') {
                 _this.style.extractTheme(_this.template.extractStyle(_this.fileContent(file)));
                 return;

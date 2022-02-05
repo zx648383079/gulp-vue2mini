@@ -66,13 +66,13 @@ var MiniProject = (function (_super) {
     MiniProject.prototype.readyMixFile = function (src, content, ext, dist) {
         var _a, _b, _c;
         if (content === void 0) {
-            _a = [compiler_1.fileContent(src), src.extname, src.dist], content = _a[0], ext = _a[1], dist = _a[2];
+            _a = [(0, compiler_1.fileContent)(src), src.extname, src.dist], content = _a[0], ext = _a[1], dist = _a[2];
         }
         if (ext === void 0) {
-            _b = [compiler_1.fileContent(src), src.extname, content], content = _b[0], ext = _b[1], dist = _b[2];
+            _b = [(0, compiler_1.fileContent)(src), src.extname, content], content = _b[0], ext = _b[1], dist = _b[2];
         }
         else if (dist === void 0) {
-            _c = [compiler_1.fileContent(src), content, ext], content = _c[0], ext = _c[1], dist = _c[2];
+            _c = [(0, compiler_1.fileContent)(src), content, ext], content = _c[0], ext = _c[1], dist = _c[2];
         }
         var data = {};
         var jsonPath = src.src.replace(ext, '.json');
@@ -80,7 +80,7 @@ var MiniProject = (function (_super) {
             var json = fs.readFileSync(jsonPath).toString();
             data = json.trim().length > 0 ? JSON.parse(json) : {};
         }
-        var res = this.mix.render(content, ext.substr(1).toLowerCase(), src.src);
+        var res = this.mix.render(content, ext.substring(1).toLowerCase(), src.src);
         var files = [];
         files.push(compiler_1.CompilerFile.from(src, dist.replace(ext, '.json'), 'json', this.json.render(res.json, data)));
         if (res.template) {
@@ -99,19 +99,19 @@ var MiniProject = (function (_super) {
         var compile = function (file) {
             _this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                fs.writeFileSync(file.dist, compiler_1.PluginCompiler.ts(compiler_1.fileContent(file), src.src));
+                fs.writeFileSync(file.dist, compiler_1.PluginCompiler.ts((0, compiler_1.fileContent)(file), src.src));
                 return;
             }
             if (file.type === 'less') {
-                compiler_1.PluginCompiler.less(compiler_1.fileContent(file), src.src).then(function (content) {
+                compiler_1.PluginCompiler.less((0, compiler_1.fileContent)(file), src.src).then(function (content) {
                     fs.writeFileSync(file.dist, content);
                 });
                 return;
             }
             if (file.type === 'sass' || file.type === 'scss') {
-                var content = compiler_1.PluginCompiler.sass(css_1.preImport(compiler_1.fileContent(file)), src.src, file.type);
-                content = css_1.endImport(content);
-                fs.writeFileSync(file.dist, css_1.replaceTTF(content, src.dirname));
+                var content = compiler_1.PluginCompiler.sass((0, css_1.preImport)((0, compiler_1.fileContent)(file)), src.src, file.type);
+                content = (0, css_1.endImport)(content);
+                fs.writeFileSync(file.dist, (0, css_1.replaceTTF)(content, src.dirname));
                 return;
             }
             if (typeof file.content !== 'undefined') {
@@ -120,7 +120,7 @@ var MiniProject = (function (_super) {
             }
             fs.copyFileSync(src.src, file.dist);
         };
-        compiler_1.eachCompileFile(this.readyFile(src), function (file) {
+        (0, compiler_1.eachCompileFile)(this.readyFile(src), function (file) {
             compile(file);
             _this.logFile(file.src);
         });

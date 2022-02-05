@@ -17,7 +17,7 @@ function gulpTs(tsConfigFileName) {
             }
             var content = compiler_1.PluginCompiler.ts(String(file.contents), file.path, tsConfigFileName, true);
             file.contents = Buffer.from(content);
-            file.path = gulp_tempate_1.renameExt(file.path, 'js');
+            file.path = (0, gulp_tempate_1.renameExt)(file.path, 'js');
             return callback(undefined, file);
         }
     });

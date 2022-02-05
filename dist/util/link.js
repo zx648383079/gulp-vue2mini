@@ -1,8 +1,12 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from) {
-    for (var i = 0, il = from.length, j = to.length; i < il; i++, j++)
-        to[j] = from[i];
-    return to;
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LinkManager = void 0;
@@ -31,7 +35,7 @@ var LinkManager = (function () {
             }
             _this.lock(file, function () {
                 _this.listeners.forEach(function (cb) {
-                    cb.apply(void 0, __spreadArray([file, mtime, key], args));
+                    cb.apply(void 0, __spreadArray([file, mtime, key], args, false));
                 });
             });
         });
@@ -86,7 +90,7 @@ var LinkManager = (function () {
         this.removeLink(file);
     };
     LinkManager.prototype.removeLink = function (file) {
-        util_1.eachObject(this.data, function (items) {
+        (0, util_1.eachObject)(this.data, function (items) {
             for (var index = items.length - 1; index >= 0; index--) {
                 if (items[index] === file) {
                     items.splice(index, 1);

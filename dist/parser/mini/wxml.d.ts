@@ -6,10 +6,9 @@ interface ITemplateResult {
     func?: string[];
 }
 export declare class WxmlCompiler implements Compiler<string | ElementToken, ITemplateResult> {
-    private project;
     private exclude;
     private disallowAttrs;
-    constructor(project: MiniProject, exclude?: RegExp, disallowAttrs?: string[]);
+    constructor(_: MiniProject, exclude?: RegExp, disallowAttrs?: string[]);
     private readonly tokenizer;
     private existFunc;
     private replaceAttrs;

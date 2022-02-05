@@ -72,10 +72,10 @@ export function endImport(content: string): string {
 export class StyleParser {
 
     constructor(
-        private project: MiniProject
+        _: MiniProject
     ) {}
     
-    public render(content: string, file: string): string {
+    public render(content: string, _: string): string {
         return content;
     }
 }

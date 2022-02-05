@@ -1,5 +1,10 @@
 # Change Log
 
+## v1.3.0
+
+1. 修复css 转scss 多规则合并问题
+2. 升级适配sass 1.49
+
 ## v1.2.0
 
 1. 增加webpack 支持

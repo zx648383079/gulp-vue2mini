@@ -10,7 +10,7 @@ var style_1 = require("./parser/style/style");
 var compiler_1 = require("./compiler");
 var util_1 = require("./util");
 process.env.INIT_CWD = process.cwd();
-var argv = argv_1.formatArgv(process.argv, {
+var argv = (0, argv_1.formatArgv)(process.argv, {
     mini: false,
     css: false,
     theme: false,
@@ -20,7 +20,7 @@ var argv = argv_1.formatArgv(process.argv, {
     input: 'src',
     output: 'dist'
 });
-var helpText = "\nUsage: vue2mini <command>\n    --mini \u7F16\u8BD1\u5C0F\u7A0B\u5E8F\n    --theme \u7F16\u8BD1\u6A21\u677F\n    --css \u8F6Ccss\u4E3Ascss\n    --help \u5E2E\u52A9\n    --input \u6E90\u7801\u6587\u4EF6\u6216\u6587\u4EF6\u5939\uFF0C\u9ED8\u8BA4\u4E3Asrc\n    --output \u7F16\u8BD1\u540E\u4FDD\u5B58\u7684\u6587\u4EF6\u5939\uFF0C\u9ED8\u8BA4\u4E3Adist\n    --min \u538B\u7F29ts\u548Csass \u751F\u6210\u7684\u6587\u4EF6\u4EE3\u7801\uFF0C\u4EC5\u5BF9\u6A21\u677F\u6709\u6548\n    --watch \u76D1\u542C\u811A\u672C\u53D8\u52A8\uFF0C\u81EA\u52A8\u5904\u7406\n    --debug \u5F00\u542Fdebug\u6A21\u5F0F\u663E\u793A\u5177\u4F53\u9519\u8BEF\u6765\u6E90\n\nExample:\n    vue2mini --mini --input=src --output=dist\n\n";
+var helpText = "\nUsage: vue2mini <command>\n    --mini \u7F16\u8BD1\u5C0F\u7A0B\u5E8F\n    --theme \u7F16\u8BD1\u6A21\u677F\n    --css \u8F6Ccss\u4E3Ascss\n    --help \u5E2E\u52A9\n    --input \u6E90\u7801\u6587\u4EF6\u6216\u6587\u4EF6\u5939,\u9ED8\u8BA4\u4E3Asrc\n    --output \u7F16\u8BD1\u540E\u4FDD\u5B58\u7684\u6587\u4EF6\u5939,\u9ED8\u8BA4\u4E3Adist\n    --min \u538B\u7F29ts\u548Csass \u751F\u6210\u7684\u6587\u4EF6\u4EE3\u7801,\u4EC5\u5BF9\u6A21\u677F\u6709\u6548\n    --watch \u76D1\u542C\u811A\u672C\u53D8\u52A8,\u81EA\u52A8\u5904\u7406\n    --debug \u5F00\u542Fdebug\u6A21\u5F0F\u663E\u793A\u5177\u4F53\u9519\u8BEF\u6765\u6E90\n\nExample:\n    vue2mini --mini --input=src --output=dist\n\n";
 if (argv.params.help) {
     console.log(helpText);
     process.exit(0);
@@ -85,6 +85,6 @@ else {
         renderFile(new compiler_1.CompilerFile(input, initTime));
     }
     else {
-        util_1.eachFile(inputFolder, renderFile);
+        (0, util_1.eachFile)(inputFolder, renderFile);
     }
 }
