@@ -34,8 +34,8 @@ exports.StyleTokenCoverter = (_a = {},
     _a);
 var StyleTokenizer = (function () {
     function StyleTokenizer(isIndent) {
-        var _this = this;
         if (isIndent === void 0) { isIndent = false; }
+        var _this = this;
         this.isIndent = isIndent;
         this.parserBlock = function (reader, indentLength) {
             var code;

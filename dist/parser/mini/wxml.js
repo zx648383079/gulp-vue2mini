@@ -12,9 +12,9 @@ var FuncType;
 })(FuncType || (FuncType = {}));
 var WxmlCompiler = (function () {
     function WxmlCompiler(_, exclude, disallowAttrs) {
-        var _this = this;
         if (exclude === void 0) { exclude = /^(.+[\-A-Z].+|[A-Z].+)$/; }
         if (disallowAttrs === void 0) { disallowAttrs = []; }
+        var _this = this;
         this.exclude = exclude;
         this.disallowAttrs = disallowAttrs;
         this.tokenizer = new tokenizer_1.TemplateTokenizer();
