@@ -144,7 +144,7 @@ var ThemeStyleCompiler = (function () {
                 return themeOption[theme][name];
             }
         }
-        throw "[".concat(theme, "].").concat(name, " is error value");
+        throw new Error("[".concat(theme, "].").concat(name, " is error value"));
     };
     ThemeStyleCompiler.prototype.isThemeStyle = function (item) {
         if (item.type !== tokenizer_1.StyleTokenType.STYLE) {

@@ -156,7 +156,7 @@ export class TemplateProject extends BaseProjectCompiler implements IProjectComp
                 this.style.extractTheme(this.template.extractStyle(this.fileContent(file)))
                 return;
             }
-            if (['sass', 'scss', 'less', 'css'].indexOf(ext) < 0) {
+            if (['sass', 'scss', 'less', 'css'].indexOf(ext) < 0 || file.src.endsWith('.min.css')) {
                 return;
             }
             this.style.extractTheme(this.fileContent(file));

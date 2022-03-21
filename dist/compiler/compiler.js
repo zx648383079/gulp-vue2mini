@@ -36,11 +36,12 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fileContent = exports.eachCompileFile = exports.consoleLog = exports.PluginCompiler = exports.BaseProjectCompiler = exports.CompilerFile = void 0;
+exports.fileContent = exports.eachCompileFile = exports.PluginCompiler = exports.BaseProjectCompiler = exports.CompilerFile = void 0;
 var path = require("path");
 var ts = require("typescript");
 var fs = require("fs");
 var url_1 = require("url");
+var log_1 = require("./log");
 var CompilerFile = (function () {
     function CompilerFile(src, mtime, dist, type, content) {
         if (mtime === void 0) { mtime = 0; }
@@ -97,6 +98,7 @@ var BaseProjectCompiler = (function () {
         this.outputFolder = outputFolder;
         this.options = options;
         this.isBooted = false;
+        this.logger = new log_1.Logger();
     }
     BaseProjectCompiler.prototype.booted = function () {
         this.isBooted = true;
@@ -115,9 +117,15 @@ var BaseProjectCompiler = (function () {
             fs.unlinkSync(dist);
         }
     };
-    BaseProjectCompiler.prototype.logFile = function (file, tip) {
+    BaseProjectCompiler.prototype.logFile = function (file, tip, level) {
         if (tip === void 0) { tip = 'Finished'; }
-        (0, exports.consoleLog)(file instanceof CompilerFile ? file.src : file, tip, this.inputFolder);
+        if (level === void 0) { level = log_1.LogLevel.info; }
+        var realFile = file instanceof CompilerFile ? file.src : file;
+        var now = new Date();
+        this.logger.log(level, log_1.LogStr.build(undefined, '[', now.getHours(), ':', now.getMinutes(), ':', now.getSeconds(), '] ')
+            .join(log_1.Colors.magenta, this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile)
+            .join(' ')
+            .join(this.logger.levelToColor(level), tip));
     };
     return BaseProjectCompiler;
 }());
@@ -194,12 +202,6 @@ var PluginCompiler = (function () {
     return PluginCompiler;
 }());
 exports.PluginCompiler = PluginCompiler;
-var consoleLog = function (file, tip, rootFolder) {
-    if (tip === void 0) { tip = 'Finished'; }
-    var now = new Date();
-    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']', rootFolder ? path.relative(rootFolder, file) : file, tip);
-};
-exports.consoleLog = consoleLog;
 var eachCompileFile = function (files, callback) {
     if (!files) {
         return;

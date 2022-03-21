@@ -53,6 +53,9 @@ export class StyleParser {
                 this.themeItems[key] = Object.assign(Object.prototype.hasOwnProperty.call(this.themeItems, key) ? this.themeItems[key] : {}, items[key]);
             }
         }
+        if (this.project.options?.debug) {
+            this.project.logger.debug(items);
+        }
     }
 
     public extractTheme(content: string) {

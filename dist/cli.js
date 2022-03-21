@@ -65,9 +65,9 @@ var renderFile = function (file) {
         project === null || project === void 0 ? void 0 : project.compileFile(file);
     }
     catch (error) {
-        project === null || project === void 0 ? void 0 : project.logFile(file, ' Failure \n' + error.message);
+        project === null || project === void 0 ? void 0 : project.logFile(file, 'Failure \n' + error.message, compiler_1.LogLevel.error);
         if (argv.params.debug) {
-            console.log(error);
+            project === null || project === void 0 ? void 0 : project.logger.debug(error);
         }
     }
 };

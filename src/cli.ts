@@ -5,7 +5,7 @@ import { TemplateProject } from './parser/template/project';
 import { MiniProject } from './parser/mini/project';
 import { formatArgv } from './argv';
 import { StyleProject } from './parser/style/style';
-import { CompilerFile, IProjectCompiler } from './compiler';
+import { CompilerFile, IProjectCompiler, LogLevel } from './compiler';
 import { eachFile } from './util';
 
 process.env.INIT_CWD = process.cwd();
@@ -88,9 +88,9 @@ const renderFile = (file: CompilerFile|string) => {
         }
         project?.compileFile(file);
     } catch (error: any) {
-        project?.logFile(file, ' Failure \n' + error.message);
+        project?.logFile(file, 'Failure \n' + error.message, LogLevel.error);
         if (argv.params.debug) {
-            console.log(error);
+            project?.logger.debug(error);
         }
     }
 };

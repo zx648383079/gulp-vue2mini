@@ -61,12 +61,20 @@ export class LinkManager {
             return;
         }
         this.lockItems.push(file);
-        cb();
-        const index = this.lockItems.indexOf(file);
-        if (index < 0) {
-            return;
+        const removeLock = () => {
+            const j = this.lockItems.indexOf(file);
+            if (j < 0) {
+                return;
+            }
+            this.lockItems.splice(j, 1);
+        };
+        try {
+            cb();
+        } catch (error) {
+            removeLock();
+            throw error;
         }
-        this.lockItems.splice(index, 1);
+        removeLock();
     }
 
     /**

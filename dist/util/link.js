@@ -54,16 +54,26 @@ var LinkManager = (function () {
         this.data[key].push(file);
     };
     LinkManager.prototype.lock = function (file, cb) {
+        var _this = this;
         if (this.lockItems.indexOf(file) >= 0) {
             return;
         }
         this.lockItems.push(file);
-        cb();
-        var index = this.lockItems.indexOf(file);
-        if (index < 0) {
-            return;
+        var removeLock = function () {
+            var j = _this.lockItems.indexOf(file);
+            if (j < 0) {
+                return;
+            }
+            _this.lockItems.splice(j, 1);
+        };
+        try {
+            cb();
         }
-        this.lockItems.splice(index, 1);
+        catch (error) {
+            removeLock();
+            throw error;
+        }
+        removeLock();
     };
     LinkManager.prototype.remove = function (key, file) {
         if (!file) {

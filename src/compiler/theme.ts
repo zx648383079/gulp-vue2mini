@@ -122,7 +122,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
                 return themeOption![theme][name];
             }
         }
-        throw `[${theme}].${name} is error value`;
+        throw new Error(`[${theme}].${name} is error value`);
     }
 
     private isThemeStyle(item: StyleToken): boolean {

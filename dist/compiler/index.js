@@ -20,3 +20,4 @@ __exportStar(require("./sass"), exports);
 __exportStar(require("./style"), exports);
 __exportStar(require("./theme"), exports);
 __exportStar(require("./compiler"), exports);
+__exportStar(require("./log"), exports);

@@ -58,10 +58,14 @@ var StyleParser = (function () {
         return this.renderImport(content, file);
     };
     StyleParser.prototype.pushTheme = function (items) {
+        var _a;
         for (var key in items) {
             if (Object.prototype.hasOwnProperty.call(items, key)) {
                 this.themeItems[key] = Object.assign(Object.prototype.hasOwnProperty.call(this.themeItems, key) ? this.themeItems[key] : {}, items[key]);
             }
+        }
+        if ((_a = this.project.options) === null || _a === void 0 ? void 0 : _a.debug) {
+            this.project.logger.debug(items);
         }
     };
     StyleParser.prototype.extractTheme = function (content) {

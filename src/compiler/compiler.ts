@@ -3,6 +3,7 @@ import * as ts from 'typescript';
 import * as sass from 'sass';
 import * as fs from 'fs';
 import { pathToFileURL } from 'url';
+import { Colors, Logger, LogLevel, LogStr } from './log';
 
 export class CompilerFile {
     constructor(
@@ -42,12 +43,13 @@ export class CompilerFile {
 }
 
 export interface IProjectCompiler {
+    logger: Logger;
     readyFile(src: CompilerFile): undefined | CompilerFile | CompilerFile[];
     booted(): void;
     compileFile(src: CompilerFile): void;
     outputFile(src: string|CompilerFile): string;
     unlink(src: string|CompilerFile): void;
-    logFile(src: string|CompilerFile, tip?: string): void;
+    logFile(src: string|CompilerFile, tip?: string, level?: LogLevel): void;
 }
 
 export class BaseProjectCompiler {
@@ -60,6 +62,7 @@ export class BaseProjectCompiler {
     }
 
     public isBooted = false;
+    public logger = new Logger();
 
     public booted() {
         this.isBooted = true;
@@ -85,8 +88,13 @@ export class BaseProjectCompiler {
         }
     }
 
-    public logFile(file: string|CompilerFile, tip = 'Finished') {
-        consoleLog(file instanceof CompilerFile ? file.src : file, tip, this.inputFolder);
+    public logFile(file: string|CompilerFile, tip = 'Finished', level: LogLevel = LogLevel.info) {
+        const realFile = file instanceof CompilerFile ? file.src : file;
+        const now = new Date();
+        this.logger.log(level, LogStr.build(undefined, '[', now.getHours(), ':', now.getMinutes(), ':', now.getSeconds(), '] ')
+        .join(Colors.magenta, this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile)
+        .join(' ')
+        .join(this.logger.levelToColor(level), tip));
     }
 }
 
@@ -157,12 +165,6 @@ export class PluginCompiler {
         return require('less');
     }
 }
-
-export const consoleLog = (file: string, tip = 'Finished', rootFolder?: string) => {
-    const now = new Date();
-    console.log('[' + now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds() + ']',
-    rootFolder ? path.relative(rootFolder, file) : file, tip);
-};
 
 export const eachCompileFile = (files: undefined | CompilerFile | CompilerFile[], callback: (file: CompilerFile) => void) => {
     if (!files) {

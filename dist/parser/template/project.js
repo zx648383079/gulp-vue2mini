@@ -148,7 +148,7 @@ var TemplateProject = (function (_super) {
                 _this.style.extractTheme(_this.template.extractStyle(_this.fileContent(file)));
                 return;
             }
-            if (['sass', 'scss', 'less', 'css'].indexOf(ext) < 0) {
+            if (['sass', 'scss', 'less', 'css'].indexOf(ext) < 0 || file.src.endsWith('.min.css')) {
                 return;
             }
             _this.style.extractTheme(_this.fileContent(file));
