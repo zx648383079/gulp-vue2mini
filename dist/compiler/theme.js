@@ -139,7 +139,7 @@ var ThemeStyleCompiler = (function () {
             return themeOption[theme][name];
         }
         if (name.indexOf('.') >= 0) {
-            _a = name.split('.', 2), theme = _a[0], name = _a[1];
+            _a = (0, util_1.splitStr)(name, '.', 2), theme = _a[0], name = _a[1];
             if (themeOption[theme][name]) {
                 return themeOption[theme][name];
             }

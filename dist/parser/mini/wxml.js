@@ -274,7 +274,7 @@ var WxmlCompiler = (function () {
         if (value.charAt(0) === '{') {
             var clsObj_1 = {};
             value.substring(1, value.length - 1).split(',').forEach(function (item) {
-                var _a = item.split(':', 2), key = _a[0], con = _a[1];
+                var _a = (0, util_1.splitStr)(item, ':', 2), key = _a[0], con = _a[1];
                 key = key.trim();
                 con = con.trim();
                 var isNot = con.charAt(0) === '!';
@@ -323,7 +323,7 @@ var WxmlCompiler = (function () {
         };
         var match = value.match(/(([\+\-]{2})|([\+\-\*\/]\=))/);
         if (match) {
-            var _a = value.split(match[0], 2), key = _a[0], val = _a[1];
+            var _a = (0, util_1.splitStr)(value, match[0], 2), key = _a[0], val = _a[1];
             if (match[1].charAt(1) !== '=') {
                 val = '1';
             }
@@ -332,7 +332,7 @@ var WxmlCompiler = (function () {
             return;
         }
         if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
-            var _b = value.split('=', 2), key = _b[0], val = _b[1];
+            var _b = (0, util_1.splitStr)(value, '=', 2), key = _b[0], val = _b[1];
             addFun(key, this.qv(val.trim()));
             return;
         }

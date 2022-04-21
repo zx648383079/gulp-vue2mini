@@ -2,7 +2,7 @@ import { CacheManger } from '../../util/cache';
 import * as path from 'path';
 import { TemplateProject } from './project';
 import { CompilerFile } from '../../compiler';
-import { splitLine } from '../../util';
+import { splitLine, splitStr } from '../../util';
 import { Compiler } from '../../compiler';
 
 export type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random' | 'theme' | 'set' | 'echo';
@@ -83,7 +83,7 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
                 return;
             }
             if (token.type === 'set') {
-                const [key, val] = token.content.split('=', 2);
+                const [key, val] = splitStr(token.content, '=', 2);
                 pageData[key.trim()] = val;
                 return;
             }

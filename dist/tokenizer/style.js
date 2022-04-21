@@ -196,12 +196,12 @@ var StyleTokenizer = (function () {
                 }
             }
         }
-        var args = line.split(':', 2);
-        if (args.length === 2) {
+        var commaIndex = line.indexOf(':');
+        if (commaIndex > 0) {
             return {
                 type: StyleTokenType.STYLE,
-                name: args[0].trim(),
-                content: args[1].trim(),
+                name: line.substring(0, commaIndex).trim(),
+                content: line.substring(commaIndex + 1).trim(),
             };
         }
         if (line.length < 1) {

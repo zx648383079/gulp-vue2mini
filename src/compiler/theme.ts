@@ -1,6 +1,6 @@
 import { IThemeObject } from '../parser/template/tokenizer';
 import { StyleToken, StyleTokenizer, StyleTokenType } from '../tokenizer';
-import { regexReplace } from '../util';
+import { regexReplace, splitStr } from '../util';
 import { Compiler } from './base';
 import { StyleCompiler } from './style';
 
@@ -117,7 +117,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         }
         // 允许通过 theme.name 的方式直接访问值
         if (name.indexOf('.') >= 0) {
-            [theme, name] = name.split('.', 2);
+            [theme, name] = splitStr(name, '.', 2);
             if (themeOption![theme][name]) {
                 return themeOption![theme][name];
             }

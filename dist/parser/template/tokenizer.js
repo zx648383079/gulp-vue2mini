@@ -55,7 +55,7 @@ var ThemeTokenizer = (function () {
                 return;
             }
             if (token.type === 'set') {
-                var _a = token.content.split('=', 2), key = _a[0], val = _a[1];
+                var _a = (0, util_1.splitStr)(token.content, '=', 2), key = _a[0], val = _a[1];
                 pageData[key.trim()] = val;
                 return;
             }

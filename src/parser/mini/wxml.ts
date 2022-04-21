@@ -1,7 +1,7 @@
 import { Attribute, TemplateTokenizer } from '../../tokenizer';
 import { MiniProject } from './project';
 import { ElementToken } from '../../tokenizer';
-import { studly } from '../../util';
+import { splitStr, studly } from '../../util';
 import { Compiler } from '../../compiler';
 
 enum FuncType {
@@ -311,7 +311,7 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
             // 进行合并
             const clsObj: {[key: string]: string[]} = {};
             value.substring(1, value.length - 1).split(',').forEach(item => {
-                let [key, con] = item.split(':', 2);
+                let [key, con] = splitStr(item, ':', 2);
                 key = key.trim();
                 con = con.trim();
                 const isNot = con.charAt(0) === '!';
@@ -357,7 +357,7 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
         };
         let match = value.match(/(([\+\-]{2})|([\+\-\*\/]\=))/);
         if (match) {
-            let [key, val] = value.split(match[0], 2);
+            let [key, val] = splitStr(value, match[0], 2);
             if (match[1].charAt(1) !== '=') {
                 val = '1';
             }
@@ -366,7 +366,7 @@ export class WxmlCompiler implements Compiler<string|ElementToken, ITemplateResu
             return;
         }
         if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
-            const [key, val] = value.split('=', 2);
+            const [key, val] = splitStr(value, '=', 2);
             addFun(key, this.qv(val.trim()));
             return;
         }

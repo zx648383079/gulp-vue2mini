@@ -11,3 +11,4 @@ export declare function cloneObject<T>(val: T): T;
 export declare function eachObject(obj: any, cb: (val: any, key?: string | number) => void | false): any;
 export declare function regexReplace(content: string, pattern: RegExp, cb: (match: RegExpExecArray) => string): string;
 export declare function getExtensionName(fileName: string): string;
+export declare function splitStr(val: string, serach: string, count?: number): string[];

@@ -190,3 +190,36 @@ export function getExtensionName(fileName: string): string {
     }
     return fileName.substring(i + 1);
 }
+
+/**
+ * 根据字符分割字符串
+ * @param val 待分割的字符串
+ * @param serach 分割标识
+ * @param count 分割段数
+ * @returns 不一定等于分割段数
+ */
+export function splitStr(val: string, serach: string, count: number = 0): string[] {
+    if (count < 1 ) {
+        return val.split(serach);
+    }
+    if (count == 1) {
+        return [val];
+    }
+    let i = -1;
+    const data: string[] = [];
+    while(true) {
+        if (count < 2) {
+            data.push(val.substring(i));
+            break;
+        }
+        const index = val.indexOf(serach, i);
+        if (index < 0) {
+            data.push(val.substring(i));
+            break;
+        }
+        data.push(val.substring(i, index));
+        count -- ;
+        i = index + serach.length;
+    }
+    return data;
+}

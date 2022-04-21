@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
+exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
 var fs = require("fs");
 var path = require("path");
 var compiler_1 = require("../compiler");
@@ -145,3 +145,30 @@ function getExtensionName(fileName) {
     return fileName.substring(i + 1);
 }
 exports.getExtensionName = getExtensionName;
+function splitStr(val, serach, count) {
+    if (count === void 0) { count = 0; }
+    if (count < 1) {
+        return val.split(serach);
+    }
+    if (count == 1) {
+        return [val];
+    }
+    var i = -1;
+    var data = [];
+    while (true) {
+        if (count < 2) {
+            data.push(val.substring(i));
+            break;
+        }
+        var index = val.indexOf(serach, i);
+        if (index < 0) {
+            data.push(val.substring(i));
+            break;
+        }
+        data.push(val.substring(i, index));
+        count--;
+        i = index + serach.length;
+    }
+    return data;
+}
+exports.splitStr = splitStr;
