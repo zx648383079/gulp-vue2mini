@@ -88,9 +88,15 @@ var ThemeStyleCompiler = (function () {
     ThemeStyleCompiler.prototype.themeStyle = function (themeOption, item, theme) {
         var _this = this;
         if (theme === void 0) { theme = 'default'; }
-        return (0, util_1.regexReplace)(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, function (match) {
-            return match[1] + _this.themeStyleValue(themeOption, match[2], theme);
+        var hasCall = false;
+        var res = (0, util_1.regexReplace)(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, function (match) {
+            var _a = _this.themeStyleValue(themeOption, match[2], theme), val = _a[0], isCall = _a[1];
+            if (isCall) {
+                hasCall = true;
+            }
+            return match[1] + val;
         });
+        return [res, hasCall];
     };
     ThemeStyleCompiler.prototype.splitThemeStyle = function (themeOption, data) {
         var source = [];
@@ -101,14 +107,17 @@ var ThemeStyleCompiler = (function () {
                 continue;
             }
             if (this.isThemeStyle(item)) {
-                append.push(__assign({}, item));
-                item.content = this.themeStyle(themeOption, item);
+                var _a = this.themeStyle(themeOption, item), val = _a[0], isCall = _a[1];
+                if (isCall) {
+                    append.push(__assign({}, item));
+                }
+                item.content = val;
             }
             if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP || !item.children || item.children.length < 1) {
                 source.push(item);
                 continue;
             }
-            var _a = this.splitThemeStyle(themeOption, item.children), s = _a[0], a = _a[1];
+            var _b = this.splitThemeStyle(themeOption, item.children), s = _b[0], a = _b[1];
             if (a.length > 0) {
                 append.push(__assign(__assign({}, item), { children: a }));
             }
@@ -121,7 +130,7 @@ var ThemeStyleCompiler = (function () {
         for (var _i = 0, data_2 = data; _i < data_2.length; _i++) {
             var item = data_2[_i];
             if (this.isThemeStyle(item)) {
-                children.push(__assign(__assign({}, item), { content: this.themeStyle(themeOption, item, theme) }));
+                children.push(__assign(__assign({}, item), { content: this.themeStyle(themeOption, item, theme)[0] }));
                 continue;
             }
             if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP) {
@@ -136,12 +145,12 @@ var ThemeStyleCompiler = (function () {
         var _a;
         if (theme === void 0) { theme = 'default'; }
         if (themeOption[theme][name]) {
-            return themeOption[theme][name];
+            return [themeOption[theme][name], true];
         }
         if (name.indexOf('.') >= 0) {
             _a = (0, util_1.splitStr)(name, '.', 2), theme = _a[0], name = _a[1];
             if (themeOption[theme][name]) {
-                return themeOption[theme][name];
+                return [themeOption[theme][name], false];
             }
         }
         throw new Error("[".concat(theme, "].").concat(name, " is error value"));

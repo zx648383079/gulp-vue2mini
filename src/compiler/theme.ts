@@ -65,10 +65,16 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return finishItems;
     }
 
-    private themeStyle(themeOption: IThemeObject, item: StyleToken, theme = 'default'): string {
-        return regexReplace(item.content as string, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
-            return match[1] + this.themeStyleValue(themeOption, match[2], theme);
+    private themeStyle(themeOption: IThemeObject, item: StyleToken, theme = 'default'): (string|boolean)[] {
+        let hasCall = false;
+        const res = regexReplace(item.content as string, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
+            const [val, isCall] = this.themeStyleValue(themeOption, match[2], theme);
+            if (isCall) {
+                hasCall = true;
+            }
+            return match[1] + val;
         });
+        return [res, hasCall];
     }
 
     private splitThemeStyle(themeOption: IThemeObject, data: StyleToken[]): StyleToken[][] {
@@ -79,8 +85,11 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
                 continue;
             }
             if (this.isThemeStyle(item)) {
-                append.push({...item});
-                item.content = this.themeStyle(themeOption, item);
+                const [val, isCall] = this.themeStyle(themeOption, item);
+                if (isCall) {
+                    append.push({...item});
+                }
+                item.content = val as string;
             }
             if (item.type !== StyleTokenType.STYLE_GROUP || !item.children || item.children.length < 1) {
                 source.push(item);
@@ -99,7 +108,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         const children = [];
         for (const item of data) {
             if (this.isThemeStyle(item)) {
-                children.push({...item, content: this.themeStyle(themeOption, item, theme)});
+                children.push({...item, content: this.themeStyle(themeOption, item, theme)[0] as string});
                 continue;
             }
             if (item.type !== StyleTokenType.STYLE_GROUP) {
@@ -111,15 +120,22 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return children;
     }
 
-    private themeStyleValue(themeOption: IThemeObject, name: string, theme = 'default'): string {
+    /**
+     * 
+     * @param themeOption 
+     * @param name 
+     * @param theme 
+     * @returns [属性值, 是否引用主题]
+     */
+    private themeStyleValue(themeOption: IThemeObject, name: string, theme = 'default'): (string|boolean)[] {
         if (themeOption![theme][name]) {
-            return themeOption![theme][name];
+            return [themeOption![theme][name], true];
         }
         // 允许通过 theme.name 的方式直接访问值
         if (name.indexOf('.') >= 0) {
             [theme, name] = splitStr(name, '.', 2);
             if (themeOption![theme][name]) {
-                return themeOption![theme][name];
+                return [themeOption![theme][name], false];
             }
         }
         throw new Error(`[${theme}].${name} is error value`);
