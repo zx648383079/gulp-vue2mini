@@ -30,6 +30,10 @@ export const joinLine = (lines: string[]): string => {
     return lines.join(LINE_SPLITE);
 };
 
+export function twoPad(n: number): string {
+    const str = n.toString();
+    return str[1] ? str : '0' + str;
+}
 
 /**
  * 首字母大写

@@ -4,6 +4,7 @@ import * as sass from 'sass';
 import * as fs from 'fs';
 import { pathToFileURL } from 'url';
 import { Colors, Logger, LogLevel, LogStr } from './log';
+import { twoPad } from '../util';
 
 export class CompilerFile {
     constructor(
@@ -91,7 +92,7 @@ export class BaseProjectCompiler {
     public logFile(file: string|CompilerFile, tip = 'Finished', level: LogLevel = LogLevel.info) {
         const realFile = file instanceof CompilerFile ? file.src : file;
         const now = new Date();
-        this.logger.log(level, LogStr.build(undefined, '[', now.getHours(), ':', now.getMinutes(), ':', now.getSeconds(), '] ')
+        this.logger.log(level, LogStr.build(undefined, '[', twoPad(now.getHours()), ':', twoPad(now.getMinutes()), ':', twoPad(now.getSeconds()), '] ')
         .join(Colors.magenta, this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile)
         .join(' ')
         .join(this.logger.levelToColor(level), tip));
