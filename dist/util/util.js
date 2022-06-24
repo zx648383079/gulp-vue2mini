@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
+exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.twoPad = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
 var fs = require("fs");
 var path = require("path");
 var compiler_1 = require("../compiler");
@@ -22,6 +22,11 @@ var joinLine = function (lines) {
     return lines.join(exports.LINE_SPLITE);
 };
 exports.joinLine = joinLine;
+function twoPad(n) {
+    var str = n.toString();
+    return str[1] ? str : '0' + str;
+}
+exports.twoPad = twoPad;
 function firstUpper(val) {
     if (!val) {
         return '';

@@ -42,6 +42,7 @@ var ts = require("typescript");
 var fs = require("fs");
 var url_1 = require("url");
 var log_1 = require("./log");
+var util_1 = require("../util");
 var CompilerFile = (function () {
     function CompilerFile(src, mtime, dist, type, content) {
         if (mtime === void 0) { mtime = 0; }
@@ -122,7 +123,7 @@ var BaseProjectCompiler = (function () {
         if (level === void 0) { level = log_1.LogLevel.info; }
         var realFile = file instanceof CompilerFile ? file.src : file;
         var now = new Date();
-        this.logger.log(level, log_1.LogStr.build(undefined, '[', now.getHours(), ':', now.getMinutes(), ':', now.getSeconds(), '] ')
+        this.logger.log(level, log_1.LogStr.build(undefined, '[', (0, util_1.twoPad)(now.getHours()), ':', (0, util_1.twoPad)(now.getMinutes()), ':', (0, util_1.twoPad)(now.getSeconds()), '] ')
             .join(log_1.Colors.magenta, this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile)
             .join(' ')
             .join(this.logger.levelToColor(level), tip));
@@ -162,12 +163,45 @@ var PluginCompiler = (function () {
     PluginCompiler.sass = function (input, file, lang, options) {
         if (lang === void 0) { lang = 'scss'; }
         if (options === void 0) { options = {}; }
+        var fileExsist = function (url) {
+            return fs.existsSync(url) ? url : undefined;
+        };
+        var loadImport = function (fileName, base) {
+            var extension = ".".concat(lang);
+            if (fileName.endsWith(extension)) {
+                return fileExsist(new URL(fileName, base));
+            }
+            var i = fileName.lastIndexOf('/');
+            if (fileName[i + 1] === '_') {
+                return fileExsist(new URL(fileName + extension, base));
+            }
+            if (i < 0) {
+                return fileExsist(new URL("_".concat(fileName).concat(extension), base));
+            }
+            return fileExsist(new URL(fileName.substring(0, i + 1) + '_' + fileName.substring(i + 2) + extension, base));
+        };
         if (!options.importers) {
+            var includePaths_1 = [(0, url_1.pathToFileURL)(file)];
+            if (Object.prototype.hasOwnProperty.call(options, 'includePaths')) {
+                (0, util_1.eachObject)(options.includePaths, function (v) {
+                    if (v && typeof v === 'string') {
+                        includePaths_1.push((0, url_1.pathToFileURL)(v));
+                    }
+                });
+            }
             options.importers = [{
                     findFileUrl: function (url) {
-                        if (/^[a-z]+:/i.test(url))
+                        if (/^[a-z]+:/i.test(url)) {
                             return null;
-                        return new URL(url, (0, url_1.pathToFileURL)(file));
+                        }
+                        for (var _i = 0, includePaths_2 = includePaths_1; _i < includePaths_2.length; _i++) {
+                            var folder = includePaths_2[_i];
+                            var uri = loadImport(url, folder);
+                            if (uri) {
+                                return uri;
+                            }
+                        }
+                        return new URL(url, includePaths_1[0]);
                     }
                 }];
         }

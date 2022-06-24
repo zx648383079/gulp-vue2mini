@@ -1,3 +1,3 @@
 import { Transform } from 'readable-stream';
-import * as sass from 'sass';
-export declare function gulpSass(options?: sass.StringOptions<'sync'>): Transform;
+import { SassOptions } from '../compiler';
+export declare function gulpSass(options?: SassOptions): Transform;

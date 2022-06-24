@@ -1,15 +1,14 @@
 import { Transform } from 'readable-stream';
 import * as vinyl from 'vinyl';
-import * as sass from 'sass';
 import * as path from 'path';
 import { renameExt } from './gulp-tempate';
 import { transformCallback } from './types';
-import { PluginCompiler } from '../compiler';
+import { PluginCompiler, SassOptions } from '../compiler';
 
 /**
  * 压缩sass代码
  */
-export function gulpSass(options: sass.StringOptions<'sync'> = {}) {
+export function gulpSass(options: SassOptions = {}) {
     return new Transform({
         objectMode: true,
         transform: (file: vinyl, _: any, callback: transformCallback) => {

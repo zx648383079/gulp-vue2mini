@@ -4,7 +4,11 @@ import * as sass from 'sass';
 import * as fs from 'fs';
 import { pathToFileURL } from 'url';
 import { Colors, Logger, LogLevel, LogStr } from './log';
-import { twoPad } from '../util';
+import { eachObject, twoPad } from '../util';
+
+export interface SassOptions extends sass.StringOptionsWithoutImporter<'sync'> {
+    includePaths?: string[]|string;
+}
 
 export class CompilerFile {
     constructor(
@@ -134,13 +138,46 @@ export class PluginCompiler {
         return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
     }
 
-    public static sass(input: string, file: string, lang = 'scss', options: sass.StringOptions<'sync'> = {}): string {
+    public static sass(input: string, file: string, lang = 'scss', options: SassOptions = {}): string {
+        const fileExsist = (url: URL) => {
+            return fs.existsSync(url) ? url: undefined;
+        };
+        const loadImport = (fileName: string, base: URL) => {
+            const extension = `.${lang}`;
+            if (fileName.endsWith(extension)) {
+                return fileExsist(new URL(fileName, base));
+            }
+            const i = fileName.lastIndexOf('/');
+            if (fileName[i + 1] === '_') {
+                return fileExsist(new URL(fileName + extension, base));
+            }
+            if (i < 0) {
+                return fileExsist(new URL(`_${fileName}${extension}`, base));
+            }
+            return fileExsist(new URL(fileName.substring(0, i + 1) + '_' + fileName.substring(i + 2) + extension, base));
+        };
         if (!options.importers) {
+            const includePaths = [pathToFileURL(file)];
+            if (Object.prototype.hasOwnProperty.call(options, 'includePaths')) {
+                eachObject(options.includePaths, v => {
+                    if (v && typeof v === 'string') {
+                        includePaths.push(pathToFileURL(v));
+                    }
+                });
+            }
             options.importers = [{
                 findFileUrl(url: string) {
                     // Load paths only support relative URLs.
-                    if (/^[a-z]+:/i.test(url)) return null;
-                    return new URL(url, pathToFileURL(file));
+                    if (/^[a-z]+:/i.test(url)) {
+                        return null
+                    }
+                    for (const folder of includePaths) {
+                        const uri = loadImport(url, folder);
+                        if (uri) {
+                            return uri;
+                        }
+                    }
+                    return new URL(url, includePaths[0]);
                 }
             }];
         }

@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.3.4
+
+1. 增加 sass 压缩配置 `includePaths`
+
 ## v1.3.3
 
 1. 修复 `@theme.key` 进行不必要的生成

@@ -1,6 +1,9 @@
 /// <reference types="less" />
 import * as sass from 'sass';
 import { Logger, LogLevel } from './log';
+export interface SassOptions extends sass.StringOptionsWithoutImporter<'sync'> {
+    includePaths?: string[] | string;
+}
 export declare class CompilerFile {
     src: string;
     mtime: number;
@@ -38,7 +41,7 @@ export declare class BaseProjectCompiler {
 }
 export declare class PluginCompiler {
     static ts(input: string, file: string, tsConfigFileName?: string, sourceMap?: boolean): string;
-    static sass(input: string, file: string, lang?: string, options?: sass.StringOptions<'sync'>): string;
+    static sass(input: string, file: string, lang?: string, options?: SassOptions): string;
     static less(input: string, file: string, options?: Less.Options): Promise<string>;
     private static sassImporter;
     private static lessImporter;
