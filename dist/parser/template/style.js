@@ -9,10 +9,10 @@ var util_1 = require("../../util");
 var StyleParser = (function () {
     function StyleParser(project) {
         var _this = this;
+        var _a;
         this.project = project;
         this.themeItems = {};
         this.tokenizer = new tokenizer_1.StyleTokenizer();
-        this.compiler = new compiler_2.ThemeStyleCompiler();
         this.importer = {
             canonicalize: function (url, _) {
                 return new URL(url);
@@ -25,6 +25,8 @@ var StyleParser = (function () {
                 };
             }
         };
+        var varPrefix = (_a = this.project.options) === null || _a === void 0 ? void 0 : _a.prefix;
+        this.compiler = new compiler_2.ThemeStyleCompiler(true, typeof varPrefix === 'string' && varPrefix.length > 0, varPrefix !== null && varPrefix !== void 0 ? varPrefix : 'zre');
     }
     Object.defineProperty(StyleParser.prototype, "length", {
         get: function () {

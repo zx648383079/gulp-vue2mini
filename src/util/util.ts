@@ -75,6 +75,27 @@ export function studly(val: string, isFirstUpper: boolean = true): string {
     return items.join('');
 }
 
+export function unStudly(val: string, link = '-', isFirstLink = false): string {
+    if (!val || val.length < 1) {
+        return '';
+    }
+    const items: string[] = [];
+    val.split(/[A-Z\s]/).forEach(item => {
+        if (item.length < 1) {
+            return;
+        }
+        if (!isFirstLink && items.length < 1) {
+            items.push(item);
+            return;
+        }
+        items.push(link);
+        if (item.trim().length > 0) {
+            items.push(item.toLowerCase());
+        }
+    });
+    return items.join('');
+}
+
 export function eachFile(folder: string, cb: (file: CompilerFile) => void) {
     if (!folder) {
         return;

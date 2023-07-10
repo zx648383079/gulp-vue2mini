@@ -77,6 +77,33 @@ ul {
 
 最终生成样式为
 
+ ## 【新】 默认格式
+
+```css
+
+:root {
+    --zre-body: white;
+    --zre-body-text: #000;
+}
+
+.theme-dark {
+    --zre-body: #000;
+    --zre-body-text: white;
+}
+
+body {
+    background-color: var(--zre-body);
+    color: var(--zre-body-text);
+}
+ul {
+    color: var(--zre-body-text);
+}
+
+
+```
+
+可选格式 `--prefix`
+
 ```css
 body {
     background-color: white;

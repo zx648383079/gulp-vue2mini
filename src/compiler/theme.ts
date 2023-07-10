@@ -1,6 +1,6 @@
-import { IThemeObject } from '../parser/template/tokenizer';
+import { IThemeObject, IThemeOption } from '../parser/template/tokenizer';
 import { StyleToken, StyleTokenizer, StyleTokenType } from '../tokenizer';
-import { regexReplace, splitStr } from '../util';
+import { eachObject, regexReplace, splitStr, unStudly } from '../util';
 import { Compiler } from './base';
 import { StyleCompiler } from './style';
 
@@ -8,6 +8,8 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
 
     constructor(
         private autoDark = true,
+        private useVar = false,
+        private varPrefix = 'zre',
         private tokenizer = new StyleTokenizer(),
         private compiler = new StyleCompiler(),
     ) {
@@ -22,9 +24,15 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         if (!themeOption) {
             [themeOption, items] = this.separateThemeStyle(items);
         }
-        const [finishItems, appendItems] = this.splitThemeStyle(themeOption!, items);
+        const [finishItems, appendItems, hasThemeDefine] = this.splitThemeStyle(themeOption!, items);
         if (appendItems.length < 1) {
             return finishItems;
+        }
+        if (this.useVar) {
+            if (hasThemeDefine) {
+                return finishItems;
+            }
+            return [...this.formatThemeHeader(themeOption!), ...finishItems];
         }
         Object.keys(themeOption!).forEach(theme => {
             if (theme === 'default') {
@@ -65,6 +73,40 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return finishItems;
     }
 
+    private formatThemeHeader(themeOption: IThemeObject): StyleToken[] {
+        const items: StyleToken[] = [];
+        const toThemeVar = (data: IThemeOption, root: string): StyleToken => {
+            const children: StyleToken[] = [];
+            eachObject(data, (v, k) => {
+                children.push({
+                    type: StyleTokenType.STYLE,
+                    name: this.formatVarKey(k as any),
+                    content: v
+                });
+            });
+            return {
+                type: StyleTokenType.STYLE_GROUP,
+                name: root,
+                children,
+            };
+        };
+        eachObject(themeOption, (data, key) => {
+            if (key === 'default') {
+                items.push(toThemeVar(data, ':root'));
+                return;
+            }
+            items.push(toThemeVar(data, '.theme-' + key));
+            if (key === 'dark' && this.autoDark) {
+                items.push({
+                    type: StyleTokenType.STYLE_GROUP,
+                    name: ['@media (prefers-color-scheme: dark)'],
+                    children: [toThemeVar(data, ':root')]
+                });
+            }
+        });
+        return items;
+    }
+
     private themeStyle(themeOption: IThemeObject, item: StyleToken, theme = 'default'): (string|boolean)[] {
         let hasCall = false;
         const res = regexReplace(item.content as string, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
@@ -77,11 +119,13 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return [res, hasCall];
     }
 
-    private splitThemeStyle(themeOption: IThemeObject, data: StyleToken[]): StyleToken[][] {
+    private splitThemeStyle(themeOption: IThemeObject, data: StyleToken[]): [StyleToken[], StyleToken[], boolean] {
         const source = [];
         const append = [];
+        let hasDefine = false;
         for (const item of data) {
             if (this.isThemeDef(item)) {
+                hasDefine = true;
                 continue;
             }
             if (this.isThemeStyle(item)) {
@@ -101,7 +145,7 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
             }
             source.push({...item, children: s});
         }
-        return [source, append];
+        return [source, append, hasDefine];
     }
 
     private cloneStyle(themeOption: IThemeObject, data: StyleToken[], theme: string): StyleToken[] {
@@ -129,7 +173,9 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
      */
     private themeStyleValue(themeOption: IThemeObject, name: string, theme = 'default'): (string|boolean)[] {
         if (themeOption![theme][name]) {
-            return [themeOption![theme][name], true];
+            return [
+                this.useVar ? `var(${this.formatVarKey(name)})` : themeOption![theme][name]
+                , true];
         }
         // 允许通过 theme.name 的方式直接访问值
         if (name.indexOf('.') >= 0) {
@@ -139,6 +185,10 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
             }
         }
         throw new Error(`[${theme}].${name} is error value`);
+    }
+
+    private formatVarKey(name: string): string {
+        return `--${this.varPrefix}-${unStudly(name)}`;
     }
 
     private isThemeStyle(item: StyleToken): boolean {

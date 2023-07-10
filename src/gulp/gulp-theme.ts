@@ -6,7 +6,7 @@ import { transformCallback } from './types';
 /**
  * 处理样式的多主题支持
  */
-export function gulpTheme() {
+export function gulpTheme(autoDark = true, useVar = false, varPrefix = 'zre') {
     return new Transform({
         objectMode: true,
         transform: (file: vinyl, _: any, callback: transformCallback) => {
@@ -16,7 +16,7 @@ export function gulpTheme() {
             if (!file.isBuffer()) {
                 return callback();
             }
-            const compiler = new ThemeStyleCompiler();
+            const compiler = new ThemeStyleCompiler(autoDark, useVar, varPrefix);
             const content = compiler.formatThemeCss(String(file.contents));
             file.contents = Buffer.from(content);
             return callback(undefined, file);

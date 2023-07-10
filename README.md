@@ -96,6 +96,7 @@ vue2mini
     --mini    编译小程序
     --theme   编译模板
     --css     转css为scss
+    --prefix  前缀,css 中的值前缀, 有值则启用var, 默认启用
     --help    帮助
     --input   源码文件或文件夹，默认为`src`文件夹
     --output  编译后保存的文件夹，默认为`dist`

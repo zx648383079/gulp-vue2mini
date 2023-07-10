@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.4.0
+
+1. 调整 scss 主题生成，增加默认生成 `var(--zre-primary)` 格式 
+
 ## v1.3.4
 
 1. 增加 sass 压缩配置 `includePaths`

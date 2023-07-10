@@ -1,7 +1,7 @@
 import { TemplateProject } from './project';
 import { CompilerFile } from '../../compiler';
 import { Compiler } from '../../compiler';
-export declare type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random' | 'theme' | 'set' | 'echo';
+export type TYPE_MAP = 'text' | 'comment' | 'extend' | 'script' | 'style' | 'layout' | 'content' | 'random' | 'theme' | 'set' | 'echo';
 export declare const REGEX_ASSET: RegExp;
 export interface IPageData {
     [key: string]: string;

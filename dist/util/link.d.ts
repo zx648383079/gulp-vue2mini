@@ -1,4 +1,4 @@
-declare type LinkUpdateEvent = (file: string, mtime: number, source: string, ...args: any[]) => void;
+type LinkUpdateEvent = (file: string, mtime: number, source: string, ...args: any[]) => void;
 export declare class LinkManager {
     private data;
     private listeners;

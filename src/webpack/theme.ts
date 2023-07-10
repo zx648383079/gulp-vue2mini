@@ -7,11 +7,14 @@ const pluginName = 'ZreThemePlugin';
 
 export class ThemePlugin {
     constructor(
-        private option: IThemeObject
+        private option: IThemeObject,
+        private autoDark = true,
+        private useVar = false,
+        private varPrefix = 'zre',
     ) {
     }
 
-    private readonly compiler = new ThemeStyleCompiler();
+    private readonly compiler = new ThemeStyleCompiler(this.autoDark, this.useVar, this.varPrefix);
 
     apply(compiler: Compiler) {
         compiler.hooks.compilation.tap(pluginName, compilation => {

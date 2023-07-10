@@ -24,7 +24,7 @@ var StyleTokenType;
     StyleTokenType[StyleTokenType["TEXT"] = 6] = "TEXT";
     StyleTokenType[StyleTokenType["STYLE_GROUP"] = 7] = "STYLE_GROUP";
     StyleTokenType[StyleTokenType["STYLE"] = 8] = "STYLE";
-})(StyleTokenType = exports.StyleTokenType || (exports.StyleTokenType = {}));
+})(StyleTokenType || (exports.StyleTokenType = StyleTokenType = {}));
 exports.StyleTokenCoverter = (_a = {},
     _a[StyleTokenType.EXTEND] = '@extend',
     _a[StyleTokenType.CHASET] = '@charset',

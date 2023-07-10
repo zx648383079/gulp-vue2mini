@@ -17,6 +17,7 @@ const argv = formatArgv(process.argv, {
     watch: false,
     help: false,
     debug: false,
+    prefix: 'zre',
     input: 'src',
     output: 'dist'
 });
@@ -26,6 +27,7 @@ Usage: vue2mini <command>
     --mini 编译小程序
     --theme 编译模板
     --css 转css为scss
+    --prefix 前缀,css 中的值前缀, 有值则启用var, 默认启用
     --help 帮助
     --input 源码文件或文件夹,默认为src
     --output 编译后保存的文件夹,默认为dist

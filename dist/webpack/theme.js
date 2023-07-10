@@ -6,9 +6,15 @@ var webpack_sources_1 = require("webpack-sources");
 var compiler_1 = require("../compiler");
 var pluginName = 'ZreThemePlugin';
 var ThemePlugin = (function () {
-    function ThemePlugin(option) {
+    function ThemePlugin(option, autoDark, useVar, varPrefix) {
+        if (autoDark === void 0) { autoDark = true; }
+        if (useVar === void 0) { useVar = false; }
+        if (varPrefix === void 0) { varPrefix = 'zre'; }
         this.option = option;
-        this.compiler = new compiler_1.ThemeStyleCompiler();
+        this.autoDark = autoDark;
+        this.useVar = useVar;
+        this.varPrefix = varPrefix;
+        this.compiler = new compiler_1.ThemeStyleCompiler(this.autoDark, this.useVar, this.varPrefix);
     }
     ThemePlugin.prototype.apply = function (compiler) {
         var _this = this;

@@ -12,11 +12,14 @@ import { IThemeObject } from './tokenizer';
 export class StyleParser {
     constructor(
         private project: TemplateProject
-    ) {}
+    ) {
+        const varPrefix = this.project.options?.prefix;
+        this.compiler = new ThemeStyleCompiler(true, typeof varPrefix === 'string' && varPrefix.length > 0, varPrefix ?? 'zre');
+    }
 
     private themeItems: IThemeObject = {};
     private tokenizer = new StyleTokenizer();
-    private compiler = new ThemeStyleCompiler();
+    private compiler: ThemeStyleCompiler;
 
     public get length() {
         return Object.keys(this.themeItems).length;

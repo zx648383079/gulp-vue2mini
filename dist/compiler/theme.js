@@ -25,11 +25,15 @@ var tokenizer_1 = require("../tokenizer");
 var util_1 = require("../util");
 var style_1 = require("./style");
 var ThemeStyleCompiler = (function () {
-    function ThemeStyleCompiler(autoDark, tokenizer, compiler) {
+    function ThemeStyleCompiler(autoDark, useVar, varPrefix, tokenizer, compiler) {
         if (autoDark === void 0) { autoDark = true; }
+        if (useVar === void 0) { useVar = false; }
+        if (varPrefix === void 0) { varPrefix = 'zre'; }
         if (tokenizer === void 0) { tokenizer = new tokenizer_1.StyleTokenizer(); }
         if (compiler === void 0) { compiler = new style_1.StyleCompiler(); }
         this.autoDark = autoDark;
+        this.useVar = useVar;
+        this.varPrefix = varPrefix;
         this.tokenizer = tokenizer;
         this.compiler = compiler;
     }
@@ -42,9 +46,15 @@ var ThemeStyleCompiler = (function () {
         if (!themeOption) {
             _a = this.separateThemeStyle(items), themeOption = _a[0], items = _a[1];
         }
-        var _b = this.splitThemeStyle(themeOption, items), finishItems = _b[0], appendItems = _b[1];
+        var _b = this.splitThemeStyle(themeOption, items), finishItems = _b[0], appendItems = _b[1], hasThemeDefine = _b[2];
         if (appendItems.length < 1) {
             return finishItems;
+        }
+        if (this.useVar) {
+            if (hasThemeDefine) {
+                return finishItems;
+            }
+            return __spreadArray(__spreadArray([], this.formatThemeHeader(themeOption), true), finishItems, true);
         }
         Object.keys(themeOption).forEach(function (theme) {
             if (theme === 'default') {
@@ -85,6 +95,40 @@ var ThemeStyleCompiler = (function () {
         }
         return finishItems;
     };
+    ThemeStyleCompiler.prototype.formatThemeHeader = function (themeOption) {
+        var _this = this;
+        var items = [];
+        var toThemeVar = function (data, root) {
+            var children = [];
+            (0, util_1.eachObject)(data, function (v, k) {
+                children.push({
+                    type: tokenizer_1.StyleTokenType.STYLE,
+                    name: _this.formatVarKey(k),
+                    content: v
+                });
+            });
+            return {
+                type: tokenizer_1.StyleTokenType.STYLE_GROUP,
+                name: root,
+                children: children,
+            };
+        };
+        (0, util_1.eachObject)(themeOption, function (data, key) {
+            if (key === 'default') {
+                items.push(toThemeVar(data, ':root'));
+                return;
+            }
+            items.push(toThemeVar(data, '.theme-' + key));
+            if (key === 'dark' && _this.autoDark) {
+                items.push({
+                    type: tokenizer_1.StyleTokenType.STYLE_GROUP,
+                    name: ['@media (prefers-color-scheme: dark)'],
+                    children: [toThemeVar(data, ':root')]
+                });
+            }
+        });
+        return items;
+    };
     ThemeStyleCompiler.prototype.themeStyle = function (themeOption, item, theme) {
         var _this = this;
         if (theme === void 0) { theme = 'default'; }
@@ -101,9 +145,11 @@ var ThemeStyleCompiler = (function () {
     ThemeStyleCompiler.prototype.splitThemeStyle = function (themeOption, data) {
         var source = [];
         var append = [];
+        var hasDefine = false;
         for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
             var item = data_1[_i];
             if (this.isThemeDef(item)) {
+                hasDefine = true;
                 continue;
             }
             if (this.isThemeStyle(item)) {
@@ -123,7 +169,7 @@ var ThemeStyleCompiler = (function () {
             }
             source.push(__assign(__assign({}, item), { children: s }));
         }
-        return [source, append];
+        return [source, append, hasDefine];
     };
     ThemeStyleCompiler.prototype.cloneStyle = function (themeOption, data, theme) {
         var children = [];
@@ -145,7 +191,10 @@ var ThemeStyleCompiler = (function () {
         var _a;
         if (theme === void 0) { theme = 'default'; }
         if (themeOption[theme][name]) {
-            return [themeOption[theme][name], true];
+            return [
+                this.useVar ? "var(".concat(this.formatVarKey(name), ")") : themeOption[theme][name],
+                true
+            ];
         }
         if (name.indexOf('.') >= 0) {
             _a = (0, util_1.splitStr)(name, '.', 2), theme = _a[0], name = _a[1];
@@ -154,6 +203,9 @@ var ThemeStyleCompiler = (function () {
             }
         }
         throw new Error("[".concat(theme, "].").concat(name, " is error value"));
+    };
+    ThemeStyleCompiler.prototype.formatVarKey = function (name) {
+        return "--".concat(this.varPrefix, "-").concat((0, util_1.unStudly)(name));
     };
     ThemeStyleCompiler.prototype.isThemeStyle = function (item) {
         if (item.type !== tokenizer_1.StyleTokenType.STYLE) {

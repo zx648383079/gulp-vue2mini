@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.studly = exports.firstUpper = exports.twoPad = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
+exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.unStudly = exports.studly = exports.firstUpper = exports.twoPad = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
 var fs = require("fs");
 var path = require("path");
 var compiler_1 = require("../compiler");
@@ -60,6 +60,29 @@ function studly(val, isFirstUpper) {
     return items.join('');
 }
 exports.studly = studly;
+function unStudly(val, link, isFirstLink) {
+    if (link === void 0) { link = '-'; }
+    if (isFirstLink === void 0) { isFirstLink = false; }
+    if (!val || val.length < 1) {
+        return '';
+    }
+    var items = [];
+    val.split(/[A-Z\s]/).forEach(function (item) {
+        if (item.length < 1) {
+            return;
+        }
+        if (!isFirstLink && items.length < 1) {
+            items.push(item);
+            return;
+        }
+        items.push(link);
+        if (item.trim().length > 0) {
+            items.push(item.toLowerCase());
+        }
+    });
+    return items.join('');
+}
+exports.unStudly = unStudly;
 function eachFile(folder, cb) {
     if (!folder) {
         return;

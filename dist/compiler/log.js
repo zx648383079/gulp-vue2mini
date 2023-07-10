@@ -68,7 +68,7 @@ var LogLevel;
     LogLevel[LogLevel["warn"] = 2] = "warn";
     LogLevel[LogLevel["info"] = 3] = "info";
     LogLevel[LogLevel["debug"] = 4] = "debug";
-})(LogLevel = exports.LogLevel || (exports.LogLevel = {}));
+})(LogLevel || (exports.LogLevel = LogLevel = {}));
 var Logger = (function () {
     function Logger() {
         var _a;
