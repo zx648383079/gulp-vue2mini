@@ -1,4 +1,13 @@
 "use strict";
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StyleParser = void 0;
 var path = require("path");
@@ -13,15 +22,17 @@ var StyleParser = (function () {
         this.project = project;
         this.themeItems = {};
         this.tokenizer = new tokenizer_1.StyleTokenizer();
+        this.preppendItems = [];
         this.importer = {
             canonicalize: function (url, _) {
                 return new URL(url);
             },
             load: function (url) {
                 var fileName = url.toString();
+                var ext = (0, util_1.getExtensionName)(fileName);
                 return {
-                    contents: _this.render(new compiler_1.CompilerFile(fileName, 0)),
-                    syntax: (0, util_1.getExtensionName)(fileName) === 'sass' ? 'indented' : 'scss'
+                    contents: _this.renderPart(new compiler_1.CompilerFile(fileName, 0, undefined, ext)),
+                    syntax: ext === 'sass' ? 'indented' : 'scss'
                 };
             }
         };
@@ -39,7 +50,13 @@ var StyleParser = (function () {
         return Object.prototype.hasOwnProperty.call(this.themeItems, theme) ? this.themeItems[theme] : undefined;
     };
     StyleParser.prototype.render = function (file) {
+        this.preppendItems = [];
+        var content = this.renderPart(file, true);
+        return __spreadArray(__spreadArray([], this.preppendItems, true), [this.compiler.renderTheme(this.themeItems), content], false).join('\n');
+    };
+    StyleParser.prototype.renderPart = function (file, isEntry) {
         var _this = this;
+        if (isEntry === void 0) { isEntry = false; }
         var content = file.content ? file.content : this.project.fileContent(file);
         var needTheme = this.needTheme(content);
         var hasTheme = this.hasTheme(content);
@@ -51,9 +68,11 @@ var StyleParser = (function () {
             var _a = this.compiler.separateThemeStyle(blockItems), theme = _a[0], items = _a[1];
             this.pushTheme(theme);
             blockItems = items;
-            this.project.link.lock(file.src, function () {
-                _this.project.link.trigger('theme', file.mtime);
-            });
+            if (isEntry) {
+                this.project.link.lock(file.src, function () {
+                    _this.project.link.trigger('theme', file.mtime);
+                });
+            }
         }
         this.project.link.push('theme', file.src);
         content = this.compiler.formatThemeCss(blockItems, this.themeItems);
@@ -88,9 +107,13 @@ var StyleParser = (function () {
         var ext = file.extname;
         var folder = file.dirname;
         return (0, util_1.regexReplace)(content, /@(import|use)\s+["'](.+?)["'];*/g, function (match) {
+            if (match[2].startsWith('sass:')) {
+                _this.preppendItems.push(match[0]);
+                return '';
+            }
             var importFile = path.resolve(folder, match[2].indexOf('.') > 0 ? match[2] : ('_' + match[2] + ext));
             _this.project.link.push(importFile, file.src);
-            return _this.render(new compiler_1.CompilerFile(importFile, file.mtime));
+            return _this.renderPart(new compiler_1.CompilerFile(importFile, file.mtime, undefined, (0, util_1.getExtensionName)(importFile)));
         });
     };
     StyleParser.prototype.hasTheme = function (content) {

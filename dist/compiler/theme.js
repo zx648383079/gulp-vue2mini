@@ -40,21 +40,24 @@ var ThemeStyleCompiler = (function () {
     ThemeStyleCompiler.prototype.render = function (data) {
         return this.formatThemeCss(data);
     };
+    ThemeStyleCompiler.prototype.renderTheme = function (themeOption) {
+        if (!themeOption || !this.useVar) {
+            return '';
+        }
+        return this.compiler.render(this.formatThemeHeader(themeOption));
+    };
     ThemeStyleCompiler.prototype.themeCss = function (items, themeOption) {
         var _a;
         var _this = this;
         if (!themeOption) {
             _a = this.separateThemeStyle(items), themeOption = _a[0], items = _a[1];
         }
-        var _b = this.splitThemeStyle(themeOption, items), finishItems = _b[0], appendItems = _b[1], hasThemeDefine = _b[2];
+        var _b = this.splitThemeStyle(themeOption, items), finishItems = _b[0], appendItems = _b[1];
         if (appendItems.length < 1) {
             return finishItems;
         }
         if (this.useVar) {
-            if (hasThemeDefine) {
-                return finishItems;
-            }
-            return __spreadArray(__spreadArray([], this.formatThemeHeader(themeOption), true), finishItems, true);
+            return finishItems;
         }
         Object.keys(themeOption).forEach(function (theme) {
             if (theme === 'default') {

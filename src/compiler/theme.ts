@@ -20,19 +20,28 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return this.formatThemeCss(data);
     }
 
+    public renderTheme(themeOption?: IThemeObject): string {
+        if (!themeOption || !this.useVar) {
+            return '';
+        }
+        return this.compiler.render(this.formatThemeHeader(themeOption));
+    }
+
     public themeCss(items: StyleToken[], themeOption?: IThemeObject): StyleToken[] {
         if (!themeOption) {
             [themeOption, items] = this.separateThemeStyle(items);
         }
-        const [finishItems, appendItems, hasThemeDefine] = this.splitThemeStyle(themeOption!, items);
+        const [finishItems, appendItems, // hasThemeDefine
+        ] = this.splitThemeStyle(themeOption!, items);
         if (appendItems.length < 1) {
             return finishItems;
         }
         if (this.useVar) {
-            if (hasThemeDefine) {
-                return finishItems;
-            }
-            return [...this.formatThemeHeader(themeOption!), ...finishItems];
+            // if (hasThemeDefine) {
+            //     return finishItems;
+            // }
+            return finishItems;
+            // return [...this.formatThemeHeader(themeOption!), ...finishItems];
         }
         Object.keys(themeOption!).forEach(theme => {
             if (theme === 'default') {

@@ -10,6 +10,7 @@ export declare class ThemeStyleCompiler implements Compiler<StyleToken[], string
     private compiler;
     constructor(autoDark?: boolean, useVar?: boolean, varPrefix?: string, tokenizer?: StyleTokenizer, compiler?: StyleCompiler);
     render(data: StyleToken[]): string;
+    renderTheme(themeOption?: IThemeObject): string;
     themeCss(items: StyleToken[], themeOption?: IThemeObject): StyleToken[];
     private formatThemeHeader;
     private themeStyle;

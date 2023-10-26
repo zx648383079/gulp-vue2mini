@@ -20,6 +20,7 @@ export class StyleParser {
     private themeItems: IThemeObject = {};
     private tokenizer = new StyleTokenizer();
     private compiler: ThemeStyleCompiler;
+    private preppendItems: string[] = [];
 
     public get length() {
         return Object.keys(this.themeItems).length;
@@ -30,6 +31,12 @@ export class StyleParser {
     }
     
     public render(file: CompilerFile): string {
+        this.preppendItems = [];
+        const content = this.renderPart(file, true);
+        return [...this.preppendItems, this.compiler.renderTheme(this.themeItems), content].join('\n');
+    }
+
+    private renderPart(file: CompilerFile, isEntry = false): string {
         let content = file.content ? file.content : this.project.fileContent(file);
         const needTheme = this.needTheme(content);
         const hasTheme = this.hasTheme(content);
@@ -41,9 +48,12 @@ export class StyleParser {
             const [theme, items] = this.compiler.separateThemeStyle(blockItems);
             this.pushTheme(theme);
             blockItems = items;
-            this.project.link.lock(file.src, () => {
-                this.project.link.trigger('theme', file.mtime);
-            });
+            if (isEntry) {
+                // 只有初始文件才会触发
+                this.project.link.lock(file.src, () => {
+                    this.project.link.trigger('theme', file.mtime);
+                });
+            }
         }
         this.project.link.push('theme', file.src);
         content = this.compiler.formatThemeCss(blockItems, this.themeItems);
@@ -79,9 +89,13 @@ export class StyleParser {
         const ext = file.extname;
         const folder = file.dirname;
         return regexReplace(content, /@(import|use)\s+["'](.+?)["'];*/g, match => {
+            if (match[2].startsWith('sass:')) {
+                this.preppendItems.push(match[0]);
+                return '';
+            }
             const importFile = path.resolve(folder, match[2].indexOf('.') > 0 ? match[2] : ('_' + match[2] + ext));
             this.project.link.push(importFile, file.src);
-            return this.render(new CompilerFile(importFile, file.mtime));
+            return this.renderPart(new CompilerFile(importFile, file.mtime, undefined, getExtensionName(importFile)));
         });
     }
 
@@ -99,9 +113,10 @@ export class StyleParser {
         },
         load: url => {
             const fileName = url.toString();
+            const ext = getExtensionName(fileName);
             return {
-                contents: this.render(new CompilerFile(fileName, 0)),
-                syntax: getExtensionName(fileName) === 'sass' ? 'indented' : 'scss'
+                contents: this.renderPart(new CompilerFile(fileName, 0, undefined, ext)),
+                syntax: ext === 'sass' ? 'indented' : 'scss'
             };
         }
     };
