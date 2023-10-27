@@ -23,7 +23,7 @@ export class ThemePlugin {
             .concat(compilation.additionalChunkAssets || [])
             .filter(ModuleFilenameHelpers.matchObject.bind(null, {test: /\.(js|css|sass|scss|less)(\?.*)?$/i})).forEach(file => {
                 const asset = compilation.assets[file];
-                const content = this.compiler.formatThemeCss(String(asset.source()), this.option);
+                const content = this.compiler.renderString(String(asset.source()), this.option);
                 compilation.assets[file] = new RawSource(content) as any;
             });
         });

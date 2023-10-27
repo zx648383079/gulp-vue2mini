@@ -17,7 +17,7 @@ export function gulpTheme(autoDark = true, useVar = false, varPrefix = 'zre') {
                 return callback();
             }
             const compiler = new ThemeStyleCompiler(autoDark, useVar, varPrefix);
-            const content = compiler.formatThemeCss(String(file.contents));
+            const content = compiler.renderString(String(file.contents));
             file.contents = Buffer.from(content);
             return callback(undefined, file);
         }

@@ -38,13 +38,40 @@ var ThemeStyleCompiler = (function () {
         this.compiler = compiler;
     }
     ThemeStyleCompiler.prototype.render = function (data) {
-        return this.formatThemeCss(data);
+        return this.renderAny(data)[0];
     };
-    ThemeStyleCompiler.prototype.renderTheme = function (themeOption) {
+    ThemeStyleCompiler.prototype.renderTheme = function (themeOption, keys) {
         if (!themeOption || !this.useVar) {
             return '';
         }
-        return this.compiler.render(this.formatThemeHeader(themeOption));
+        return this.compiler.render(this.formatThemeHeader(themeOption, keys));
+    };
+    ThemeStyleCompiler.prototype.renderString = function (content, themeOption) {
+        if (!this.useVar || !themeOption) {
+            return this.renderAny(content)[0];
+        }
+        if (content.trim().length < 1) {
+            return content;
+        }
+        this.tokenizer.autoIndent(content);
+        var tokens = this.tokenizer.render(content);
+        var _a = this.themeCss(tokens, themeOption), items = _a[0], theme = _a[1], keys = _a[2];
+        return this.compiler.render(__spreadArray(__spreadArray([], this.formatThemeHeader(theme, keys), true), items, true));
+    };
+    ThemeStyleCompiler.prototype.renderAny = function (content, themeOption) {
+        var tokens;
+        if (typeof content !== 'object') {
+            if (content.trim().length < 1) {
+                return [content, themeOption, []];
+            }
+            this.tokenizer.autoIndent(content);
+            tokens = this.tokenizer.render(content);
+        }
+        else {
+            tokens = content;
+        }
+        var _a = this.themeCss(tokens, themeOption), items = _a[0], theme = _a[1], keys = _a[2];
+        return [this.compiler.render(items), theme, keys];
     };
     ThemeStyleCompiler.prototype.themeCss = function (items, themeOption) {
         var _a;
@@ -52,12 +79,9 @@ var ThemeStyleCompiler = (function () {
         if (!themeOption) {
             _a = this.separateThemeStyle(items), themeOption = _a[0], items = _a[1];
         }
-        var _b = this.splitThemeStyle(themeOption, items), finishItems = _b[0], appendItems = _b[1];
-        if (appendItems.length < 1) {
-            return finishItems;
-        }
-        if (this.useVar) {
-            return finishItems;
+        var _b = this.splitThemeStyle(themeOption, items), finishItems = _b[0], appendItems = _b[1], _ = _b[2], keys = _b[3];
+        if (appendItems.length < 1 || this.useVar) {
+            return [finishItems, themeOption, keys];
         }
         Object.keys(themeOption).forEach(function (theme) {
             if (theme === 'default') {
@@ -96,14 +120,20 @@ var ThemeStyleCompiler = (function () {
                 children: this.cloneStyle(themeOption, appendItems, 'dark')
             });
         }
-        return finishItems;
+        return [finishItems, themeOption, keys];
     };
-    ThemeStyleCompiler.prototype.formatThemeHeader = function (themeOption) {
+    ThemeStyleCompiler.prototype.formatThemeHeader = function (themeOption, keys) {
         var _this = this;
+        if (typeof keys !== 'undefined' && keys.length === 0) {
+            return [];
+        }
         var items = [];
         var toThemeVar = function (data, root) {
             var children = [];
             (0, util_1.eachObject)(data, function (v, k) {
+                if (typeof keys !== 'undefined' && keys.indexOf(k) < 0) {
+                    return;
+                }
                 children.push({
                     type: tokenizer_1.StyleTokenType.STYLE,
                     name: _this.formatVarKey(k),
@@ -135,19 +165,20 @@ var ThemeStyleCompiler = (function () {
     ThemeStyleCompiler.prototype.themeStyle = function (themeOption, item, theme) {
         var _this = this;
         if (theme === void 0) { theme = 'default'; }
-        var hasCall = false;
+        var keys = [];
         var res = (0, util_1.regexReplace)(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, function (match) {
-            var _a = _this.themeStyleValue(themeOption, match[2], theme), val = _a[0], isCall = _a[1];
-            if (isCall) {
-                hasCall = true;
+            var _a = _this.themeStyleValue(themeOption, match[2], theme), val = _a[0], callKey = _a[1];
+            if (callKey) {
+                keys.push(callKey);
             }
             return match[1] + val;
         });
-        return [res, hasCall];
+        return [res, keys];
     };
     ThemeStyleCompiler.prototype.splitThemeStyle = function (themeOption, data) {
         var source = [];
         var append = [];
+        var keys = [];
         var hasDefine = false;
         for (var _i = 0, data_1 = data; _i < data_1.length; _i++) {
             var item = data_1[_i];
@@ -156,9 +187,10 @@ var ThemeStyleCompiler = (function () {
                 continue;
             }
             if (this.isThemeStyle(item)) {
-                var _a = this.themeStyle(themeOption, item), val = _a[0], isCall = _a[1];
-                if (isCall) {
+                var _a = this.themeStyle(themeOption, item), val = _a[0], callKeys_1 = _a[1];
+                if (callKeys_1.length > 0) {
                     append.push(__assign({}, item));
+                    keys.push.apply(keys, callKeys_1);
                 }
                 item.content = val;
             }
@@ -166,13 +198,16 @@ var ThemeStyleCompiler = (function () {
                 source.push(item);
                 continue;
             }
-            var _b = this.splitThemeStyle(themeOption, item.children), s = _b[0], a = _b[1];
+            var _b = this.splitThemeStyle(themeOption, item.children), s = _b[0], a = _b[1], _ = _b[2], callKeys = _b[3];
             if (a.length > 0) {
                 append.push(__assign(__assign({}, item), { children: a }));
             }
+            if (callKeys.length > 0) {
+                keys.push.apply(keys, callKeys);
+            }
             source.push(__assign(__assign({}, item), { children: s }));
         }
-        return [source, append, hasDefine];
+        return [source, append, hasDefine, keys.filter(function (v, i, self) { return self.indexOf(v) === i; })];
     };
     ThemeStyleCompiler.prototype.cloneStyle = function (themeOption, data, theme) {
         var children = [];
@@ -196,13 +231,13 @@ var ThemeStyleCompiler = (function () {
         if (themeOption[theme][name]) {
             return [
                 this.useVar ? "var(".concat(this.formatVarKey(name), ")") : themeOption[theme][name],
-                true
+                name
             ];
         }
         if (name.indexOf('.') >= 0) {
             _a = (0, util_1.splitStr)(name, '.', 2), theme = _a[0], name = _a[1];
             if (themeOption[theme][name]) {
-                return [themeOption[theme][name], false];
+                return [themeOption[theme][name], undefined];
             }
         }
         throw new Error("[".concat(theme, "].").concat(name, " is error value"));
@@ -215,21 +250,6 @@ var ThemeStyleCompiler = (function () {
             return false;
         }
         return /(,|\s|\(|^)@[a-z]/.test(item.content);
-    };
-    ThemeStyleCompiler.prototype.formatThemeCss = function (content, themeOption) {
-        var items;
-        if (typeof content !== 'object') {
-            if (content.trim().length < 1) {
-                return content;
-            }
-            this.tokenizer.autoIndent(content);
-            items = this.tokenizer.render(content);
-        }
-        else {
-            items = content;
-        }
-        items = this.themeCss(items, themeOption);
-        return this.compiler.render(items);
     };
     ThemeStyleCompiler.prototype.separateThemeStyle = function (items) {
         var themeOption = {};

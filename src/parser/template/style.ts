@@ -21,6 +21,7 @@ export class StyleParser {
     private tokenizer = new StyleTokenizer();
     private compiler: ThemeStyleCompiler;
     private preppendItems: string[] = [];
+    private themeUsedKeys: string[] = [];
 
     public get length() {
         return Object.keys(this.themeItems).length;
@@ -32,8 +33,9 @@ export class StyleParser {
     
     public render(file: CompilerFile): string {
         this.preppendItems = [];
+        this.themeUsedKeys = [];
         const content = this.renderPart(file, true);
-        return [...this.preppendItems, this.compiler.renderTheme(this.themeItems), content].join('\n');
+        return [...this.preppendItems, this.compiler.renderTheme(this.themeItems, this.themeUsedKeys), content].join('\n');
     }
 
     private renderPart(file: CompilerFile, isEntry = false): string {
@@ -56,8 +58,16 @@ export class StyleParser {
             }
         }
         this.project.link.push('theme', file.src);
-        content = this.compiler.formatThemeCss(blockItems, this.themeItems);
-        return this.renderImport(content, file);
+        let [res, _, keys] = this.compiler.renderAny(blockItems, this.themeItems);
+        if (keys.length > 0) {
+            for (const key of keys) {
+                if (this.themeUsedKeys.indexOf(key) >= 0) {
+                    continue;
+                }
+                this.themeUsedKeys.push(key);
+            }
+        }
+        return this.renderImport(res, file);
     }
 
     public pushTheme(items: IThemeObject) {

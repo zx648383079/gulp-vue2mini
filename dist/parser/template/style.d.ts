@@ -9,6 +9,7 @@ export declare class StyleParser {
     private tokenizer;
     private compiler;
     private preppendItems;
+    private themeUsedKeys;
     get length(): number;
     get(theme: string): import("./tokenizer").IThemeOption | undefined;
     render(file: CompilerFile): string;

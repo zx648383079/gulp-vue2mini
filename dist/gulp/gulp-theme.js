@@ -17,7 +17,7 @@ function gulpTheme(autoDark, useVar, varPrefix) {
                 return callback();
             }
             var compiler = new compiler_1.ThemeStyleCompiler(autoDark, useVar, varPrefix);
-            var content = compiler.formatThemeCss(String(file.contents));
+            var content = compiler.renderString(String(file.contents));
             file.contents = Buffer.from(content);
             return callback(undefined, file);
         }

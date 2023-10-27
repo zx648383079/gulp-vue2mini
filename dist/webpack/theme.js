@@ -24,7 +24,7 @@ var ThemePlugin = (function () {
                 .concat(compilation.additionalChunkAssets || [])
                 .filter(webpack_1.ModuleFilenameHelpers.matchObject.bind(null, { test: /\.(js|css|sass|scss|less)(\?.*)?$/i })).forEach(function (file) {
                 var asset = compilation.assets[file];
-                var content = _this.compiler.formatThemeCss(String(asset.source()), _this.option);
+                var content = _this.compiler.renderString(String(asset.source()), _this.option);
                 compilation.assets[file] = new webpack_sources_1.RawSource(content);
             });
         });

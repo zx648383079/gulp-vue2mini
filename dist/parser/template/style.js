@@ -23,6 +23,7 @@ var StyleParser = (function () {
         this.themeItems = {};
         this.tokenizer = new tokenizer_1.StyleTokenizer();
         this.preppendItems = [];
+        this.themeUsedKeys = [];
         this.importer = {
             canonicalize: function (url, _) {
                 return new URL(url);
@@ -51,8 +52,9 @@ var StyleParser = (function () {
     };
     StyleParser.prototype.render = function (file) {
         this.preppendItems = [];
+        this.themeUsedKeys = [];
         var content = this.renderPart(file, true);
-        return __spreadArray(__spreadArray([], this.preppendItems, true), [this.compiler.renderTheme(this.themeItems), content], false).join('\n');
+        return __spreadArray(__spreadArray([], this.preppendItems, true), [this.compiler.renderTheme(this.themeItems, this.themeUsedKeys), content], false).join('\n');
     };
     StyleParser.prototype.renderPart = function (file, isEntry) {
         var _this = this;
@@ -75,8 +77,17 @@ var StyleParser = (function () {
             }
         }
         this.project.link.push('theme', file.src);
-        content = this.compiler.formatThemeCss(blockItems, this.themeItems);
-        return this.renderImport(content, file);
+        var _b = this.compiler.renderAny(blockItems, this.themeItems), res = _b[0], _ = _b[1], keys = _b[2];
+        if (keys.length > 0) {
+            for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
+                var key = keys_1[_i];
+                if (this.themeUsedKeys.indexOf(key) >= 0) {
+                    continue;
+                }
+                this.themeUsedKeys.push(key);
+            }
+        }
+        return this.renderImport(res, file);
     };
     StyleParser.prototype.pushTheme = function (items) {
         var _a;

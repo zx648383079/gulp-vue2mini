@@ -17,31 +17,73 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
     }
 
     public render(data: StyleToken[]): string {
-        return this.formatThemeCss(data);
+        return this.renderAny(data)[0];
     }
 
-    public renderTheme(themeOption?: IThemeObject): string {
+    /**
+     * 给主题声明生成字符串
+     * @param themeOption 
+     * @param keys 
+     * @returns 
+     */
+    public renderTheme(themeOption?: IThemeObject, keys?: string[]): string {
         if (!themeOption || !this.useVar) {
             return '';
         }
-        return this.compiler.render(this.formatThemeHeader(themeOption));
+        return this.compiler.render(this.formatThemeHeader(themeOption, keys));
     }
 
-    public themeCss(items: StyleToken[], themeOption?: IThemeObject): StyleToken[] {
+    /**
+     * 编译主题，同时引入主题声明
+     * @param content 
+     * @param themeOption 
+     * @returns 
+     */
+    public renderString(content: string, themeOption?: IThemeObject): string {
+        if (!this.useVar || !themeOption) {
+            return this.renderAny(content)[0];
+        }
+        if (content.trim().length < 1) {
+            return content;
+        }
+        this.tokenizer.autoIndent(content);
+        let tokens = this.tokenizer.render(content);
+        let [items, theme, keys] = this.themeCss(tokens, themeOption);
+        return this.compiler.render([...this.formatThemeHeader(theme, keys), ...items]);
+    }
+
+    public renderAny(items: StyleToken[]): [string, IThemeObject, string[]];
+    public renderAny(items: StyleToken[], themeOption: IThemeObject): [string, IThemeObject, string[]];
+    public renderAny(content: string): [string, IThemeObject, string[]];
+    public renderAny(content: string, themeOption: IThemeObject): [string, IThemeObject, string[]];
+    /**
+     * 编译主题，不加主题声明
+     * @param content 
+     * @param themeOption 
+     * @returns 返回 string, 主题，主题声明字段
+     */
+    public renderAny(content: string|StyleToken[], themeOption?: IThemeObject): [string, IThemeObject, string[]] {
+        let tokens: StyleToken[];
+        if (typeof content !== 'object') {
+            if (content.trim().length < 1) {
+                return [content, themeOption!, []];
+            }
+            this.tokenizer.autoIndent(content);
+            tokens = this.tokenizer.render(content);
+        } else {
+            tokens = content;
+        }
+        const [items, theme, keys] = this.themeCss(tokens, themeOption);
+        return [this.compiler.render(items), theme, keys];
+    }
+
+    private themeCss(items: StyleToken[], themeOption?: IThemeObject): [StyleToken[], IThemeObject, string[]] {
         if (!themeOption) {
             [themeOption, items] = this.separateThemeStyle(items);
         }
-        const [finishItems, appendItems, // hasThemeDefine
-        ] = this.splitThemeStyle(themeOption!, items);
-        if (appendItems.length < 1) {
-            return finishItems;
-        }
-        if (this.useVar) {
-            // if (hasThemeDefine) {
-            //     return finishItems;
-            // }
-            return finishItems;
-            // return [...this.formatThemeHeader(themeOption!), ...finishItems];
+        const [finishItems, appendItems, _, keys] = this.splitThemeStyle(themeOption!, items);
+        if (appendItems.length < 1 || this.useVar) {
+            return [finishItems, themeOption!, keys];
         }
         Object.keys(themeOption!).forEach(theme => {
             if (theme === 'default') {
@@ -79,14 +121,20 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
                 children: this.cloneStyle(themeOption!, appendItems, 'dark')
             });
         }
-        return finishItems;
+        return [finishItems, themeOption!, keys];
     }
 
-    private formatThemeHeader(themeOption: IThemeObject): StyleToken[] {
+    private formatThemeHeader(themeOption: IThemeObject, keys?: string[]): StyleToken[] {
+        if (typeof keys !== 'undefined' && keys.length === 0) {
+            return [];
+        }
         const items: StyleToken[] = [];
         const toThemeVar = (data: IThemeOption, root: string): StyleToken => {
             const children: StyleToken[] = [];
             eachObject(data, (v, k) => {
+                if (typeof keys !== 'undefined' && keys.indexOf(k as string) < 0) {
+                    return;
+                }
                 children.push({
                     type: StyleTokenType.STYLE,
                     name: this.formatVarKey(k as any),
@@ -116,21 +164,22 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
         return items;
     }
 
-    private themeStyle(themeOption: IThemeObject, item: StyleToken, theme = 'default'): (string|boolean)[] {
-        let hasCall = false;
+    private themeStyle(themeOption: IThemeObject, item: StyleToken, theme = 'default'): [string, string[]] {
+        const keys: string[] = [];
         const res = regexReplace(item.content as string, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
-            const [val, isCall] = this.themeStyleValue(themeOption, match[2], theme);
-            if (isCall) {
-                hasCall = true;
+            const [val, callKey] = this.themeStyleValue(themeOption, match[2], theme);
+            if (callKey) {
+                keys.push(callKey);
             }
             return match[1] + val;
         });
-        return [res, hasCall];
+        return [res, keys];
     }
 
-    private splitThemeStyle(themeOption: IThemeObject, data: StyleToken[]): [StyleToken[], StyleToken[], boolean] {
+    private splitThemeStyle(themeOption: IThemeObject, data: StyleToken[]): [StyleToken[], StyleToken[], boolean, string[]] {
         const source = [];
         const append = [];
+        const keys: string[] = [];
         let hasDefine = false;
         for (const item of data) {
             if (this.isThemeDef(item)) {
@@ -138,9 +187,10 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
                 continue;
             }
             if (this.isThemeStyle(item)) {
-                const [val, isCall] = this.themeStyle(themeOption, item);
-                if (isCall) {
+                const [val, callKeys] = this.themeStyle(themeOption, item);
+                if (callKeys.length > 0) {
                     append.push({...item});
+                    keys.push(...callKeys);
                 }
                 item.content = val as string;
             }
@@ -148,13 +198,16 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
                 source.push(item);
                 continue;
             }
-            let [s, a] = this.splitThemeStyle(themeOption, item.children);
+            let [s, a, _, callKeys] = this.splitThemeStyle(themeOption, item.children);
             if (a.length > 0) {
                 append.push({...item, children: a});
             }
+            if (callKeys.length > 0) {
+                keys.push(...callKeys);
+            }
             source.push({...item, children: s});
         }
-        return [source, append, hasDefine];
+        return [source, append, hasDefine, keys.filter((v, i, self) => self.indexOf(v) === i)];
     }
 
     private cloneStyle(themeOption: IThemeObject, data: StyleToken[], theme: string): StyleToken[] {
@@ -178,19 +231,19 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
      * @param themeOption 
      * @param name 
      * @param theme 
-     * @returns [属性值, 是否引用主题]
+     * @returns [属性值, 引用的值名]
      */
-    private themeStyleValue(themeOption: IThemeObject, name: string, theme = 'default'): (string|boolean)[] {
+    private themeStyleValue(themeOption: IThemeObject, name: string, theme = 'default'): [string, string|undefined] {
         if (themeOption![theme][name]) {
             return [
                 this.useVar ? `var(${this.formatVarKey(name)})` : themeOption![theme][name]
-                , true];
+                , name];
         }
         // 允许通过 theme.name 的方式直接访问值
         if (name.indexOf('.') >= 0) {
             [theme, name] = splitStr(name, '.', 2);
             if (themeOption![theme][name]) {
-                return [themeOption![theme][name], false];
+                return [themeOption![theme][name], undefined];
             }
         }
         throw new Error(`[${theme}].${name} is error value`);
@@ -205,25 +258,6 @@ export class ThemeStyleCompiler implements Compiler<StyleToken[], string> {
             return false;
         }
         return /(,|\s|\(|^)@[a-z]/.test(item.content as string);
-    }
-
-    public formatThemeCss(items: StyleToken[]): string;
-    public formatThemeCss(items: StyleToken[], themeOption: IThemeObject): string;
-    public formatThemeCss(content: string): string;
-    public formatThemeCss(content: string, themeOption: IThemeObject): string;
-    public formatThemeCss(content: string|StyleToken[], themeOption?: IThemeObject): string {
-        let items: StyleToken[];
-        if (typeof content !== 'object') {
-            if (content.trim().length < 1) {
-                return content;
-            }
-            this.tokenizer.autoIndent(content);
-            items = this.tokenizer.render(content);
-        } else {
-            items = content;
-        }
-        items = this.themeCss(items, themeOption);
-        return this.compiler.render(items);
     }
 
     public separateThemeStyle(items: StyleToken[]): any[] {
