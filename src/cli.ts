@@ -7,11 +7,13 @@ import { formatArgv } from './argv';
 import { StyleProject } from './parser/style/style';
 import { CompilerFile, IProjectCompiler, LogLevel } from './compiler';
 import { eachFile } from './util';
+import { PackProject } from './parser/pack/project';
 
 process.env.INIT_CWD = process.cwd();
 
 const argv = formatArgv(process.argv, {
     mini: false,
+    custom: false,
     css: false,
     theme: false,
     watch: false,
@@ -26,6 +28,7 @@ const helpText = `
 Usage: vue2mini <command>
     --mini 编译小程序
     --theme 编译模板
+    --custom 自定义功能，引用当前目录中的 packfile.js
     --css 转css为scss
     --prefix 前缀,css 中的值前缀, 有值则启用var, 默认启用
     --help 帮助
@@ -65,6 +68,9 @@ const createProject = (): IProjectCompiler|undefined => {
     if (argv.params.css) {
         return new StyleProject(inputFolder, outputFolder, argv.params);
     }
+    if (argv.params.custom) {
+        return new PackProject(inputFolder, outputFolder, argv.params);
+    }
     return undefined;
 };
 
@@ -97,7 +103,9 @@ const renderFile = (file: CompilerFile|string) => {
     }
 };
 
-if (argv.params.watch) {
+if (project instanceof PackProject) {
+    project.compile();
+} else if (argv.params.watch) {
     chokidar.watch(inputFolder).on('unlink', file => {
         project?.unlink(file);
     }).on('add', (file, stats) => {

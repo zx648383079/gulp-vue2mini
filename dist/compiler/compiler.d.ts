@@ -38,6 +38,7 @@ export declare class BaseProjectCompiler {
     outputFile(file: string | CompilerFile): string;
     unlink(src: string | CompilerFile): void;
     logFile(file: string | CompilerFile, tip?: string, level?: LogLevel): void;
+    log(key: string, tip?: string, level?: LogLevel): void;
 }
 export declare class PluginCompiler {
     static ts(input: string, file: string, tsConfigFileName?: string, sourceMap?: boolean): string;

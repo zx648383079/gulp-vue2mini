@@ -1,12 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Attribute = void 0;
-var Attribute = (function () {
-    function Attribute(items) {
-        if (items === void 0) { items = {}; }
-        this.items = items;
-    }
-    Attribute.create = function (attribute) {
+class Attribute {
+    items;
+    static create(attribute) {
         if (!attribute) {
             return new Attribute();
         }
@@ -14,14 +11,17 @@ var Attribute = (function () {
             return attribute;
         }
         return new Attribute(attribute);
-    };
-    Attribute.prototype.get = function (key) {
+    }
+    constructor(items = {}) {
+        this.items = items;
+    }
+    get(key) {
         return this.items.hasOwnProperty(key) ? this.items[key] : undefined;
-    };
-    Attribute.prototype.has = function (key) {
+    }
+    has(key) {
         return this.items.hasOwnProperty(key);
-    };
-    Attribute.prototype.set = function (key, value) {
+    }
+    set(key, value) {
         if (typeof key === 'object') {
             Object.assign(this.items, key);
             return this;
@@ -31,31 +31,30 @@ var Attribute = (function () {
         }
         this.items[key] = value;
         return this;
-    };
-    Attribute.prototype.filter = function (cb) {
-        for (var key in this.items) {
+    }
+    filter(cb) {
+        for (const key in this.items) {
             if (this.items.hasOwnProperty(key) && cb(key, this.items[key]) === true) {
                 delete this.items[key];
             }
         }
         return this;
-    };
-    Attribute.prototype.delete = function (key) {
+    }
+    delete(key) {
         delete this.items[key];
         return this;
-    };
-    Attribute.prototype.on = function (keys, cb) {
-        var _this = this;
+    }
+    on(keys, cb) {
         if (typeof keys === 'object') {
-            keys.forEach(function (key) {
-                _this.on(key, cb);
+            keys.forEach(key => {
+                this.on(key, cb);
             });
             return this;
         }
         if (!this.items.hasOwnProperty(keys)) {
             return this;
         }
-        var val = cb(this.items[keys], keys);
+        const val = cb(this.items[keys], keys);
         if (typeof val === 'undefined') {
             delete this.items[keys];
             return this;
@@ -71,23 +70,22 @@ var Attribute = (function () {
         }
         this.items = Object.assign(this.items, val);
         return this;
-    };
-    Attribute.prototype.keys = function () {
+    }
+    keys() {
         return Object.keys(this.items);
-    };
-    Attribute.prototype.map = function (cb) {
-        var keys = this.keys();
-        for (var _i = 0, keys_1 = keys; _i < keys_1.length; _i++) {
-            var key = keys_1[_i];
+    }
+    map(cb) {
+        const keys = this.keys();
+        for (const key of keys) {
             if (this.items.hasOwnProperty(key)) {
                 cb(key, this.items[key]);
             }
         }
         return this;
-    };
-    Attribute.prototype.toString = function () {
-        var data = [];
-        this.map(function (key, value) {
+    }
+    toString() {
+        const data = [];
+        this.map((key, value) => {
             if (typeof value === 'undefined' || value === false) {
                 return;
             }
@@ -98,13 +96,12 @@ var Attribute = (function () {
             if (Array.isArray(value)) {
                 value = value.join(' ');
             }
-            data.push("".concat(key, "=\"").concat(value, "\""));
+            data.push(`${key}="${value}"`);
         });
         return data.join(' ');
-    };
-    Attribute.prototype.clone = function () {
+    }
+    clone() {
         return Attribute.create(JSON.parse(JSON.stringify(this.items)));
-    };
-    return Attribute;
-}());
+    }
+}
 exports.Attribute = Attribute;

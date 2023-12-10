@@ -1,47 +1,71 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StyleParser = exports.endImport = exports.preImport = exports.replaceTTF = exports.ttfToBase64 = void 0;
-var fs = require("fs");
-var path = require("path");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
 function ttfToBase64(file) {
-    var content = fs.readFileSync(file);
+    const content = fs.readFileSync(file);
     return 'url(\'data:font/truetype;charset=utf-8;base64,' + content.toString('base64') + '\') format(\'truetype\')';
 }
 exports.ttfToBase64 = ttfToBase64;
 function replaceTTF(content, folder) {
-    var reg = /@font-face\s*\{[^\{\}]+\}/g;
-    var matches = content.match(reg);
+    const reg = /@font-face\s*\{[^\{\}]+\}/g;
+    const matches = content.match(reg);
     if (!matches || matches.length < 1) {
         return content;
     }
-    var nameReg = /font-family:\s*[^;\{\}\(\)]+/;
-    var ttfReg = /url\(\s*['"]?([^\(\)]+\.ttf)/;
-    for (var _i = 0, matches_1 = matches; _i < matches_1.length; _i++) {
-        var macth = matches_1[_i];
-        var nameMatch = macth.match(nameReg);
+    const nameReg = /font-family:\s*[^;\{\}\(\)]+/;
+    const ttfReg = /url\(\s*['"]?([^\(\)]+\.ttf)/;
+    for (const macth of matches) {
+        const nameMatch = macth.match(nameReg);
         if (!nameMatch) {
             continue;
         }
-        var name_1 = nameMatch[0];
-        var ttfMatch = macth.match(ttfReg);
+        const name = nameMatch[0];
+        const ttfMatch = macth.match(ttfReg);
         if (!ttfMatch) {
             continue;
         }
-        var ttf = ttfMatch[1];
+        let ttf = ttfMatch[1];
         ttf = path.resolve(folder, ttf);
         ttf = ttfToBase64(ttf);
-        content = content.replace(macth, "@font-face {\n            ".concat(name_1, ";\n            src: ").concat(ttf, ";\n        }"));
+        content = content.replace(macth, `@font-face {
+            ${name};
+            src: ${ttf};
+        }`);
     }
     return content;
 }
 exports.replaceTTF = replaceTTF;
 function preImport(content) {
-    var matches = content.match(/(@import.+;)/g);
+    const matches = content.match(/(@import.+;)/g);
     if (!matches || matches.length < 1) {
         return content;
     }
-    for (var _i = 0, matches_2 = matches; _i < matches_2.length; _i++) {
-        var item = matches_2[_i];
+    for (const item of matches) {
         if (item.indexOf('.scss') < 0 && item.indexOf('.sass') < 0) {
             continue;
         }
@@ -51,23 +75,20 @@ function preImport(content) {
 }
 exports.preImport = preImport;
 function endImport(content) {
-    var matches = content.match(/\/\*\*\s{0,}parser\[(@.+)\]parser\s{0,}\*\*\//g);
+    const matches = content.match(/\/\*\*\s{0,}parser\[(@.+)\]parser\s{0,}\*\*\//g);
     if (!matches || matches.length < 1) {
         return content;
     }
-    for (var _i = 0, matches_3 = matches; _i < matches_3.length; _i++) {
-        var item = matches_3[_i];
+    for (const item of matches) {
         content = content.replace(item[0], item[1].replace('.scss', '.wxss').replace('.sass', '.wxss').replace('/src/', '/'));
     }
     return content;
 }
 exports.endImport = endImport;
-var StyleParser = (function () {
-    function StyleParser(_) {
-    }
-    StyleParser.prototype.render = function (content, _) {
+class StyleParser {
+    constructor(_) { }
+    render(content, _) {
         return content;
-    };
-    return StyleParser;
-}());
+    }
+}
 exports.StyleParser = StyleParser;

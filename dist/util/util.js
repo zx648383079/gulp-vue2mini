@@ -1,11 +1,34 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.unStudly = exports.studly = exports.firstUpper = exports.twoPad = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
-var fs = require("fs");
-var path = require("path");
-var compiler_1 = require("../compiler");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const compiler_1 = require("../compiler");
 exports.LINE_SPLITE = '\r\n';
-var splitLine = function (content) {
+const splitLine = (content) => {
     if (content.indexOf(exports.LINE_SPLITE) >= 0) {
         return content.split(exports.LINE_SPLITE);
     }
@@ -18,12 +41,12 @@ var splitLine = function (content) {
     return [content];
 };
 exports.splitLine = splitLine;
-var joinLine = function (lines) {
+const joinLine = (lines) => {
     return lines.join(exports.LINE_SPLITE);
 };
 exports.joinLine = joinLine;
 function twoPad(n) {
-    var str = n.toString();
+    const str = n.toString();
     return str[1] ? str : '0' + str;
 }
 exports.twoPad = twoPad;
@@ -41,13 +64,12 @@ function firstUpper(val) {
     return val.substring(0, 1).toUpperCase() + val.substring(1);
 }
 exports.firstUpper = firstUpper;
-function studly(val, isFirstUpper) {
-    if (isFirstUpper === void 0) { isFirstUpper = true; }
+function studly(val, isFirstUpper = true) {
     if (!val || val.length < 1) {
         return '';
     }
-    var items = [];
-    val.split(/[\.\s_-]+/).forEach(function (item) {
+    const items = [];
+    val.split(/[\.\s_-]+/).forEach(item => {
         if (item.length < 1) {
             return;
         }
@@ -60,14 +82,12 @@ function studly(val, isFirstUpper) {
     return items.join('');
 }
 exports.studly = studly;
-function unStudly(val, link, isFirstLink) {
-    if (link === void 0) { link = '-'; }
-    if (isFirstLink === void 0) { isFirstLink = false; }
+function unStudly(val, link = '-', isFirstLink = false) {
     if (!val || val.length < 1) {
         return '';
     }
-    var items = [];
-    val.split(/[A-Z\s]/).forEach(function (item) {
+    const items = [];
+    val.split(/[A-Z\s]/).forEach(item => {
         if (item.length < 1) {
             return;
         }
@@ -87,10 +107,10 @@ function eachFile(folder, cb) {
     if (!folder) {
         return;
     }
-    var dirInfo = fs.readdirSync(folder);
-    dirInfo.forEach(function (item) {
-        var location = path.join(folder, item);
-        var info = fs.statSync(location);
+    const dirInfo = fs.readdirSync(folder);
+    dirInfo.forEach(item => {
+        const location = path.join(folder, item);
+        const info = fs.statSync(location);
         if (info.isDirectory()) {
             eachFile(location, cb);
             return;
@@ -112,12 +132,12 @@ function cloneObject(val) {
         return val;
     }
     if (val instanceof Array) {
-        return val.map(function (item) {
+        return val.map(item => {
             return cloneObject(item);
         });
     }
-    var res = {};
-    for (var key in val) {
+    const res = {};
+    for (const key in val) {
         if (Object.prototype.hasOwnProperty.call(val, key)) {
             res[key] = cloneObject(val[key]);
         }
@@ -130,14 +150,14 @@ function eachObject(obj, cb) {
         return cb(obj, undefined);
     }
     if (obj instanceof Array) {
-        for (var i = 0; i < obj.length; i++) {
+        for (let i = 0; i < obj.length; i++) {
             if (cb(obj[i], i) === false) {
                 return false;
             }
         }
         return;
     }
-    for (var key in obj) {
+    for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
             if (cb(obj[key], key) === false) {
                 return false;
@@ -150,13 +170,13 @@ function regexReplace(content, pattern, cb) {
     if (content.length < 1) {
         return content;
     }
-    var matches = [];
-    var match;
+    const matches = [];
+    let match;
     while (null !== (match = pattern.exec(content))) {
         matches.push(match);
     }
-    var block = [];
-    for (var i = matches.length - 1; i >= 0; i--) {
+    const block = [];
+    for (let i = matches.length - 1; i >= 0; i--) {
         match = matches[i];
         block.push(content.substring(match.index + match[0].length));
         block.push(cb(match));
@@ -166,29 +186,28 @@ function regexReplace(content, pattern, cb) {
 }
 exports.regexReplace = regexReplace;
 function getExtensionName(fileName) {
-    var i = fileName.lastIndexOf('.');
+    const i = fileName.lastIndexOf('.');
     if (i < 0) {
         return '';
     }
     return fileName.substring(i + 1);
 }
 exports.getExtensionName = getExtensionName;
-function splitStr(val, serach, count) {
-    if (count === void 0) { count = 0; }
+function splitStr(val, serach, count = 0) {
     if (count < 1) {
         return val.split(serach);
     }
     if (count == 1) {
         return [val];
     }
-    var i = -1;
-    var data = [];
+    let i = -1;
+    const data = [];
     while (true) {
         if (count < 2) {
             data.push(val.substring(i));
             break;
         }
-        var index = val.indexOf(serach, i);
+        const index = val.indexOf(serach, i);
         if (index < 0) {
             data.push(val.substring(i));
             break;

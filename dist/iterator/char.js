@@ -1,83 +1,59 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CharIterator = void 0;
-var CharIterator = (function () {
-    function CharIterator(content) {
+class CharIterator {
+    content;
+    constructor(content) {
         this.content = content;
-        this.index = -1;
     }
-    Object.defineProperty(CharIterator.prototype, "length", {
-        get: function () {
-            return this.content.length;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CharIterator.prototype, "position", {
-        get: function () {
-            return this.index;
-        },
-        set: function (i) {
-            if (i < -1) {
-                i = -1;
-            }
-            else if (i > this.length) {
-                i = this.length;
-            }
-            this.index = i;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CharIterator.prototype, "canNext", {
-        get: function () {
-            return this.position < this.length - 1;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CharIterator.prototype, "canBack", {
-        get: function () {
-            return this.position > 0;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CharIterator.prototype, "current", {
-        get: function () {
-            return this.content.charAt(this.position);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    CharIterator.prototype.moveNext = function () {
+    index = -1;
+    get length() {
+        return this.content.length;
+    }
+    get position() {
+        return this.index;
+    }
+    set position(i) {
+        if (i < -1) {
+            i = -1;
+        }
+        else if (i > this.length) {
+            i = this.length;
+        }
+        this.index = i;
+    }
+    get canNext() {
+        return this.position < this.length - 1;
+    }
+    get canBack() {
+        return this.position > 0;
+    }
+    get current() {
+        return this.content.charAt(this.position);
+    }
+    moveNext() {
         if (!this.canNext) {
             return false;
         }
         this.position++;
         return true;
-    };
-    CharIterator.prototype.moveBack = function () {
+    }
+    moveBack() {
         if (!this.canBack) {
             return false;
         }
         this.position--;
         return true;
-    };
-    CharIterator.prototype.reset = function () {
+    }
+    reset() {
         this.position = -1;
-    };
-    CharIterator.prototype.nextIs = function () {
-        var items = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            items[_i] = arguments[_i];
-        }
+    }
+    nextIs(...items) {
         if (!this.canNext) {
             return false;
         }
-        var code = this.content.charAt(this.position + 1);
-        for (var _a = 0, items_1 = items; _a < items_1.length; _a++) {
-            var item = items_1[_a];
+        const code = this.content.charAt(this.position + 1);
+        for (const item of items) {
             if (item === '') {
                 continue;
             }
@@ -92,75 +68,67 @@ var CharIterator = (function () {
             }
         }
         return false;
-    };
-    CharIterator.prototype.read = function (length, offset) {
-        if (length === void 0) { length = 1; }
-        if (offset === void 0) { offset = 0; }
+    }
+    read(length = 1, offset = 0) {
         if (length === 0) {
             return '';
         }
-        var pos = (length < 0 ? this.position + length : this.position) + offset;
+        const pos = (length < 0 ? this.position + length : this.position) + offset;
         if (pos > this.length - 1) {
             return undefined;
         }
-        var len = length < 0 ? -length : length;
+        const len = length < 0 ? -length : length;
         return this.content.substring(pos, pos + len);
-    };
-    CharIterator.prototype.readSeek = function (pos, length) {
-        if (length === void 0) { length = 1; }
+    }
+    readSeek(pos, length = 1) {
         return this.content.substring(pos, pos + length);
-    };
-    CharIterator.prototype.readRange = function (begin, end) {
-        var _a;
+    }
+    readRange(begin, end) {
         if (!begin) {
             return this.content.substring(this.position);
         }
         if (!end) {
-            _a = [this.position, begin], begin = _a[0], end = _a[1];
+            [begin, end] = [this.position, begin];
         }
         return this.content.substring(begin, end);
-    };
-    CharIterator.prototype.move = function (length) {
-        if (length === void 0) { length = 1; }
+    }
+    move(length = 1) {
         this.position += length;
-    };
-    CharIterator.prototype.moveEnd = function () {
+    }
+    moveEnd() {
         this.position = this.length;
-    };
-    CharIterator.prototype.indexOf = function (code, offset) {
-        if (offset === void 0) { offset = 1; }
+    }
+    indexOf(code, offset = 1) {
         return this.content.indexOf(code, this.position + offset);
-    };
-    CharIterator.prototype.forEach = function (cb) {
+    }
+    forEach(cb) {
         while (this.moveNext()) {
             if (cb(this.current, this.position) === false) {
                 break;
             }
         }
-    };
-    CharIterator.prototype.each = function (cb, offset) {
-        if (offset === void 0) { offset = 1; }
-        var i = this.position + offset;
+    }
+    each(cb, offset = 1) {
+        let i = this.position + offset;
         while (i < this.length) {
             if (cb(this.content.charAt(i), i) === false) {
                 break;
             }
             i++;
         }
-    };
-    CharIterator.prototype.reverse = function (cb, offset) {
-        if (offset === void 0) { offset = -1; }
-        var i = this.position + offset;
+    }
+    reverse(cb, offset = -1) {
+        let i = this.position + offset;
         while (i >= 0) {
             if (cb(this.content.charAt(i), i) === false) {
                 break;
             }
             i--;
         }
-    };
-    CharIterator.prototype.reverseCount = function (code) {
-        var count = 0;
-        this.reverse(function (i) {
+    }
+    reverseCount(code) {
+        let count = 0;
+        this.reverse(i => {
             if (i !== code) {
                 return false;
             }
@@ -168,23 +136,18 @@ var CharIterator = (function () {
             return;
         });
         return count;
-    };
-    CharIterator.prototype.minIndex = function () {
-        var items = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            items[_i] = arguments[_i];
-        }
-        var index = -1;
-        var min = -1;
-        for (var i = items.length - 1; i >= 0; i--) {
-            var j = this.indexOf(items[i]);
+    }
+    minIndex(...items) {
+        let index = -1;
+        let min = -1;
+        for (let i = items.length - 1; i >= 0; i--) {
+            const j = this.indexOf(items[i]);
             if (j >= 0 && (min < 0 || j <= min)) {
                 index = i;
                 min = j;
             }
         }
         return index;
-    };
-    return CharIterator;
-}());
+    }
+}
 exports.CharIterator = CharIterator;

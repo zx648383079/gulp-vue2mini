@@ -1,156 +1,125 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (g && (g = 0, op[0] && (_ = 0)), _) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
     }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fileContent = exports.eachCompileFile = exports.PluginCompiler = exports.BaseProjectCompiler = exports.CompilerFile = void 0;
-var path = require("path");
-var ts = require("typescript");
-var fs = require("fs");
-var url_1 = require("url");
-var log_1 = require("./log");
-var util_1 = require("../util");
-var CompilerFile = (function () {
-    function CompilerFile(src, mtime, dist, type, content) {
-        if (mtime === void 0) { mtime = 0; }
-        if (dist === void 0) { dist = ''; }
+const path = __importStar(require("path"));
+const ts = __importStar(require("typescript"));
+const fs = __importStar(require("fs"));
+const url_1 = require("url");
+const log_1 = require("./log");
+const util_1 = require("../util");
+class CompilerFile {
+    src;
+    mtime;
+    dist;
+    type;
+    content;
+    constructor(src, mtime = 0, dist = '', type, content) {
         this.src = src;
         this.mtime = mtime;
         this.dist = dist;
         this.type = type;
         this.content = content;
     }
-    Object.defineProperty(CompilerFile.prototype, "extname", {
-        get: function () {
-            return path.extname(this.src);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CompilerFile.prototype, "dirname", {
-        get: function () {
-            return path.dirname(this.src);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CompilerFile.prototype, "basename", {
-        get: function () {
-            return path.basename(this.src);
-        },
-        enumerable: false,
-        configurable: true
-    });
-    Object.defineProperty(CompilerFile.prototype, "distMtime", {
-        get: function () {
-            if (!this.dist || !fs.existsSync(this.dist)) {
-                return 0;
-            }
-            return fs.statSync(this.dist).mtimeMs;
-        },
-        enumerable: false,
-        configurable: true
-    });
-    CompilerFile.from = function (file, dist, type, content) {
-        if (dist === void 0) { dist = file.dist; }
-        if (type === void 0) { type = file.type; }
-        if (content === void 0) { content = file.content; }
+    get extname() {
+        return path.extname(this.src);
+    }
+    get dirname() {
+        return path.dirname(this.src);
+    }
+    get basename() {
+        return path.basename(this.src);
+    }
+    get distMtime() {
+        if (!this.dist || !fs.existsSync(this.dist)) {
+            return 0;
+        }
+        return fs.statSync(this.dist).mtimeMs;
+    }
+    static from(file, dist = file.dist, type = file.type, content = file.content) {
         return new CompilerFile(file.src, file.mtime, dist, type, content);
-    };
-    return CompilerFile;
-}());
+    }
+}
 exports.CompilerFile = CompilerFile;
-var BaseProjectCompiler = (function () {
-    function BaseProjectCompiler(inputFolder, outputFolder, options) {
+class BaseProjectCompiler {
+    inputFolder;
+    outputFolder;
+    options;
+    constructor(inputFolder, outputFolder, options) {
         this.inputFolder = inputFolder;
         this.outputFolder = outputFolder;
         this.options = options;
-        this.isBooted = false;
-        this.logger = new log_1.Logger();
     }
-    BaseProjectCompiler.prototype.booted = function () {
+    isBooted = false;
+    logger = new log_1.Logger();
+    booted() {
         this.isBooted = true;
-    };
-    BaseProjectCompiler.prototype.mkIfNotFolder = function (folder) {
+    }
+    mkIfNotFolder(folder) {
         if (!fs.existsSync(folder)) {
             fs.mkdirSync(folder, { recursive: true });
         }
-    };
-    BaseProjectCompiler.prototype.outputFile = function (file) {
+    }
+    outputFile(file) {
         return path.resolve(this.outputFolder, path.relative(this.inputFolder, file instanceof CompilerFile ? file.src : file));
-    };
-    BaseProjectCompiler.prototype.unlink = function (src) {
-        var dist = this.outputFile(src);
+    }
+    unlink(src) {
+        const dist = this.outputFile(src);
         if (fs.existsSync(dist)) {
             fs.unlinkSync(dist);
         }
-    };
-    BaseProjectCompiler.prototype.logFile = function (file, tip, level) {
-        if (tip === void 0) { tip = 'Finished'; }
-        if (level === void 0) { level = log_1.LogLevel.info; }
-        var realFile = file instanceof CompilerFile ? file.src : file;
-        var now = new Date();
+    }
+    logFile(file, tip = 'Finished', level = log_1.LogLevel.info) {
+        const realFile = file instanceof CompilerFile ? file.src : file;
+        this.log(this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile, tip, level);
+    }
+    log(key, tip = 'Finished', level = log_1.LogLevel.info) {
+        const now = new Date();
         this.logger.log(level, log_1.LogStr.build(undefined, '[', (0, util_1.twoPad)(now.getHours()), ':', (0, util_1.twoPad)(now.getMinutes()), ':', (0, util_1.twoPad)(now.getSeconds()), '] ')
-            .join(log_1.Colors.magenta, this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile)
+            .join(log_1.Colors.magenta, key)
             .join(' ')
             .join(this.logger.levelToColor(level), tip));
-    };
-    return BaseProjectCompiler;
-}());
-exports.BaseProjectCompiler = BaseProjectCompiler;
-var PluginCompiler = (function () {
-    function PluginCompiler() {
     }
-    PluginCompiler.ts = function (input, file, tsConfigFileName, sourceMap) {
-        if (tsConfigFileName === void 0) { tsConfigFileName = 'tsconfig.json'; }
-        if (sourceMap === void 0) { sourceMap = false; }
-        var projectDirectory = process.cwd();
-        var compilerOptions;
+}
+exports.BaseProjectCompiler = BaseProjectCompiler;
+class PluginCompiler {
+    static ts(input, file, tsConfigFileName = 'tsconfig.json', sourceMap = false) {
+        let projectDirectory = process.cwd();
+        let compilerOptions;
         tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
         projectDirectory = path.dirname(tsConfigFileName);
-        var tsConfig = ts.readConfigFile(tsConfigFileName, ts.sys.readFile);
-        var parsed = ts.parseJsonConfigFileContent(tsConfig.config || {}, {
+        const tsConfig = ts.readConfigFile(tsConfigFileName, ts.sys.readFile);
+        const parsed = ts.parseJsonConfigFileContent(tsConfig.config || {}, {
             useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
-            readDirectory: function () { return []; },
+            readDirectory: () => [],
             fileExists: ts.sys.fileExists,
             readFile: ts.sys.readFile
         }, path.resolve(projectDirectory), undefined, tsConfigFileName);
         compilerOptions = parsed.options;
-        var output = ts.transpileModule(input, {
-            compilerOptions: compilerOptions,
+        const output = ts.transpileModule(input, {
+            compilerOptions,
             fileName: file,
             reportDiagnostics: true,
             transformers: undefined,
@@ -159,84 +128,69 @@ var PluginCompiler = (function () {
             return output.outputText;
         }
         return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
-    };
-    PluginCompiler.sass = function (input, file, lang, options) {
-        if (lang === void 0) { lang = 'scss'; }
-        if (options === void 0) { options = {}; }
-        var fileExsist = function (url) {
+    }
+    static sass(input, file, lang = 'scss', options = {}) {
+        const fileExsist = (url) => {
             return fs.existsSync(url) ? url : undefined;
         };
-        var loadImport = function (fileName, base) {
-            var extension = ".".concat(lang);
+        const loadImport = (fileName, base) => {
+            const extension = `.${lang}`;
             if (fileName.endsWith(extension)) {
                 return fileExsist(new URL(fileName, base));
             }
-            var i = fileName.lastIndexOf('/');
+            const i = fileName.lastIndexOf('/');
             if (fileName[i + 1] === '_') {
                 return fileExsist(new URL(fileName + extension, base));
             }
             if (i < 0) {
-                return fileExsist(new URL("_".concat(fileName).concat(extension), base));
+                return fileExsist(new URL(`_${fileName}${extension}`, base));
             }
             return fileExsist(new URL(fileName.substring(0, i + 1) + '_' + fileName.substring(i + 2) + extension, base));
         };
         if (!options.importers) {
-            var includePaths_1 = [(0, url_1.pathToFileURL)(file)];
+            const includePaths = [(0, url_1.pathToFileURL)(file)];
             if (Object.prototype.hasOwnProperty.call(options, 'includePaths')) {
-                (0, util_1.eachObject)(options.includePaths, function (v) {
+                (0, util_1.eachObject)(options.includePaths, v => {
                     if (v && typeof v === 'string') {
-                        includePaths_1.push((0, url_1.pathToFileURL)(v));
+                        includePaths.push((0, url_1.pathToFileURL)(v));
                     }
                 });
             }
             options.importers = [{
-                    findFileUrl: function (url) {
+                    findFileUrl(url) {
                         if (/^[a-z]+:/i.test(url)) {
                             return null;
                         }
-                        for (var _i = 0, includePaths_2 = includePaths_1; _i < includePaths_2.length; _i++) {
-                            var folder = includePaths_2[_i];
-                            var uri = loadImport(url, folder);
+                        for (const folder of includePaths) {
+                            const uri = loadImport(url, folder);
                             if (uri) {
                                 return uri;
                             }
                         }
-                        return new URL(url, includePaths_1[0]);
+                        return new URL(url, includePaths[0]);
                     }
                 }];
         }
-        var output = PluginCompiler.sassImporter().compileString(input, Object.assign({}, options, {
+        const output = PluginCompiler.sassImporter().compileString(input, Object.assign({}, options, {
             url: new URL(file),
             syntax: lang === 'sass' ? 'indented' : 'scss'
         }));
         return output.css.toString();
-    };
-    PluginCompiler.less = function (input, file, options) {
-        if (options === void 0) { options = {}; }
-        return __awaiter(this, void 0, void 0, function () {
-            var output;
-            return __generator(this, function (_a) {
-                switch (_a.label) {
-                    case 0:
-                        options.filename = file;
-                        return [4, PluginCompiler.lessImporter().render(input, options)];
-                    case 1:
-                        output = _a.sent();
-                        return [2, output.css];
-                }
-            });
-        });
-    };
-    PluginCompiler.sassImporter = function () {
+    }
+    static async less(input, file, options = {}) {
+        options.filename = file;
+        const output = await PluginCompiler.lessImporter().render(input, options);
+        return output.css;
+    }
+    static sassImporter() {
         return require('sass');
-    };
-    PluginCompiler.lessImporter = function () {
+    }
+    static lessImporter() {
         return require('less');
-    };
-    return PluginCompiler;
-}());
+    }
+}
 exports.PluginCompiler = PluginCompiler;
-var eachCompileFile = function (files, callback) {
+const eachCompileFile = (files, callback) => {
     if (!files) {
         return;
     }
@@ -247,7 +201,7 @@ var eachCompileFile = function (files, callback) {
     callback(files);
 };
 exports.eachCompileFile = eachCompileFile;
-var fileContent = function (file) {
+const fileContent = (file) => {
     if (typeof file.content !== 'undefined') {
         return file.content;
     }

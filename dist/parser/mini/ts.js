@@ -1,15 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ScriptParser = void 0;
-var util_1 = require("../../util");
-var CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
-var ScriptParser = (function () {
-    function ScriptParser(_) {
-    }
-    ScriptParser.prototype.render = function (source, templateFunc) {
-        var content = source.replace(/import.+?from\s+.+?\.vue["'];/, '')
+const util_1 = require("../../util");
+const CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
+class ScriptParser {
+    constructor(_) { }
+    render(source, templateFunc) {
+        let content = source.replace(/import.+?from\s+.+?\.vue["'];/, '')
             .replace(/import.+?from\s+.+?typings.+?;/, '').replace(/@(WxJson|WxAppJson)\([\s\S]+?\)/, '');
-        var match = content.match(CLASS_REG);
+        const match = content.match(CLASS_REG);
         if (!match) {
             return { script: content };
         }
@@ -18,8 +17,8 @@ var ScriptParser = (function () {
             lifetimes: '@WxLifeTime',
             pageLifetimes: '@WxPageLifeTime',
         }).replace(match[0], 'class ' + match[3]);
-        var reg = new RegExp('(Page|Component)\\(new\\s+' + match[3]);
-        var res = {
+        const reg = new RegExp('(Page|Component)\\(new\\s+' + match[3]);
+        const res = {
             isApp: match[4] === 'WxApp',
             isComponent: match[4] === 'WxComponent',
             isPage: match[4] === 'WxPage',
@@ -29,34 +28,34 @@ var ScriptParser = (function () {
             res.json = this.parseJson(source);
         }
         return res;
-    };
-    ScriptParser.prototype.parseJson = function (content) {
-        var match = content.match(/@(WxJson|WxAppJson)(\([\s\S]+?\))/);
+    }
+    parseJson(content) {
+        const match = content.match(/@(WxJson|WxAppJson)(\([\s\S]+?\))/);
         if (!match) {
             return;
         }
         return match[2].trim();
-    };
-    ScriptParser.prototype.parseMethodToObject = function (content, maps) {
-        var strCount = function (search, line) {
+    }
+    parseMethodToObject(content, maps) {
+        const strCount = (search, line) => {
             return line.split(search).length - 1;
         };
-        var getTag = function (line) {
-            for (var key in maps) {
+        const getTag = (line) => {
+            for (const key in maps) {
                 if (maps.hasOwnProperty(key) && line.indexOf(maps[key]) >= 0) {
                     return key;
                 }
             }
             return;
         };
-        var lines = (0, util_1.splitLine)(content);
-        var num = 0;
-        var inMethod = 0;
-        var method;
-        var data = {};
-        var block = [];
-        for (var i = 0; i < lines.length; i++) {
-            var line = lines[i];
+        const lines = (0, util_1.splitLine)(content);
+        let num = 0;
+        let inMethod = 0;
+        let method;
+        const data = {};
+        let block = [];
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
             if (inMethod === 0) {
                 method = getTag(line);
                 if (!method) {
@@ -68,7 +67,7 @@ var ScriptParser = (function () {
                 block = [];
                 if (!data.hasOwnProperty(method)) {
                     data[method] = {
-                        i: i,
+                        i,
                         items: []
                     };
                 }
@@ -77,7 +76,7 @@ var ScriptParser = (function () {
             if (inMethod < 1) {
                 continue;
             }
-            var leftNum = strCount('{', line);
+            const leftNum = strCount('{', line);
             num += leftNum - strCount('}', line);
             if (inMethod === 1) {
                 block.push(line.replace(/public\s/, ''));
@@ -101,34 +100,32 @@ var ScriptParser = (function () {
                 continue;
             }
         }
-        for (var key in data) {
+        for (const key in data) {
             if (!data.hasOwnProperty(key)) {
                 continue;
             }
-            var reg = new RegExp(key + '[^=\\{\\}\\(\\)]*=\\s*\\{');
+            const reg = new RegExp(key + '[^=\\{\\}\\(\\)]*=\\s*\\{');
             if (!reg.test(content)) {
                 lines[data[key].i] = key + '={' + data[key].items.join(',') + '}';
                 delete data[key];
             }
         }
         content = (0, util_1.joinLine)(lines);
-        for (var key in data) {
+        for (const key in data) {
             if (!data.hasOwnProperty(key)) {
                 continue;
             }
-            var reg = new RegExp(key + '[^=\\{\\}\\(\\)]*=\\s*\\{');
+            const reg = new RegExp(key + '[^=\\{\\}\\(\\)]*=\\s*\\{');
             content = content.replace(reg, key + '={' + data[key].items.join(',') + ',');
         }
         return content;
-    };
-    ScriptParser.prototype.appendMethod = function (content, tplFuns, classLine, isComponent) {
-        if (classLine === void 0) { classLine = ''; }
-        if (isComponent === void 0) { isComponent = false; }
+    }
+    appendMethod(content, tplFuns, classLine = '', isComponent = false) {
         if (!tplFuns || tplFuns.length < 1) {
             return content;
         }
-        var pos = content.indexOf(classLine);
-        var code = '';
+        let pos = content.indexOf(classLine);
+        let code = '';
         while (pos < content.length) {
             code = content.charAt(++pos);
             if (code === '{') {
@@ -136,16 +133,14 @@ var ScriptParser = (function () {
             }
         }
         if (isComponent) {
-            var lines = [];
-            for (var _i = 0, tplFuns_1 = tplFuns; _i < tplFuns_1.length; _i++) {
-                var item = tplFuns_1[_i];
+            const lines = [];
+            for (const item of tplFuns) {
                 lines.push('@WxMethod');
                 lines.push(item);
             }
             tplFuns = lines;
         }
         return (0, util_1.joinLine)([content.substring(0, pos + 1)].concat(tplFuns, [content.substring(pos + 2)]));
-    };
-    return ScriptParser;
-}());
+    }
+}
 exports.ScriptParser = ScriptParser;

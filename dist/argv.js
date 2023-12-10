@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.formatArgv = void 0;
 function parseValue(val) {
-    var num = +val;
+    const num = +val;
     if (num) {
         return num;
     }
@@ -14,19 +14,18 @@ function parseValue(val) {
     }
     return val;
 }
-function formatArgv(argv, defaultParams) {
-    if (argv === void 0) { argv = process.argv; }
-    var args = {
+function formatArgv(argv = process.argv, defaultParams) {
+    const args = {
         _: argv.slice(0, 2),
         additional: [],
         params: defaultParams || {}
     };
-    var prev = [];
+    let prev = [];
     function addValueToPrev(val) {
-        var k = prev.length;
+        let k = prev.length;
         while (k--) {
-            var name_1 = prev[k];
-            args.params[name_1] = parseValue(val);
+            const name = prev[k];
+            args.params[name] = parseValue(val);
         }
         prev = [];
     }
@@ -43,7 +42,7 @@ function formatArgv(argv, defaultParams) {
         if (prev.length) {
             addValueToPrev('true');
         }
-        var _a = val.split('='), names = _a[0], vals = _a[1];
+        const [names, vals] = val.split('=');
         if (names[names.length - 1] === '-') {
             return;
         }
@@ -52,7 +51,7 @@ function formatArgv(argv, defaultParams) {
             parse(vals);
         }
     }
-    for (var i = 2, l = argv.length; i < l; i++) {
+    for (let i = 2, l = argv.length; i < l; i++) {
         parse(argv[i]);
     }
     if (prev.length) {

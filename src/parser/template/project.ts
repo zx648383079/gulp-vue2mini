@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { BaseProjectCompiler, CompilerFile, eachCompileFile, fileContent, IProjectCompiler, PluginCompiler } from '../../compiler';
 import * as UglifyJS from 'uglify-js';
-import * as CleanCSS from 'clean-css';
+import CleanCSS from 'clean-css';
 import { ThemeTokenizer } from './tokenizer';
 import { StyleParser } from './style';
 import { TemplateParser } from './template';

@@ -12,9 +12,10 @@ export class ThemePlugin {
         private useVar = false,
         private varPrefix = 'zre',
     ) {
+        this.compiler = new ThemeStyleCompiler(this.autoDark, this.useVar, this.varPrefix);
     }
 
-    private readonly compiler = new ThemeStyleCompiler(this.autoDark, this.useVar, this.varPrefix);
+    private readonly compiler;
 
     apply(compiler: Compiler) {
         compiler.hooks.compilation.tap(pluginName, compilation => {

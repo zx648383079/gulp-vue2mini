@@ -1,17 +1,42 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var fs = require("fs");
-var path = require("path");
-var chokidar = require("chokidar");
-var project_1 = require("./parser/template/project");
-var project_2 = require("./parser/mini/project");
-var argv_1 = require("./argv");
-var style_1 = require("./parser/style/style");
-var compiler_1 = require("./compiler");
-var util_1 = require("./util");
+const fs = __importStar(require("fs"));
+const path = __importStar(require("path"));
+const chokidar = __importStar(require("chokidar"));
+const project_1 = require("./parser/template/project");
+const project_2 = require("./parser/mini/project");
+const argv_1 = require("./argv");
+const style_1 = require("./parser/style/style");
+const compiler_1 = require("./compiler");
+const util_1 = require("./util");
+const project_3 = require("./parser/pack/project");
 process.env.INIT_CWD = process.cwd();
-var argv = (0, argv_1.formatArgv)(process.argv, {
+const argv = (0, argv_1.formatArgv)(process.argv, {
     mini: false,
+    custom: false,
     css: false,
     theme: false,
     watch: false,
@@ -21,20 +46,37 @@ var argv = (0, argv_1.formatArgv)(process.argv, {
     input: 'src',
     output: 'dist'
 });
-var helpText = "\nUsage: vue2mini <command>\n    --mini \u7F16\u8BD1\u5C0F\u7A0B\u5E8F\n    --theme \u7F16\u8BD1\u6A21\u677F\n    --css \u8F6Ccss\u4E3Ascss\n    --prefix \u524D\u7F00,css \u4E2D\u7684\u503C\u524D\u7F00, \u6709\u503C\u5219\u542F\u7528var, \u9ED8\u8BA4\u542F\u7528\n    --help \u5E2E\u52A9\n    --input \u6E90\u7801\u6587\u4EF6\u6216\u6587\u4EF6\u5939,\u9ED8\u8BA4\u4E3Asrc\n    --output \u7F16\u8BD1\u540E\u4FDD\u5B58\u7684\u6587\u4EF6\u5939,\u9ED8\u8BA4\u4E3Adist\n    --min \u538B\u7F29ts\u548Csass \u751F\u6210\u7684\u6587\u4EF6\u4EE3\u7801,\u4EC5\u5BF9\u6A21\u677F\u6709\u6548\n    --watch \u76D1\u542C\u811A\u672C\u53D8\u52A8,\u81EA\u52A8\u5904\u7406\n    --debug \u5F00\u542Fdebug\u6A21\u5F0F\u663E\u793A\u5177\u4F53\u9519\u8BEF\u6765\u6E90\n\nExample:\n    vue2mini --mini --input=src --output=dist\n\n";
+const helpText = `
+Usage: vue2mini <command>
+    --mini 编译小程序
+    --theme 编译模板
+    --custom 自定义功能，引用当前目录中的 packfile.js
+    --css 转css为scss
+    --prefix 前缀,css 中的值前缀, 有值则启用var, 默认启用
+    --help 帮助
+    --input 源码文件或文件夹,默认为src
+    --output 编译后保存的文件夹,默认为dist
+    --min 压缩ts和sass 生成的文件代码,仅对模板有效
+    --watch 监听脚本变动,自动处理
+    --debug 开启debug模式显示具体错误来源
+
+Example:
+    vue2mini --mini --input=src --output=dist
+
+`;
 if (argv.params.help) {
     console.log(helpText);
     process.exit(0);
 }
-var input = path.resolve(process.cwd(), argv.params.input);
-var outputFolder = path.resolve(process.cwd(), argv.params.output);
+const input = path.resolve(process.cwd(), argv.params.input);
+const outputFolder = path.resolve(process.cwd(), argv.params.output);
 if (!fs.existsSync(input)) {
     console.log('File [' + input + '] not found!');
     process.exit(0);
 }
-var inputState = fs.statSync(input);
-var inputFolder = inputState.isDirectory() ? input : path.dirname(input);
-var createProject = function () {
+const inputState = fs.statSync(input);
+const inputFolder = inputState.isDirectory() ? input : path.dirname(input);
+const createProject = () => {
     if (argv.params.mini) {
         return new project_2.MiniProject(inputFolder, outputFolder, argv.params);
     }
@@ -44,15 +86,18 @@ var createProject = function () {
     if (argv.params.css) {
         return new style_1.StyleProject(inputFolder, outputFolder, argv.params);
     }
+    if (argv.params.custom) {
+        return new project_3.PackProject(inputFolder, outputFolder, argv.params);
+    }
     return undefined;
 };
-var project = createProject();
+const project = createProject();
 if (!project) {
     console.log(helpText);
     process.exit(0);
 }
-var initTime = new Date().getTime();
-var renderFile = function (file) {
+const initTime = new Date().getTime();
+const renderFile = (file) => {
     if (typeof file !== 'object') {
         file = new compiler_1.CompilerFile(file);
     }
@@ -63,22 +108,25 @@ var renderFile = function (file) {
         if (file.mtime < initTime) {
             file.mtime = initTime;
         }
-        project === null || project === void 0 ? void 0 : project.compileFile(file);
+        project?.compileFile(file);
     }
     catch (error) {
-        project === null || project === void 0 ? void 0 : project.logFile(file, 'Failure \n' + error.message, compiler_1.LogLevel.error);
+        project?.logFile(file, 'Failure \n' + error.message, compiler_1.LogLevel.error);
         if (argv.params.debug) {
-            project === null || project === void 0 ? void 0 : project.logger.debug(error);
+            project?.logger.debug(error);
         }
     }
 };
-if (argv.params.watch) {
-    chokidar.watch(inputFolder).on('unlink', function (file) {
-        project === null || project === void 0 ? void 0 : project.unlink(file);
-    }).on('add', function (file, stats) {
-        renderFile(new compiler_1.CompilerFile(file, stats === null || stats === void 0 ? void 0 : stats.mtimeMs));
-    }).on('change', function (file, stats) {
-        renderFile(new compiler_1.CompilerFile(file, stats === null || stats === void 0 ? void 0 : stats.mtimeMs));
+if (project instanceof project_3.PackProject) {
+    project.compile();
+}
+else if (argv.params.watch) {
+    chokidar.watch(inputFolder).on('unlink', file => {
+        project?.unlink(file);
+    }).on('add', (file, stats) => {
+        renderFile(new compiler_1.CompilerFile(file, stats?.mtimeMs));
+    }).on('change', (file, stats) => {
+        renderFile(new compiler_1.CompilerFile(file, stats?.mtimeMs));
     });
 }
 else {

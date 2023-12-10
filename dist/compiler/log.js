@@ -1,13 +1,4 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LogStr = exports.Logger = exports.LogLevel = exports.Colors = void 0;
 exports.Colors = {
@@ -69,32 +60,24 @@ var LogLevel;
     LogLevel[LogLevel["info"] = 3] = "info";
     LogLevel[LogLevel["debug"] = 4] = "debug";
 })(LogLevel || (exports.LogLevel = LogLevel = {}));
-var Logger = (function () {
-    function Logger() {
-        var _a;
-        this.levelColors = (_a = {},
-            _a[LogLevel.error] = exports.Colors.red,
-            _a[LogLevel.warn] = exports.Colors.yellow,
-            _a[LogLevel.debug] = exports.Colors.green,
-            _a);
-    }
-    Logger.prototype.debug = function (msg) {
+class Logger {
+    levelColors = {
+        [LogLevel.error]: exports.Colors.red,
+        [LogLevel.warn]: exports.Colors.yellow,
+        [LogLevel.debug]: exports.Colors.green,
+    };
+    debug(msg) {
         this.log(LogLevel.debug, msg);
-    };
-    Logger.prototype.info = function (msg) {
+    }
+    info(msg) {
         this.log(LogLevel.info, msg);
-    };
-    Logger.prototype.error = function (msg) {
+    }
+    error(msg) {
         this.log(LogLevel.error, msg);
-    };
-    Logger.prototype.log = function (level) {
-        var items = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            items[_i - 1] = arguments[_i];
-        }
-        var color = this.levelToColor(level);
-        for (var _a = 0, items_1 = items; _a < items_1.length; _a++) {
-            var msg = items_1[_a];
+    }
+    log(level, ...items) {
+        const color = this.levelToColor(level);
+        for (const msg of items) {
             if (typeof msg !== 'object') {
                 console.log(this.format(color, msg));
                 continue;
@@ -105,37 +88,28 @@ var Logger = (function () {
             }
             console.log(msg);
         }
-    };
-    Logger.prototype.colorToStr = function (color) {
+    }
+    colorToStr(color) {
         return '\u001b[' + color + 'm';
-    };
-    Logger.prototype.levelToColor = function (level) {
+    }
+    levelToColor(level) {
         return this.levelColors[level];
-    };
-    Logger.prototype.format = function (color, msg) {
-        var val = typeof color === 'string' ? exports.Colors[color] : color;
+    }
+    format(color, msg) {
+        const val = typeof color === 'string' ? exports.Colors[color] : color;
         if (!val) {
             return msg;
         }
         return this.colorToStr(val[0]) + msg + this.colorToStr(val[1]);
-    };
-    return Logger;
-}());
-exports.Logger = Logger;
-var LogStr = (function () {
-    function LogStr(color) {
-        var items = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            items[_i - 1] = arguments[_i];
-        }
-        this.blockItems = [];
-        this.join.apply(this, __spreadArray([color], items, false));
     }
-    LogStr.prototype.join = function (color) {
-        var items = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            items[_i - 1] = arguments[_i];
-        }
+}
+exports.Logger = Logger;
+class LogStr {
+    constructor(color, ...items) {
+        this.join(color, ...items);
+    }
+    blockItems = [];
+    join(color, ...items) {
         if (items.length === 0) {
             this.blockItems.push({ value: color });
             return this;
@@ -146,16 +120,15 @@ var LogStr = (function () {
         else if (typeof color === 'object' && color instanceof Array && color.length < 2) {
             color = undefined;
         }
-        this.blockItems.push({ value: items.join(''), color: color });
+        this.blockItems.push({ value: items.join(''), color });
         return this;
-    };
-    LogStr.prototype.joinLine = function () {
+    }
+    joinLine() {
         return this.join('\n');
-    };
-    LogStr.prototype.toString = function () {
-        var items = [];
-        for (var _i = 0, _a = this.blockItems; _i < _a.length; _i++) {
-            var item = _a[_i];
+    }
+    toString() {
+        const items = [];
+        for (const item of this.blockItems) {
             if (!item.color || item.color.length !== 2) {
                 items.push(item.value);
                 continue;
@@ -163,17 +136,12 @@ var LogStr = (function () {
             items.push('\u001b[', item.color[0], 'm', item.value, '\u001b[', item.color[1], 'm');
         }
         return items.join('');
-    };
-    LogStr.prototype.toNormalString = function () {
-        return this.blockItems.map(function (i) { return i.value; }).join('');
-    };
-    LogStr.build = function (color) {
-        var items = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            items[_i - 1] = arguments[_i];
-        }
-        return new (LogStr.bind.apply(LogStr, __spreadArray([void 0, color], items, false)))();
-    };
-    return LogStr;
-}());
+    }
+    toNormalString() {
+        return this.blockItems.map(i => i.value).join('');
+    }
+    static build(color, ...items) {
+        return new LogStr(color, ...items);
+    }
+}
 exports.LogStr = LogStr;

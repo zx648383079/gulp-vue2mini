@@ -95,9 +95,13 @@ export class BaseProjectCompiler {
 
     public logFile(file: string|CompilerFile, tip = 'Finished', level: LogLevel = LogLevel.info) {
         const realFile = file instanceof CompilerFile ? file.src : file;
+        this.log(this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile, tip, level)
+    }
+
+    public log(key: string, tip = 'Finished', level: LogLevel = LogLevel.info) {
         const now = new Date();
         this.logger.log(level, LogStr.build(undefined, '[', twoPad(now.getHours()), ':', twoPad(now.getMinutes()), ':', twoPad(now.getSeconds()), '] ')
-        .join(Colors.magenta, this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile)
+        .join(Colors.magenta, key)
         .join(' ')
         .join(this.logger.levelToColor(level), tip));
     }

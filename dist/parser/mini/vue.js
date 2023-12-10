@@ -1,14 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.VueParser = void 0;
-var tokenizer_1 = require("../../tokenizer");
-var util_1 = require("../../util");
-var VueParser = (function () {
-    function VueParser(project) {
+const tokenizer_1 = require("../../tokenizer");
+const util_1 = require("../../util");
+class VueParser {
+    project;
+    constructor(project) {
         this.project = project;
-        this.tokenizer = new tokenizer_1.TemplateTokenizer();
     }
-    VueParser.prototype.render = function (content, ext, srcFile) {
+    tokenizer = new tokenizer_1.TemplateTokenizer();
+    render(content, ext, srcFile) {
         if (ext === 'json') {
             return { json: content };
         }
@@ -16,16 +17,16 @@ var VueParser = (function () {
             return { style: { type: ext, content: this.project.style.render(content, srcFile) } };
         }
         if ('js' === ext) {
-            return { script: { type: ext, content: content } };
+            return { script: { type: ext, content } };
         }
         if ('ts' === ext) {
             return this.splitTsFile(content, []);
         }
-        var data = this.tokenizer.render(content);
+        const data = this.tokenizer.render(content);
         if (!data.children) {
             return {};
         }
-        var items = {
+        const items = {
             html: [],
             style: {
                 type: 'css',
@@ -36,8 +37,7 @@ var VueParser = (function () {
                 lines: [],
             }
         };
-        for (var _i = 0, _a = data.children; _i < _a.length; _i++) {
-            var item = _a[_i];
+        for (const item of data.children) {
             if (['style', 'script'].indexOf(item.tag) >= 0) {
                 if (item.children && item.children.length > 0) {
                     items[item.tag].lines.push(item.children[0].text);
@@ -55,18 +55,18 @@ var VueParser = (function () {
                 items.html = [].concat(items.html, item.children);
             }
         }
-        var res = {};
+        const res = {};
         if (items.style.lines.length > 0) {
             res.style = { type: items.style.type, content: this.project.style.render((0, util_1.joinLine)(items.style.lines), srcFile) };
         }
-        var tplFuns = [];
+        let tplFuns = [];
         if (items.html.length > 0) {
-            var wxml = this.project.template.render(new tokenizer_1.ElementToken('root', undefined, undefined, items.html));
+            const wxml = this.project.template.render(new tokenizer_1.ElementToken('root', undefined, undefined, items.html));
             res.template = wxml.template;
             tplFuns = wxml.func || [];
         }
         if (items.script.lines.length > 0) {
-            var json = this.splitTsFile((0, util_1.joinLine)(items.script.lines), tplFuns);
+            const json = this.splitTsFile((0, util_1.joinLine)(items.script.lines), tplFuns);
             res.script = { type: items.script.type, content: json.script ? json.script.content : '' };
             res.json = json.json;
         }
@@ -74,10 +74,10 @@ var VueParser = (function () {
             res.template = undefined;
         }
         return res;
-    };
-    VueParser.prototype.splitTsFile = function (content, tplfuns) {
-        var res = this.project.script.render(content, tplfuns);
-        var data = {
+    }
+    splitTsFile(content, tplfuns) {
+        const res = this.project.script.render(content, tplfuns);
+        const data = {
             script: {
                 type: 'ts',
                 content: res.script,
@@ -88,7 +88,6 @@ var VueParser = (function () {
         };
         data.json = res.json;
         return data;
-    };
-    return VueParser;
-}());
+    }
+}
 exports.VueParser = VueParser;

@@ -17,8 +17,10 @@
         "removeComments": true,
         "pretty": true,
         "strictPropertyInitialization": true,
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
         "importHelpers": false,
-        "target": "ES5",
+        "target": "es2022",
         "typeRoots": [
             "./node_modules/@types"
         ]

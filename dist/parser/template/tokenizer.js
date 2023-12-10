@@ -1,38 +1,52 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
     }
-    return to.concat(ar || Array.prototype.slice.call(from));
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ThemeTokenizer = exports.REGEX_ASSET = void 0;
-var cache_1 = require("../../util/cache");
-var path = require("path");
-var util_1 = require("../../util");
+const cache_1 = require("../../util/cache");
+const path = __importStar(require("path"));
+const util_1 = require("../../util");
 exports.REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
-var ThemeTokenizer = (function () {
-    function ThemeTokenizer(project) {
+class ThemeTokenizer {
+    project;
+    constructor(project) {
         this.project = project;
-        this.cachesFiles = new cache_1.CacheManger();
     }
-    ThemeTokenizer.prototype.render = function (file) {
-        var _this = this;
-        var time = file.mtime;
+    cachesFiles = new cache_1.CacheManger();
+    render(file) {
+        const time = file.mtime;
         if (this.cachesFiles.has(file.src, time)) {
             return this.cachesFiles.get(file.src);
         }
-        var tokens = [];
-        var isLayout = false;
-        var canRender = true;
-        var currentFolder = file.dirname;
-        var ext = file.extname;
-        var pageData = {};
-        var replacePath = function (text) {
-            return text.replace(exports.REGEX_ASSET, function ($0, _, $2) {
+        const tokens = [];
+        let isLayout = false;
+        let canRender = true;
+        const currentFolder = file.dirname;
+        const ext = file.extname;
+        const pageData = {};
+        const replacePath = (text) => {
+            return text.replace(exports.REGEX_ASSET, ($0, _, $2) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
                     return $0;
                 }
@@ -45,8 +59,8 @@ var ThemeTokenizer = (function () {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        (0, util_1.splitLine)(this.project.fileContent(file)).forEach(function (line, i) {
-            var token = _this.converterToken(line);
+        (0, util_1.splitLine)(this.project.fileContent(file)).forEach((line, i) => {
+            const token = this.converterToken(line);
             if (!token) {
                 tokens.push({
                     type: 'text',
@@ -55,7 +69,7 @@ var ThemeTokenizer = (function () {
                 return;
             }
             if (token.type === 'set') {
-                var _a = (0, util_1.splitStr)(token.content, '=', 2), key = _a[0], val = _a[1];
+                const [key, val] = (0, util_1.splitStr)(token.content, '=', 2);
                 pageData[key.trim()] = val;
                 return;
             }
@@ -74,22 +88,21 @@ var ThemeTokenizer = (function () {
                     token.content += ext;
                 }
                 token.content = path.resolve(currentFolder, token.content);
-                _this.project.link.push(token.content, file.src);
+                this.project.link.push(token.content, file.src);
             }
             tokens.push(token);
         });
-        var page = {
-            tokens: tokens,
-            isLayout: isLayout,
+        const page = {
+            tokens,
+            isLayout,
             file: file.src,
-            canRender: canRender,
+            canRender,
             data: pageData
         };
         this.cachesFiles.set(file.src, page, time);
         return page;
-    };
-    ThemeTokenizer.prototype.converterToken = function (line) {
-        var _a;
+    }
+    converterToken(line) {
         line = line.trim();
         if (line.length < 0) {
             return;
@@ -97,9 +110,9 @@ var ThemeTokenizer = (function () {
         if (line.charAt(0) !== '@') {
             return;
         }
-        var content = line.substring(1);
-        var comment = '';
-        var i = content.indexOf(' ');
+        let content = line.substring(1);
+        let comment = '';
+        const i = content.indexOf(' ');
         if (i > 0) {
             comment = content.substring(i).trim();
             content = content.substring(0, i);
@@ -110,7 +123,7 @@ var ThemeTokenizer = (function () {
         if (content === 'theme') {
             return;
         }
-        var type = 'extend';
+        let type = 'extend';
         if (content === '@') {
             type = 'comment';
         }
@@ -131,31 +144,26 @@ var ThemeTokenizer = (function () {
         if (type === 'extend' && /[\<\>]/.test(content)) {
             return;
         }
-        var amount = '1';
+        let amount = '1';
         if (type === 'extend' && content.indexOf('@') > 0) {
-            _a = content.split('@'), content = _a[0], amount = _a[1];
+            [content, amount] = content.split('@');
         }
         return {
-            type: type,
-            content: content,
-            comment: comment,
+            type,
+            content,
+            comment,
             amount: parseInt(amount, 10) || 1,
         };
-    };
-    ThemeTokenizer.prototype.mergeData = function () {
-        var items = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            items[_i] = arguments[_i];
-        }
-        return Object.assign.apply(Object, __spreadArray([{}], items.filter(function (i) { return !!i; }), false));
-    };
-    ThemeTokenizer.prototype.echoValue = function (data, key) {
+    }
+    mergeData(...items) {
+        return Object.assign({}, ...items.filter(i => !!i));
+    }
+    echoValue(data, key) {
         key = key.trim();
         if (Object.prototype.hasOwnProperty.call(data, key)) {
             return data[key];
         }
         throw new Error('[' + key + ']: page data error');
-    };
-    return ThemeTokenizer;
-}());
+    }
+}
 exports.ThemeTokenizer = ThemeTokenizer;

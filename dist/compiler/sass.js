@@ -1,47 +1,38 @@
 "use strict";
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SassCompiler = void 0;
-var tokenizer_1 = require("../tokenizer");
-var util_1 = require("../util");
-var style_1 = require("./style");
-var SassCompiler = (function () {
-    function SassCompiler(tokenizer, compiler) {
-        if (tokenizer === void 0) { tokenizer = new tokenizer_1.StyleTokenizer(); }
-        if (compiler === void 0) { compiler = new style_1.StyleCompiler(); }
+const tokenizer_1 = require("../tokenizer");
+const util_1 = require("../util");
+const style_1 = require("./style");
+class SassCompiler {
+    tokenizer;
+    compiler;
+    constructor(tokenizer = new tokenizer_1.StyleTokenizer(), compiler = new style_1.StyleCompiler()) {
         this.tokenizer = tokenizer;
         this.compiler = compiler;
     }
-    SassCompiler.prototype.render = function (data) {
+    render(data) {
         if (typeof data !== 'object') {
             this.tokenizer.autoIndent(data);
             data = this.tokenizer.render(data);
         }
         return this.compiler.render(this.splitBlock(data));
-    };
-    SassCompiler.prototype.splitRuleName = function (name) {
+    }
+    splitRuleName(name) {
         name = name.trim();
         if (name.length < 2) {
             return [name];
         }
-        var tags = {
+        const tags = {
             '[': ']',
             '(': ')',
         };
-        var args = [];
-        var tag = '';
-        var pos = 0;
+        const args = [];
+        let tag = '';
+        let pos = 0;
         if (name.charAt(pos) === '&') {
-            var k = name.charAt(pos + 1);
-            var i = pos + 1;
+            const k = name.charAt(pos + 1);
+            let i = pos + 1;
             while (i < name.length) {
                 if (name.charAt(++i) !== k) {
                     break;
@@ -50,13 +41,13 @@ var SassCompiler = (function () {
             tag = name.substring(pos, i);
             pos = i + 1;
         }
-        var appendTag = function () {
-            var item = tag.trim();
+        const appendTag = () => {
+            const item = tag.trim();
             tag = '';
             if (item.length < 1) {
                 return;
             }
-            var c = item.charAt(0);
+            const c = item.charAt(0);
             if (c === '&') {
                 args.push(item);
                 return;
@@ -67,11 +58,11 @@ var SassCompiler = (function () {
             }
             args.push(item);
         };
-        var startTag = '';
-        var endTag = '';
-        var endCount = 0;
+        let startTag = '';
+        let endTag = '';
+        let endCount = 0;
         while (pos < name.length) {
-            var code = name.charAt(pos);
+            const code = name.charAt(pos);
             pos++;
             if (endCount > 0) {
                 tag += code;
@@ -92,7 +83,7 @@ var SassCompiler = (function () {
             }
             if (code === '>' || code === '~' || code === '+') {
                 appendTag();
-                var i = pos;
+                let i = pos;
                 while (i < name.length) {
                     if (!(0, util_1.isEmptyCode)(name.charAt(i))) {
                         break;
@@ -110,7 +101,7 @@ var SassCompiler = (function () {
             }
             if (code === ':') {
                 appendTag();
-                var i = pos;
+                let i = pos;
                 while (i < name.length) {
                     if (name.charAt(++i) !== ':') {
                         break;
@@ -129,51 +120,49 @@ var SassCompiler = (function () {
         }
         appendTag();
         return args;
-    };
-    SassCompiler.prototype.splitBlock = function (items) {
-        var _this = this;
-        var data = [];
-        var resetName = function (names, hasPrefix) {
-            if (hasPrefix === void 0) { hasPrefix = false; }
-            return names.map(function (val, j) {
+    }
+    splitBlock(items) {
+        const data = [];
+        const resetName = (names, hasPrefix = false) => {
+            return names.map((val, j) => {
                 if (j === 0) {
                     return val.indexOf('&') === 0 && !hasPrefix ? val.substring(1) : val;
                 }
                 return val.indexOf('&') === 0 ? val.substring(1) : (' ' + val);
             }).join('');
         };
-        var findTreeName = function (names) {
+        const findTreeName = (names) => {
             if (names.length < 2) {
-                return _this.splitRuleName(names[0]).map(function (i) {
+                return this.splitRuleName(names[0]).map(i => {
                     return [i];
                 });
             }
-            var reverseArgs = [];
-            var args = [];
-            var cache = [];
-            var getCacheName = function (i, j) {
+            const reverseArgs = [];
+            const args = [];
+            const cache = [];
+            const getCacheName = (i, j) => {
                 if (cache.length <= i) {
-                    cache.push(_this.splitRuleName(names[i]));
+                    cache.push(this.splitRuleName(names[i]));
                 }
-                var pos = j < 0 ? cache[i].length + j : j;
+                const pos = j < 0 ? cache[i].length + j : j;
                 if (pos >= cache[i].length) {
                     return '';
                 }
                 return cache[i][pos];
             };
-            var getReverseName = function (i, j) {
+            const getReverseName = (i, j) => {
                 return getCacheName(i, -1 - j);
             };
-            var index = 0;
-            var isEnd = false;
+            let index = 0;
+            let isEnd = false;
             while (true) {
-                var name_1 = getCacheName(0, index);
-                if (name_1 === '') {
+                const name = getCacheName(0, index);
+                if (name === '') {
                     break;
                 }
                 isEnd = false;
-                for (var i = 1; i < names.length; i++) {
-                    if (name_1 !== getCacheName(i, index)) {
+                for (let i = 1; i < names.length; i++) {
+                    if (name !== getCacheName(i, index)) {
                         isEnd = true;
                         break;
                     }
@@ -181,18 +170,18 @@ var SassCompiler = (function () {
                 if (isEnd) {
                     break;
                 }
-                args.push([name_1]);
+                args.push([name]);
                 index++;
             }
             index = 0;
             while (true) {
-                var name_2 = getReverseName(0, index);
-                if (name_2 === '' || cache[0].length - index - 1 <= args.length) {
+                const name = getReverseName(0, index);
+                if (name === '' || cache[0].length - index - 1 <= args.length) {
                     break;
                 }
                 isEnd = false;
-                for (var i = 1; i < names.length; i++) {
-                    if (name_2 !== getReverseName(i, index)) {
+                for (let i = 1; i < names.length; i++) {
+                    if (name !== getReverseName(i, index)) {
                         isEnd = true;
                         break;
                     }
@@ -204,40 +193,38 @@ var SassCompiler = (function () {
                 if (isEnd) {
                     break;
                 }
-                reverseArgs.push([name_2]);
+                reverseArgs.push([name]);
                 index++;
             }
             if (reverseArgs.length < 1 && args.length < 1) {
                 return [names];
             }
-            reverseArgs.push(names.map(function (i, j) {
-                var c = cache.length > j ? cache[j] : _this.splitRuleName(i);
-                var start = args.length;
-                var end = c.length - reverseArgs.length;
+            reverseArgs.push(names.map((i, j) => {
+                const c = cache.length > j ? cache[j] : this.splitRuleName(i);
+                const start = args.length;
+                const end = c.length - reverseArgs.length;
                 return resetName(c.splice(start, end - start), start > 0);
             }));
-            return __spreadArray(__spreadArray([], args, true), reverseArgs.reverse(), true);
+            return [...args, ...reverseArgs.reverse()];
         };
-        var arrEq = function (a, b) {
+        const arrEq = (a, b) => {
             if (a.length !== b.length) {
                 return false;
             }
-            for (var _i = 0, a_1 = a; _i < a_1.length; _i++) {
-                var i = a_1[_i];
+            for (const i of a) {
                 if (b.indexOf(i) < 0) {
                     return false;
                 }
             }
             return true;
         };
-        var mergeStyle = function (parent, children) {
-            children.forEach(function (i) {
+        const mergeStyle = (parent, children) => {
+            children.forEach(i => {
                 if (i.type !== tokenizer_1.StyleTokenType.STYLE) {
                     parent.push(i);
                     return;
                 }
-                for (var _i = 0, parent_1 = parent; _i < parent_1.length; _i++) {
-                    var j = parent_1[_i];
+                for (const j of parent) {
                     if (j.type === tokenizer_1.StyleTokenType.STYLE && j.name === i.name) {
                         j.content = i.content;
                         return;
@@ -246,14 +233,13 @@ var SassCompiler = (function () {
                 parent.push(i);
             });
         };
-        var appendBlock = function (names, children, parent) {
+        const appendBlock = (names, children, parent) => {
             if (names.length < 1) {
                 mergeStyle(parent, children);
                 return;
             }
-            var name = names.shift();
-            for (var _i = 0, parent_2 = parent; _i < parent_2.length; _i++) {
-                var item = parent_2[_i];
+            const name = names.shift();
+            for (const item of parent) {
                 if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP) {
                     continue;
                 }
@@ -266,28 +252,26 @@ var SassCompiler = (function () {
                 appendBlock(names, children, item.children);
                 return;
             }
-            var block = {
+            const block = {
                 type: tokenizer_1.StyleTokenType.STYLE_GROUP,
-                name: name,
+                name,
                 children: []
             };
             parent.push(block);
             appendBlock(names, children, block.children);
         };
-        var createTree = function (item, parent) {
+        const createTree = (item, parent) => {
             if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP) {
                 parent.push(item);
                 return;
             }
-            var name = findTreeName(typeof item.name === 'object' ? item.name : [item.name]);
+            const name = findTreeName(typeof item.name === 'object' ? item.name : [item.name]);
             appendBlock(name, item.children, parent);
         };
-        for (var _i = 0, items_1 = items; _i < items_1.length; _i++) {
-            var item = items_1[_i];
+        for (const item of items) {
             createTree(item, data);
         }
         return data;
-    };
-    return SassCompiler;
-}());
+    }
+}
 exports.SassCompiler = SassCompiler;

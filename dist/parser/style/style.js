@@ -1,43 +1,44 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        if (typeof b !== "function" && b !== null)
-            throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StyleProject = void 0;
-var fs = require("fs");
-var compiler_1 = require("../../compiler");
-var compiler_2 = require("../../compiler");
-var StyleProject = (function (_super) {
-    __extends(StyleProject, _super);
-    function StyleProject() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.compiler = new compiler_1.SassCompiler();
-        return _this;
-    }
-    StyleProject.prototype.readyFile = function (src) {
+const fs = __importStar(require("fs"));
+const compiler_1 = require("../../compiler");
+const compiler_2 = require("../../compiler");
+class StyleProject extends compiler_2.BaseProjectCompiler {
+    compiler = new compiler_1.SassCompiler();
+    readyFile(src) {
         return new compiler_2.CompilerFile(src.src, src.mtime, this.outputFile(src.src), 'css');
-    };
-    StyleProject.prototype.compileFile = function (src) {
-        var _this = this;
-        (0, compiler_2.eachCompileFile)(this.readyFile(src), function (file) {
+    }
+    compileFile(src) {
+        (0, compiler_2.eachCompileFile)(this.readyFile(src), file => {
             if (file.type === 'css') {
-                fs.writeFileSync(file.dist, _this.compiler.render((0, compiler_2.fileContent)(file)));
-                _this.logFile(src);
+                fs.writeFileSync(file.dist, this.compiler.render((0, compiler_2.fileContent)(file)));
+                this.logFile(src);
             }
         });
-    };
-    return StyleProject;
-}(compiler_2.BaseProjectCompiler));
+    }
+}
 exports.StyleProject = StyleProject;

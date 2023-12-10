@@ -14,6 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var gulp_1 = require("./gulp");
+const gulp_1 = require("./gulp");
 __exportStar(require("./gulp"), exports);
+__exportStar(require("./parser/pack/register"), exports);
 exports.default = gulp_1.template;

@@ -1,30 +1,54 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TemplateParser = void 0;
-var path = require("path");
-var compiler_1 = require("../../compiler");
-var tokenizer_1 = require("../../tokenizer");
-var util_1 = require("../../util");
-var tokenizer_2 = require("./tokenizer");
-var TemplateParser = (function () {
-    function TemplateParser(project) {
+const path = __importStar(require("path"));
+const compiler_1 = require("../../compiler");
+const tokenizer_1 = require("../../tokenizer");
+const util_1 = require("../../util");
+const tokenizer_2 = require("./tokenizer");
+class TemplateParser {
+    project;
+    constructor(project) {
         this.project = project;
-        this.tokenizer = new tokenizer_1.TemplateTokenizer();
-        this.compiler = new compiler_1.TemplateCompiler();
     }
-    TemplateParser.prototype.render = function (file) {
-        var tokenizer = this.project.tokenizer;
-        var page = tokenizer.render(file);
+    tokenizer = new tokenizer_1.TemplateTokenizer();
+    compiler = new compiler_1.TemplateCompiler();
+    render(file) {
+        const tokenizer = this.project.tokenizer;
+        const page = tokenizer.render(file);
         if (!page.canRender) {
             return {
                 template: '',
             };
         }
-        var layout = null;
-        var pageData = tokenizer.mergeData(page.data);
-        var renderPage = function (item, data) {
-            var lines = [];
-            item.tokens.forEach(function (token) {
+        let layout = null;
+        let pageData = tokenizer.mergeData(page.data);
+        const renderPage = (item, data) => {
+            const lines = [];
+            item.tokens.forEach(token => {
                 if (token.type === 'comment' || token.type === 'layout' || token.type === 'set') {
                     return;
                 }
@@ -41,7 +65,7 @@ var TemplateParser = (function () {
                     return;
                 }
                 if (token.type === 'random') {
-                    var args = token.content.split('@@');
+                    const args = token.content.split('@@');
                     lines.push(args[Math.floor(Math.random() * args.length)]);
                     return;
                 }
@@ -49,20 +73,20 @@ var TemplateParser = (function () {
                     lines.push(token.content);
                     return;
                 }
-                var next = tokenizer.render(new compiler_1.CompilerFile(token.content));
+                const next = tokenizer.render(new compiler_1.CompilerFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
                 }
                 pageData = tokenizer.mergeData(pageData, next.data);
-                var amount = token.amount || 1;
+                let amount = token.amount || 1;
                 for (; amount > 0; amount--) {
                     lines.push(renderPage(next));
                 }
             });
             return (0, util_1.joinLine)(lines);
         };
-        var content = renderPage(page);
+        let content = renderPage(page);
         if (layout) {
             pageData = tokenizer.mergeData(pageData, layout.data);
             content = renderPage(layout, content);
@@ -70,11 +94,11 @@ var TemplateParser = (function () {
         return {
             template: this.mergeStyle(content, file.src, file.mtime)
         };
-    };
-    TemplateParser.prototype.mergeStyle = function (content, file, time) {
-        var currentFolder = path.dirname(file);
-        var replacePath = function (text) {
-            return text.replace(tokenizer_2.REGEX_ASSET, function ($0, _, $2) {
+    }
+    mergeStyle(content, file, time) {
+        const currentFolder = path.dirname(file);
+        const replacePath = (text) => {
+            return text.replace(tokenizer_2.REGEX_ASSET, ($0, _, $2) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
                     return $0;
                 }
@@ -84,18 +108,18 @@ var TemplateParser = (function () {
                 if ($2.charAt(0) === '/') {
                     return $0;
                 }
-                var fileName = path.relative(currentFolder, $2).replace('\\', '/').replace(/\.ts$/, '.js').replace(/\.(scss|sass|less)$/, '.css');
+                const fileName = path.relative(currentFolder, $2).replace('\\', '/').replace(/\.ts$/, '.js').replace(/\.(scss|sass|less)$/, '.css');
                 return $0.replace($2, fileName);
             });
         };
-        var data = this.tokenizer.render(replacePath(content));
-        var headers = [];
-        var footers = [];
-        var styles = [];
-        var scripts = [];
-        var styleLang = 'css';
-        var scriptLang = 'js';
-        var eachElement = function (root) {
+        const data = this.tokenizer.render(replacePath(content));
+        let headers = [];
+        let footers = [];
+        let styles = [];
+        let scripts = [];
+        let styleLang = 'css';
+        let scriptLang = 'js';
+        const eachElement = (root) => {
             if (root.node !== 'element') {
                 root.map(eachElement);
                 return;
@@ -107,7 +131,7 @@ var TemplateParser = (function () {
             }
             if (root.tag === 'style') {
                 root.ignore = true;
-                var l = root.attr('lang');
+                const l = root.attr('lang');
                 if (l && l !== 'css') {
                     styleLang = l;
                 }
@@ -125,7 +149,7 @@ var TemplateParser = (function () {
                 root.ignore = true;
                 return;
             }
-            var lang = root.attr('lang');
+            const lang = root.attr('lang');
             if (lang && lang !== 'js') {
                 scriptLang = lang;
             }
@@ -135,30 +159,29 @@ var TemplateParser = (function () {
             }
         };
         data.map(eachElement);
-        var lines = [];
-        styles.forEach(function (item) {
+        let lines = [];
+        styles.forEach(item => {
             if (item.text) {
                 lines.push(item.text);
             }
         });
-        var style = this.project.style.render(new compiler_1.CompilerFile(file, time, '', styleLang, (0, util_1.joinLine)(lines)));
+        let style = this.project.style.render(new compiler_1.CompilerFile(file, time, '', styleLang, (0, util_1.joinLine)(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
             style = compiler_1.PluginCompiler.sass(style, file, styleLang, {
                 importer: this.project.style.importer,
             });
         }
         lines = [];
-        scripts.forEach(function (item) {
+        scripts.forEach(item => {
             if (item.text) {
                 lines.push(item.text);
             }
         });
-        var script = this.project.script.render((0, util_1.joinLine)(lines));
+        let script = this.project.script.render((0, util_1.joinLine)(lines));
         if (script.length > 0 && scriptLang === 'ts') {
             script = compiler_1.PluginCompiler.ts(script, file);
         }
-        var pushStyle = function (root) {
-            var _a, _b;
+        const pushStyle = (root) => {
             if (root.node !== 'element') {
                 return;
             }
@@ -167,7 +190,7 @@ var TemplateParser = (function () {
                     root.children = !root.children ? headers : root.children.concat(headers);
                 }
                 if (style.length > 0) {
-                    (_a = root.children) === null || _a === void 0 ? void 0 : _a.push(tokenizer_1.ElementToken.create('style', [tokenizer_1.ElementToken.text(style)]));
+                    root.children?.push(tokenizer_1.ElementToken.create('style', [tokenizer_1.ElementToken.text(style)]));
                 }
                 headers = [];
                 return;
@@ -177,7 +200,7 @@ var TemplateParser = (function () {
                     root.children = !root.children ? footers : root.children.concat(footers);
                 }
                 if (script.length > 0) {
-                    (_b = root.children) === null || _b === void 0 ? void 0 : _b.push(tokenizer_1.ElementToken.create('script', [tokenizer_1.ElementToken.text(script)]));
+                    root.children?.push(tokenizer_1.ElementToken.create('script', [tokenizer_1.ElementToken.text(script)]));
                 }
                 footers = [];
                 return;
@@ -187,16 +210,15 @@ var TemplateParser = (function () {
         data.map(pushStyle);
         this.compiler.indent = this.project.compilerMin ? '' : '    ';
         return this.compiler.render(data);
-    };
-    TemplateParser.prototype.extractStyle = function (content) {
-        var regex = /<style[\s\S]+?>([\s\S]+?)<\/style>/g;
-        var items = [];
-        var match;
+    }
+    extractStyle(content) {
+        const regex = /<style[\s\S]+?>([\s\S]+?)<\/style>/g;
+        const items = [];
+        let match;
         while (null !== (match = regex.exec(content))) {
             items.push(match[1]);
         }
         return items.join('\r\n');
-    };
-    return TemplateParser;
-}());
+    }
+}
 exports.TemplateParser = TemplateParser;
