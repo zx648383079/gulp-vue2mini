@@ -11,6 +11,8 @@
 
 [模板说明](docs/theme.md)
 
+[打包说明](docs/pack.md)
+
 ## 使用方法
 
 安装

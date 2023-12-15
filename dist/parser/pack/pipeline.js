@@ -17,15 +17,15 @@ class PackPipeline {
         this.pipeItems.push(fn);
         return this;
     }
-    ts() {
+    ts(tsConfigFileName = 'tsconfig.json', sourceMap = true) {
         this.pipeItems.push(file => {
-            return compiler_1.PluginCompiler.ts((0, compiler_1.fileContent)(file), file.src);
+            return compiler_1.PluginCompiler.ts((0, compiler_1.fileContent)(file), file.src, tsConfigFileName, sourceMap);
         });
         return this;
     }
-    sass() {
+    sass(options = {}) {
         this.pipeItems.push(file => {
-            return compiler_1.PluginCompiler.sass((0, compiler_1.fileContent)(file), file.src);
+            return compiler_1.PluginCompiler.sass((0, compiler_1.fileContent)(file), file.src, file.extname.substring(1), options);
         });
         return this;
     }

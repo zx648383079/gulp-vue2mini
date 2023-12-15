@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.unStudly = exports.studly = exports.firstUpper = exports.twoPad = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
+exports.renderOutputRule = exports.splitStr = exports.getExtensionName = exports.regexReplace = exports.eachObject = exports.cloneObject = exports.isEmptyCode = exports.isLineCode = exports.eachFile = exports.unStudly = exports.studly = exports.firstUpper = exports.twoPad = exports.joinLine = exports.splitLine = exports.LINE_SPLITE = void 0;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const compiler_1 = require("../compiler");
@@ -219,3 +219,36 @@ function splitStr(val, serach, count = 0) {
     return data;
 }
 exports.splitStr = splitStr;
+function renderOutputRule(input, output) {
+    if (!output.endsWith('/')) {
+        return output;
+    }
+    const data = input.split('/');
+    const items = output.split('/');
+    items[items.length - 1] = data[data.length - 1];
+    const res = [];
+    items.forEach((v, i) => {
+        if (v === '**') {
+            const count = data.length - res.length - items.length + i + 1;
+            for (let j = 0; j < count; j++) {
+                res.push('*');
+            }
+            return;
+        }
+        res.push(v);
+    });
+    let remove = res.length - data.length;
+    for (let i = res.length - 1; i >= 0; i--) {
+        if (res[i] !== '*') {
+            continue;
+        }
+        if (remove > 0) {
+            res.splice(i, 1);
+            remove--;
+            continue;
+        }
+        res[i] = data[data.length - res.length + i];
+    }
+    return res.join('/');
+}
+exports.renderOutputRule = renderOutputRule;

@@ -6,7 +6,7 @@ import { PackPipelineFunc } from './pipeline';
 import * as UglifyJS from 'uglify-js';
 import CleanCSS from 'clean-css';
 import { writeFileSync } from 'fs';
-import { LINE_SPLITE } from '../../util';
+import { LINE_SPLITE, renderOutputRule } from '../../util';
 
 
 export class PackProject extends BaseProjectCompiler implements IProjectCompiler {
@@ -81,7 +81,7 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
         return glob(input).then(files => {
             const items: CompilerFile[] = [];
             for (const file of files) {
-                eachCompileFile(this.readyCompilerFile(new CompilerFile(file), output), src => {
+                eachCompileFile(this.readyCompilerFile(new CompilerFile(file), renderOutputRule(file, output)), src => {
                     const res = this.compileFileSync(src, pipeItems);
                     if (!res) {
                         return;

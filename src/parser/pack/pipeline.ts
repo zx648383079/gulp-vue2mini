@@ -1,4 +1,4 @@
-import { CompilerFile, PluginCompiler, fileContent } from '../../compiler';
+import { CompilerFile, PluginCompiler, SassOptions, fileContent } from '../../compiler';
 import { PackLoader } from './register';
 
 export type PackPipelineFunc = (file: CompilerFile) => string|CompilerFile|null|undefined;
@@ -21,16 +21,16 @@ export class PackPipeline {
         return this;
     }
 
-    public ts() {
+    public ts(tsConfigFileName: string = 'tsconfig.json', sourceMap = true) {
         this.pipeItems.push(file => {
-            return PluginCompiler.ts(fileContent(file), file.src);
+            return PluginCompiler.ts(fileContent(file), file.src, tsConfigFileName, sourceMap);
         });
         return this;
     }
 
-    public sass() {
+    public sass(options: SassOptions = {}) {
         this.pipeItems.push(file => {
-            return PluginCompiler.sass(fileContent(file), file.src);
+            return PluginCompiler.sass(fileContent(file), file.src, file.extname.substring(1), options);
         });
         return this;
     }

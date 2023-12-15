@@ -10,6 +10,7 @@ vue2mini
 
     --watch   监听脚本变动
     --mini    编译小程序
+    --custom  自定义功能，引用当前目录中的 `packfile.js`, 可以输入任务名，默认为 `default`
     --theme   编译模板
     --css     转css为scss
     --help    帮助

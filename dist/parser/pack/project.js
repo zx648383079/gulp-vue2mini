@@ -86,7 +86,7 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         return (0, glob_1.glob)(input).then(files => {
             const items = [];
             for (const file of files) {
-                (0, compiler_1.eachCompileFile)(this.readyCompilerFile(new compiler_1.CompilerFile(file), output), src => {
+                (0, compiler_1.eachCompileFile)(this.readyCompilerFile(new compiler_1.CompilerFile(file), (0, util_1.renderOutputRule)(file, output)), src => {
                     const res = this.compileFileSync(src, pipeItems);
                     if (!res) {
                         return;
