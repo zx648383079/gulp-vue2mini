@@ -47,6 +47,10 @@ if (argv.params.help) {
     process.exit(0);
 }
 
+if (argv.params.custom) {
+    argv.params.input = '';
+}
+
 const input = path.resolve(process.cwd(), argv.params.input);
 const outputFolder = path.resolve(process.cwd(), argv.params.output);
 

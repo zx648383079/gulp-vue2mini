@@ -1,9 +1,10 @@
 import { BaseProjectCompiler, CompilerFile, IProjectCompiler } from '../../compiler';
 import { PackPipelineFunc } from './pipeline';
 export declare class PackProject extends BaseProjectCompiler implements IProjectCompiler {
-    constructor(inputFolder: string, outputFolder: string, options?: any);
+    constructor(_: string, outputFolder: string, options?: any);
     private items;
     get compilerMin(): boolean;
+    get taskName(): string;
     readyFile(src: CompilerFile): CompilerFile | CompilerFile[] | undefined;
     outputFile(file: string | CompilerFile): string;
     compileFile(src: CompilerFile): void;

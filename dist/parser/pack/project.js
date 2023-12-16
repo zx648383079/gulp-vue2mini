@@ -36,13 +36,16 @@ const clean_css_1 = __importDefault(require("clean-css"));
 const fs_1 = require("fs");
 const util_1 = require("../../util");
 class PackProject extends compiler_1.BaseProjectCompiler {
-    constructor(inputFolder, outputFolder, options) {
-        super(inputFolder, outputFolder, options);
+    constructor(_, outputFolder, options) {
+        super(process.cwd(), outputFolder, options);
         register_1.PackLoader._instance = this;
     }
     items = {};
     get compilerMin() {
         return this.options && this.options.min;
+    }
+    get taskName() {
+        return typeof this.options.custom === 'string' ? this.options.custom : 'default';
     }
     readyFile(src) {
         return this.readyCompilerFile(src, this.outputFolder);
@@ -54,9 +57,11 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         this.logFile(src, 'unsupport file');
     }
     compile() {
-        const entry = path_1.default.resolve(process.cwd(), 'packfile.js');
+        const entry = path_1.default.resolve(this.inputFolder, 'packfile.js');
+        const local = require(path_1.default.join(this.inputFolder, 'node_modules/gulp-vue2mini'));
+        local.PackLoader._instance = this;
         require(entry);
-        this.compileTask(typeof this.options.custom === 'string' ? this.options.custom : 'default');
+        this.compileTask(this.taskName);
     }
     compileTask(name) {
         if (!Object.prototype.hasOwnProperty.call(this.items, name)) {
@@ -86,7 +91,7 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         return (0, glob_1.glob)(input).then(files => {
             const items = [];
             for (const file of files) {
-                (0, compiler_1.eachCompileFile)(this.readyCompilerFile(new compiler_1.CompilerFile(file), (0, util_1.renderOutputRule)(file, output)), src => {
+                (0, compiler_1.eachCompileFile)(this.readyCompilerFile(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, file)), (0, util_1.renderOutputRule)(file, output)), src => {
                     const res = this.compileFileSync(src, pipeItems);
                     if (!res) {
                         return;
@@ -131,14 +136,15 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         }
         let content = file instanceof compiler_1.CompilerFile ? (0, compiler_1.fileContent)(file) : file;
         if (content.length > 0 && this.compilerMin) {
-            if (type === 'js') {
+            if (['js', 'ts'].indexOf(type) >= 0) {
                 content = UglifyJS.minify(content).code;
             }
-            else if (type === 'css') {
+            else if (['css', 'sass', 'scss', 'less'].indexOf(type) >= 0) {
                 content = new clean_css_1.default().minify(content).styles;
             }
         }
         (0, fs_1.writeFileSync)(fileName, content);
+        this.logFile(fileName, 'SUCCESS!');
     }
     readyCompilerFile(src, output) {
         const ext = src.extname;
@@ -163,7 +169,7 @@ class PackProject extends compiler_1.BaseProjectCompiler {
             replaceExt = oldExt;
         }
         if (file.endsWith(oldExt)) {
-            file = file.substring(0, -oldExt.length);
+            file = file.substring(0, file.length - oldExt.length);
         }
         if (min && !file.endsWith('.min')) {
             return `${file}.min${replaceExt}`;
@@ -172,9 +178,9 @@ class PackProject extends compiler_1.BaseProjectCompiler {
     }
     readyOutputFile(file, output) {
         if (!output.endsWith('/')) {
-            return path_1.default.resolve(output);
+            return path_1.default.resolve(this.inputFolder, output);
         }
-        return path_1.default.resolve(output, path_1.default.relative(this.inputFolder, file instanceof compiler_1.CompilerFile ? file.src : file));
+        return path_1.default.resolve(this.inputFolder, output, path_1.default.relative(this.inputFolder, file instanceof compiler_1.CompilerFile ? file.src : file));
     }
 }
 exports.PackProject = PackProject;

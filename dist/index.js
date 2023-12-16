@@ -14,7 +14,15 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const gulp_1 = require("./gulp");
-__exportStar(require("./gulp"), exports);
 __exportStar(require("./parser/pack/register"), exports);
-exports.default = gulp_1.template;
+try {
+    require.resolve('readable-stream');
+    const gulp_1 = require('./gulp');
+    for (const key in gulp_1) {
+        if (Object.prototype.hasOwnProperty.call(gulp_1, key)) {
+            exports[key] = gulp_1[key];
+        }
+    }
+    exports.default = gulp_1.template;
+}
+catch { }

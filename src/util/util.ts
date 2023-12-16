@@ -259,7 +259,7 @@ export function renderOutputRule(input: string, output: string): string {
     if (!output.endsWith('/')) {
         return output;
     }
-    const data = input.split('/');
+    const data = input.split(/[\\\/]/g);
     const items = output.split('/');
     items[items.length - 1] = data[data.length - 1];
     const res: string[] = [];

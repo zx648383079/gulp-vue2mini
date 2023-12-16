@@ -4,6 +4,12 @@ exports.PackLoader = void 0;
 const pipeline_1 = require("./pipeline");
 class PackLoader {
     static _instance;
+    static get taskName() {
+        return this._instance.taskName;
+    }
+    static get argv() {
+        return this._instance.options;
+    }
     static task(name, cb) {
         if (!this._instance) {
             return;
