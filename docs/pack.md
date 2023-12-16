@@ -11,7 +11,7 @@ npm i gulp-vue2mini --save-dev
 packfile.js
 
 ```js
-var loader = require('vue2mini').PackLoader;
+var loader = require('gulp-vue2mini').PackLoader;
 
 loader.task('default', async () => {
     await loader.input('src/**/*.ts')
