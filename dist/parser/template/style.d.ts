@@ -11,7 +11,7 @@ export declare class StyleParser {
     private preppendItems;
     private themeUsedKeys;
     get length(): number;
-    get(theme: string): import("./tokenizer").IThemeOption | undefined;
+    get(theme: string): import("src/parser/template/tokenizer").IThemeOption | undefined;
     render(file: CompilerFile): string;
     private renderPart;
     pushTheme(items: IThemeObject): void;

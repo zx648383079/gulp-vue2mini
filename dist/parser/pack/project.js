@@ -111,6 +111,16 @@ class PackProject extends compiler_1.BaseProjectCompiler {
             return true;
         });
     }
+    readSync(input) {
+        const content = (0, compiler_1.fileContent)(input);
+        if (input.type !== 'ts') {
+            return content;
+        }
+        return (0, util_1.regexReplace)(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
+            const part = new compiler_1.CompilerFile(path_1.default.resolve(input.dirname, match[1]));
+            return (0, compiler_1.fileContent)(part);
+        });
+    }
     compileFileSync(input, pipeItems) {
         for (const fn of pipeItems) {
             const res = fn.call(this, input);
@@ -150,6 +160,9 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         const ext = src.extname;
         const dist = this.readyOutputFile(src, output);
         if (ext === '.ts') {
+            if (src.basename.startsWith('_')) {
+                return undefined;
+            }
             return compiler_1.CompilerFile.from(src, this.replaceExtension(dist, ext, '.js', this.compilerMin), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {

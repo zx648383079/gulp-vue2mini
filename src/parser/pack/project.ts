@@ -6,7 +6,7 @@ import { PackPipelineFunc } from './pipeline';
 import * as UglifyJS from 'uglify-js';
 import CleanCSS from 'clean-css';
 import { writeFileSync } from 'fs';
-import { LINE_SPLITE, renderOutputRule } from '../../util';
+import { LINE_SPLITE, regexReplace, renderOutputRule } from '../../util';
 
 
 export class PackProject extends BaseProjectCompiler implements IProjectCompiler {
@@ -108,6 +108,20 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
     }
 
 
+    /**
+     * 读取文件内容
+     * @param input 
+     */
+    public readSync(input: CompilerFile): string {
+        const content = fileContent(input);
+        if (input.type !== 'ts') {
+            return content;
+        }
+        return regexReplace(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
+            const part = new CompilerFile(path.resolve(input.dirname, match[1]));
+            return fileContent(part);
+        });
+    }
 
     private compileFileSync(input: CompilerFile, pipeItems: PackPipelineFunc[]): CompilerFile|undefined {
         for (const fn of pipeItems) {
@@ -149,6 +163,10 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
         const ext = src.extname;
         const dist = this.readyOutputFile(src, output);
         if (ext === '.ts') {
+            // 增加以 _ 开头的文件不编译， 调用
+            if (src.basename.startsWith('_')) {
+                return undefined;
+            }
             return CompilerFile.from(src, this.replaceExtension(dist, ext, '.js', this.compilerMin), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {

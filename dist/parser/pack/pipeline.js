@@ -18,14 +18,16 @@ class PackPipeline {
         return this;
     }
     ts(tsConfigFileName = 'tsconfig.json', sourceMap = true) {
+        const instance = register_1.PackLoader._instance;
         this.pipeItems.push(file => {
-            return compiler_1.PluginCompiler.ts((0, compiler_1.fileContent)(file), file.src, tsConfigFileName, sourceMap);
+            return compiler_1.PluginCompiler.ts(instance.readSync(file), file.src, tsConfigFileName, sourceMap);
         });
         return this;
     }
     sass(options = {}) {
+        const instance = register_1.PackLoader._instance;
         this.pipeItems.push(file => {
-            return compiler_1.PluginCompiler.sass((0, compiler_1.fileContent)(file), file.src, file.extname.substring(1), options);
+            return compiler_1.PluginCompiler.sass(instance.readSync(file), file.src, file.extname.substring(1), options);
         });
         return this;
     }

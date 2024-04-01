@@ -12,6 +12,7 @@ export declare class PackProject extends BaseProjectCompiler implements IProject
     private compileTask;
     task(name: string, cb: Function): void;
     compileAsync(input: string[], pipeItems: PackPipelineFunc[], output: string): Promise<boolean>;
+    readSync(input: CompilerFile): string;
     private compileFileSync;
     private writeAsync;
     private readyCompilerFile;
