@@ -107,19 +107,22 @@ exports.BaseProjectCompiler = BaseProjectCompiler;
 class PluginCompiler {
     static ts(input, file, tsConfigFileName = 'tsconfig.json', sourceMap = false) {
         let projectDirectory = process.cwd();
-        let compilerOptions;
         tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
         projectDirectory = path.dirname(tsConfigFileName);
         const tsConfig = ts.readConfigFile(tsConfigFileName, ts.sys.readFile);
-        const parsed = ts.parseJsonConfigFileContent(tsConfig.config || {}, {
+        const option = tsConfig.config || {};
+        if (typeof sourceMap === 'boolean') {
+            option.sourceMap = sourceMap;
+            option.inlineSourceMap = true;
+        }
+        const parsed = ts.parseJsonConfigFileContent(option, {
             useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
             readDirectory: () => [],
             fileExists: ts.sys.fileExists,
             readFile: ts.sys.readFile
         }, path.resolve(projectDirectory), undefined, tsConfigFileName);
-        compilerOptions = parsed.options;
         const output = ts.transpileModule(input, {
-            compilerOptions,
+            compilerOptions: parsed.options,
             fileName: file,
             reportDiagnostics: true,
             transformers: undefined,
@@ -130,6 +133,10 @@ class PluginCompiler {
         return output.outputText.replace(/\/\/#\ssourceMappingURL[\s\S]+$/, '');
     }
     static sass(input, file, lang = 'scss', options = {}) {
+        const output = this.sassImporter().compileString(input, this.createSassOptions(file, lang, options));
+        return output.css.toString();
+    }
+    static createSassOptions(file, lang = 'scss', options = {}) {
         const fileExsist = (url) => {
             return fs.existsSync(url) ? url : undefined;
         };
@@ -171,15 +178,14 @@ class PluginCompiler {
                     }
                 }];
         }
-        const output = PluginCompiler.sassImporter().compileString(input, Object.assign({}, options, {
+        return Object.assign({}, options, {
             url: new URL(file),
             syntax: lang === 'sass' ? 'indented' : 'scss'
-        }));
-        return output.css.toString();
+        });
     }
     static async less(input, file, options = {}) {
         options.filename = file;
-        const output = await PluginCompiler.lessImporter().render(input, options);
+        const output = await this.lessImporter().render(input, options);
         return output.css;
     }
     static sassImporter() {

@@ -1,12 +1,13 @@
 import path from 'path';
 import { BaseProjectCompiler, CompilerFile, IProjectCompiler, LogLevel, eachCompileFile, fileContent } from '../../compiler';
 import { PackLoader } from './register';
-import { glob } from 'glob';
-import { PackPipelineFunc } from './pipeline';
+import { PackPipelineFn } from './pipeline';
 import * as UglifyJS from 'uglify-js';
 import CleanCSS from 'clean-css';
 import { writeFileSync } from 'fs';
 import { LINE_SPLITE, regexReplace, renderOutputRule } from '../../util';
+import { PackCompiler } from './compiler';
+import { glob } from '../../util';
 
 
 export class PackProject extends BaseProjectCompiler implements IProjectCompiler {
@@ -21,6 +22,8 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
     }
 
 
+    public compiler = new PackCompiler(this);
+    private fileItems: Record<string, CompilerFile> = {};
     private items: {
         [key: string]: Function
     } = {};
@@ -83,30 +86,44 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
         this.items[name] = cb;
     }
 
-    public compileAsync(input: string[], pipeItems: PackPipelineFunc[], output: string): Promise<boolean> {
-        return glob(input).then(files => {
-            const items: CompilerFile[] = [];
-            for (const file of files) {
-                eachCompileFile(this.readyCompilerFile(new CompilerFile(path.resolve(this.inputFolder, file)), renderOutputRule(file, output)), src => {
-                    const res = this.compileFileSync(src, pipeItems);
-                    if (!res) {
-                        return;
-                    }
-                    items.push(res);
-                });
-            }
-            if (items.length === 0) {
-                return false;
-            }
-            if (output.endsWith('/')) {
-                items.forEach(item => this.writeAsync(item));
+    public compileAsync(input: string[], pipeItems: PackPipelineFn[], output: string): Promise<boolean> {
+        this.fileItems = {};
+        const isSingleFile = !output.endsWith('/');
+        return new Promise<boolean>((resolve, _) => {
+            const files = glob(input);
+            let items: CompilerFile[] = [];
+            if (isSingleFile) {
+                const input = files.map(file => this.readSync(new CompilerFile(path.resolve(this.inputFolder, file)))).join(LINE_SPLITE);
+                const inputFile = this.readyCompilerFile(new CompilerFile(path.resolve(this.inputFolder, output)), output, true) as CompilerFile;
+                inputFile.content = input;
+                this.fileItems[inputFile.src] = inputFile;
+                items.push(inputFile);
             } else {
-                this.writeAsync(items.map(item => fileContent(item)).join(LINE_SPLITE), items[0].type, items[0].dist);
+                for (const file of files) {
+                    eachCompileFile(this.readyCompilerFile(new CompilerFile(path.resolve(this.inputFolder, file)), renderOutputRule(file, output)), src => {
+                        this.fileItems[src.src] = src;
+                        items.push(src);
+                    });
+                }
             }
-            return true;
-        })
+            items = this.compileFileSync(items, pipeItems);
+            if (items.length === 0) {
+                resolve(false);
+                return;
+            }
+            items.forEach(item => this.writeAsync(item));
+            this.compiler.finish();
+            resolve(true);
+        });
     }
 
+    public getFile(fileName: string): CompilerFile|undefined {
+        const file = path.resolve(this.inputFolder, fileName);
+        if (this.fileItems[file]) {
+            return this.fileItems[file];
+        }
+        return;
+    }
 
     /**
      * 读取文件内容
@@ -123,19 +140,35 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
         });
     }
 
-    private compileFileSync(input: CompilerFile, pipeItems: PackPipelineFunc[]): CompilerFile|undefined {
+    private compileFileSync(input: CompilerFile[], pipeItems: PackPipelineFn[]): CompilerFile[] {
+        if (input.length === 0) {
+            return input;
+        }
         for (const fn of pipeItems) {
-            const res =  fn.call(this, input);
-            if (typeof res === 'string') {
-                if (res.trim().length === 0) {
-                    return;
-                }
-                input.content = res;
-            } else if (res === null) {
-                return;
-            } else if (res instanceof CompilerFile) {
-                input = res;
+            if (input.length === 0) {
+                break;
             }
+            if (typeof fn === 'function') {
+                input = fn.call(this, input);
+                continue;
+            }
+            const items: CompilerFile[] = [];
+            for (const item of input) {
+                const res = fn.transform(item);
+                if (typeof res === 'string') {
+                    if (res.trim().length === 0) {
+                        continue;
+                    }
+                    item.content = res;
+                } else if (res === null) {
+                    continue;
+                } else if (res instanceof CompilerFile) {
+                    items.push(res);
+                    continue;
+                }
+                items.push(item);
+            }
+            input = items;
         }
         return input;
     }
@@ -155,22 +188,30 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
                 content = new CleanCSS().minify(content).styles;
             }
         }
+        this.mkIfNotFolder(path.dirname(fileName));
         writeFileSync(fileName, content);
         this.logFile(fileName, 'SUCCESS!');
     }
 
-    private readyCompilerFile(src: CompilerFile, output: string): CompilerFile | CompilerFile[] | undefined {
+    /**
+     * 
+     * @param src 
+     * @param output 
+     * @param noExclude 不排除 _ 开头的文件
+     * @returns 
+     */
+    private readyCompilerFile(src: CompilerFile, output: string, noExclude = false): CompilerFile | CompilerFile[] | undefined {
         const ext = src.extname;
         const dist = this.readyOutputFile(src, output);
         if (ext === '.ts') {
             // 增加以 _ 开头的文件不编译， 调用
-            if (src.basename.startsWith('_')) {
+            if (!noExclude && src.basename.startsWith('_')) {
                 return undefined;
             }
             return CompilerFile.from(src, this.replaceExtension(dist, ext, '.js', this.compilerMin), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {
-            if (src.basename.startsWith('_')) {
+            if (!noExclude && src.basename.startsWith('_')) {
                 return undefined;
             }
             return CompilerFile.from(src, this.replaceExtension(dist, ext, '.css', this.compilerMin), ext.substring(1));

@@ -30,16 +30,19 @@ exports.PackProject = void 0;
 const path_1 = __importDefault(require("path"));
 const compiler_1 = require("../../compiler");
 const register_1 = require("./register");
-const glob_1 = require("glob");
 const UglifyJS = __importStar(require("uglify-js"));
 const clean_css_1 = __importDefault(require("clean-css"));
 const fs_1 = require("fs");
 const util_1 = require("../../util");
+const compiler_2 = require("./compiler");
+const util_2 = require("../../util");
 class PackProject extends compiler_1.BaseProjectCompiler {
     constructor(_, outputFolder, options) {
         super(process.cwd(), outputFolder, options);
         register_1.PackLoader._instance = this;
     }
+    compiler = new compiler_2.PackCompiler(this);
+    fileItems = {};
     items = {};
     get compilerMin() {
         return this.options && this.options.min;
@@ -88,28 +91,42 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         this.items[name] = cb;
     }
     compileAsync(input, pipeItems, output) {
-        return (0, glob_1.glob)(input).then(files => {
-            const items = [];
-            for (const file of files) {
-                (0, compiler_1.eachCompileFile)(this.readyCompilerFile(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, file)), (0, util_1.renderOutputRule)(file, output)), src => {
-                    const res = this.compileFileSync(src, pipeItems);
-                    if (!res) {
-                        return;
-                    }
-                    items.push(res);
-                });
-            }
-            if (items.length === 0) {
-                return false;
-            }
-            if (output.endsWith('/')) {
-                items.forEach(item => this.writeAsync(item));
+        this.fileItems = {};
+        const isSingleFile = !output.endsWith('/');
+        return new Promise((resolve, _) => {
+            const files = (0, util_2.glob)(input);
+            let items = [];
+            if (isSingleFile) {
+                const input = files.map(file => this.readSync(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, file)))).join(util_1.LINE_SPLITE);
+                const inputFile = this.readyCompilerFile(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, output)), output, true);
+                inputFile.content = input;
+                this.fileItems[inputFile.src] = inputFile;
+                items.push(inputFile);
             }
             else {
-                this.writeAsync(items.map(item => (0, compiler_1.fileContent)(item)).join(util_1.LINE_SPLITE), items[0].type, items[0].dist);
+                for (const file of files) {
+                    (0, compiler_1.eachCompileFile)(this.readyCompilerFile(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, file)), (0, util_1.renderOutputRule)(file, output)), src => {
+                        this.fileItems[src.src] = src;
+                        items.push(src);
+                    });
+                }
             }
-            return true;
+            items = this.compileFileSync(items, pipeItems);
+            if (items.length === 0) {
+                resolve(false);
+                return;
+            }
+            items.forEach(item => this.writeAsync(item));
+            this.compiler.finish();
+            resolve(true);
         });
+    }
+    getFile(fileName) {
+        const file = path_1.default.resolve(this.inputFolder, fileName);
+        if (this.fileItems[file]) {
+            return this.fileItems[file];
+        }
+        return;
     }
     readSync(input) {
         const content = (0, compiler_1.fileContent)(input);
@@ -122,20 +139,36 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         });
     }
     compileFileSync(input, pipeItems) {
+        if (input.length === 0) {
+            return input;
+        }
         for (const fn of pipeItems) {
-            const res = fn.call(this, input);
-            if (typeof res === 'string') {
-                if (res.trim().length === 0) {
-                    return;
+            if (input.length === 0) {
+                break;
+            }
+            if (typeof fn === 'function') {
+                input = fn.call(this, input);
+                continue;
+            }
+            const items = [];
+            for (const item of input) {
+                const res = fn.transform(item);
+                if (typeof res === 'string') {
+                    if (res.trim().length === 0) {
+                        continue;
+                    }
+                    item.content = res;
                 }
-                input.content = res;
+                else if (res === null) {
+                    continue;
+                }
+                else if (res instanceof compiler_1.CompilerFile) {
+                    items.push(res);
+                    continue;
+                }
+                items.push(item);
             }
-            else if (res === null) {
-                return;
-            }
-            else if (res instanceof compiler_1.CompilerFile) {
-                input = res;
-            }
+            input = items;
         }
         return input;
     }
@@ -153,20 +186,21 @@ class PackProject extends compiler_1.BaseProjectCompiler {
                 content = new clean_css_1.default().minify(content).styles;
             }
         }
+        this.mkIfNotFolder(path_1.default.dirname(fileName));
         (0, fs_1.writeFileSync)(fileName, content);
         this.logFile(fileName, 'SUCCESS!');
     }
-    readyCompilerFile(src, output) {
+    readyCompilerFile(src, output, noExclude = false) {
         const ext = src.extname;
         const dist = this.readyOutputFile(src, output);
         if (ext === '.ts') {
-            if (src.basename.startsWith('_')) {
+            if (!noExclude && src.basename.startsWith('_')) {
                 return undefined;
             }
             return compiler_1.CompilerFile.from(src, this.replaceExtension(dist, ext, '.js', this.compilerMin), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {
-            if (src.basename.startsWith('_')) {
+            if (!noExclude && src.basename.startsWith('_')) {
                 return undefined;
             }
             return compiler_1.CompilerFile.from(src, this.replaceExtension(dist, ext, '.css', this.compilerMin), ext.substring(1));

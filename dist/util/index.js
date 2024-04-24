@@ -17,3 +17,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./cache"), exports);
 __exportStar(require("./link"), exports);
 __exportStar(require("./util"), exports);
+__exportStar(require("./glob"), exports);

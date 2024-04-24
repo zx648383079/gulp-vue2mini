@@ -1,7 +1,10 @@
 import { BaseProjectCompiler, CompilerFile, IProjectCompiler } from '../../compiler';
-import { PackPipelineFunc } from './pipeline';
+import { PackPipelineFn } from './pipeline';
+import { PackCompiler } from './compiler';
 export declare class PackProject extends BaseProjectCompiler implements IProjectCompiler {
     constructor(_: string, outputFolder: string, options?: any);
+    compiler: PackCompiler;
+    private fileItems;
     private items;
     get compilerMin(): boolean;
     get taskName(): string;
@@ -11,7 +14,8 @@ export declare class PackProject extends BaseProjectCompiler implements IProject
     compile(): void;
     private compileTask;
     task(name: string, cb: Function): void;
-    compileAsync(input: string[], pipeItems: PackPipelineFunc[], output: string): Promise<boolean>;
+    compileAsync(input: string[], pipeItems: PackPipelineFn[], output: string): Promise<boolean>;
+    getFile(fileName: string): CompilerFile | undefined;
     readSync(input: CompilerFile): string;
     private compileFileSync;
     private writeAsync;

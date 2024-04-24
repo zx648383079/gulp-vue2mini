@@ -6,7 +6,7 @@ import { pathToFileURL } from 'url';
 import { Colors, Logger, LogLevel, LogStr } from './log';
 import { eachObject, twoPad } from '../util';
 
-export interface SassOptions extends sass.StringOptionsWithoutImporter<'sync'> {
+export interface SassOptions extends sass.StringOptions<'sync'> {
     includePaths?: string[]|string;
 }
 
@@ -21,8 +21,6 @@ export class CompilerFile {
 
     }
 
-    
-    
     public get extname() {
         return path.extname(this.src);
     }
@@ -110,14 +108,16 @@ export class BaseProjectCompiler {
 export class PluginCompiler {
     public static ts(input: string, file: string, tsConfigFileName: string = 'tsconfig.json', sourceMap = false) {
         let projectDirectory = process.cwd();
-        let compilerOptions: ts.CompilerOptions;
         tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
         projectDirectory = path.dirname(tsConfigFileName);
-
         const tsConfig = ts.readConfigFile(tsConfigFileName, ts.sys.readFile);
-
+        const option = tsConfig.config || {};
+        if (typeof sourceMap === 'boolean') {
+            option.sourceMap = sourceMap;
+            option.inlineSourceMap = true;
+        }
         const parsed: ts.ParsedCommandLine = ts.parseJsonConfigFileContent(
-            tsConfig.config || {},
+            option,
             {
                 useCaseSensitiveFileNames: ts.sys.useCaseSensitiveFileNames,
                 readDirectory: () => [],
@@ -127,11 +127,9 @@ export class PluginCompiler {
             path.resolve(projectDirectory),
             undefined,
             tsConfigFileName);
-        compilerOptions = parsed.options;
-
         const output: ts.TranspileOutput = ts.transpileModule(input,
             {
-                compilerOptions,
+                compilerOptions: parsed.options,
                 fileName: file,
                 reportDiagnostics: true,
                 transformers: undefined,
@@ -143,6 +141,11 @@ export class PluginCompiler {
     }
 
     public static sass(input: string, file: string, lang = 'scss', options: SassOptions = {}): string {
+        const output: sass.CompileResult = this.sassImporter().compileString(input, this.createSassOptions(file, lang, options));
+        return output.css.toString();
+    }
+
+    public static createSassOptions(file: string, lang = 'scss', options: SassOptions = {}): SassOptions {
         const fileExsist = (url: URL) => {
             return fs.existsSync(url) ? url: undefined;
         };
@@ -185,25 +188,24 @@ export class PluginCompiler {
                 }
             }];
         }
-        const output: sass.CompileResult = PluginCompiler.sassImporter().compileString(input, Object.assign({}, options, {
+        return Object.assign({}, options, {
             // loadPaths: [],
             url: new URL(file),
             syntax: lang === 'sass' ? 'indented' : 'scss'
-        }));
-        return output.css.toString();
+        });
     }
 
     public static async less(input: string, file: string, options: Less.Options = {}): Promise<string> {
         options.filename = file;
-        const output = await PluginCompiler.lessImporter().render(input, options);
+        const output = await this.lessImporter().render(input, options);
         return output.css;
     }
 
-    private static sassImporter() {
+    public static sassImporter() {
         return require('sass');
     }
 
-    private static lessImporter(): LessStatic {
+    public static lessImporter(): LessStatic {
         return require('less');
     }
 }
