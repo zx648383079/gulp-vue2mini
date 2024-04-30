@@ -4,7 +4,7 @@ import { PackLoader } from './register';
 import { PackPipelineFn } from './pipeline';
 import * as UglifyJS from 'uglify-js';
 import CleanCSS from 'clean-css';
-import { writeFileSync } from 'fs';
+import { copyFileSync, writeFileSync } from 'fs';
 import { LINE_SPLITE, regexReplace, renderOutputRule } from '../../util';
 import { PackCompiler } from './compiler';
 import { glob } from '../../util';
@@ -180,16 +180,21 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
             fileName = file.dist;
             type = file.type;
         }
-        let content = file instanceof CompilerFile ? fileContent(file) : file;
-        if (content.length > 0 && this.compilerMin) {
-            if (['js', 'ts'].indexOf(type as any) >= 0) {
-                content = UglifyJS.minify(content).code;
-            } else if (['css', 'sass', 'scss', 'less'].indexOf(type as any) >= 0) {
-                content = new CleanCSS().minify(content).styles;
-            }
-        }
         this.mkIfNotFolder(path.dirname(fileName));
-        writeFileSync(fileName, content);
+        const mustRead = this.compilerMin && ['js', 'ts', 'css', 'sass', 'scss', 'less'].indexOf(type as any) >= 0;
+        if (!mustRead && file instanceof CompilerFile && typeof file.content === 'undefined') {
+            copyFileSync(file.src, fileName);
+        } else {
+            let content = file instanceof CompilerFile ? fileContent(file) : file;
+            if (content.length > 0 && this.compilerMin) {
+                if (['js', 'ts'].indexOf(type as any) >= 0) {
+                    content = UglifyJS.minify(content).code;
+                } else if (['css', 'sass', 'scss', 'less'].indexOf(type as any) >= 0) {
+                    content = new CleanCSS().minify(content).styles;
+                }
+            }
+            writeFileSync(fileName, content);
+        }
         this.logFile(fileName, 'SUCCESS!');
     }
 

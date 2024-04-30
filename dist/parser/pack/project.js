@@ -177,17 +177,23 @@ class PackProject extends compiler_1.BaseProjectCompiler {
             fileName = file.dist;
             type = file.type;
         }
-        let content = file instanceof compiler_1.CompilerFile ? (0, compiler_1.fileContent)(file) : file;
-        if (content.length > 0 && this.compilerMin) {
-            if (['js', 'ts'].indexOf(type) >= 0) {
-                content = UglifyJS.minify(content).code;
-            }
-            else if (['css', 'sass', 'scss', 'less'].indexOf(type) >= 0) {
-                content = new clean_css_1.default().minify(content).styles;
-            }
-        }
         this.mkIfNotFolder(path_1.default.dirname(fileName));
-        (0, fs_1.writeFileSync)(fileName, content);
+        const mustRead = this.compilerMin && ['js', 'ts', 'css', 'sass', 'scss', 'less'].indexOf(type) >= 0;
+        if (!mustRead && file instanceof compiler_1.CompilerFile && typeof file.content === 'undefined') {
+            (0, fs_1.copyFileSync)(file.src, fileName);
+        }
+        else {
+            let content = file instanceof compiler_1.CompilerFile ? (0, compiler_1.fileContent)(file) : file;
+            if (content.length > 0 && this.compilerMin) {
+                if (['js', 'ts'].indexOf(type) >= 0) {
+                    content = UglifyJS.minify(content).code;
+                }
+                else if (['css', 'sass', 'scss', 'less'].indexOf(type) >= 0) {
+                    content = new clean_css_1.default().minify(content).styles;
+                }
+            }
+            (0, fs_1.writeFileSync)(fileName, content);
+        }
         this.logFile(fileName, 'SUCCESS!');
     }
     readyCompilerFile(src, output, noExclude = false) {
