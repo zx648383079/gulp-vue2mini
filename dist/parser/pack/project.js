@@ -129,14 +129,22 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         return;
     }
     readSync(input) {
-        const content = (0, compiler_1.fileContent)(input);
-        if (input.type !== 'ts') {
-            return content;
-        }
-        return (0, util_1.regexReplace)(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
-            const part = new compiler_1.CompilerFile(path_1.default.resolve(input.dirname, match[1]));
-            return (0, compiler_1.fileContent)(part);
-        });
+        const lockItems = [];
+        const readOnLock = (file) => {
+            if (lockItems.indexOf(file.src) >= 0) {
+                return '';
+            }
+            lockItems.push(file.src);
+            const content = (0, compiler_1.fileContent)(file);
+            if (file.type !== 'ts') {
+                return content;
+            }
+            return (0, util_1.regexReplace)(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
+                const part = new compiler_1.CompilerFile(path_1.default.resolve(file.dirname, match[1]), undefined, undefined, file.type);
+                return readOnLock(part);
+            });
+        };
+        return readOnLock(input);
     }
     compileFileSync(input, pipeItems) {
         if (input.length === 0) {

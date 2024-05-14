@@ -130,14 +130,22 @@ export class PackProject extends BaseProjectCompiler implements IProjectCompiler
      * @param input 
      */
     public readSync(input: CompilerFile): string {
-        const content = fileContent(input);
-        if (input.type !== 'ts') {
-            return content;
-        }
-        return regexReplace(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
-            const part = new CompilerFile(path.resolve(input.dirname, match[1]));
-            return fileContent(part);
-        });
+        const lockItems: string[] = [];
+        const readOnLock = (file: CompilerFile): string => {
+            if (lockItems.indexOf(file.src) >= 0) {
+                return '';
+            }
+            lockItems.push(file.src);
+            const content = fileContent(file);
+            if (file.type !== 'ts') {
+                return content;
+            }
+            return regexReplace(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
+                const part = new CompilerFile(path.resolve(file.dirname, match[1]), undefined, undefined, file.type);
+                return readOnLock(part);
+            });
+        };
+        return readOnLock(input);
     }
 
     private compileFileSync(input: CompilerFile[], pipeItems: PackPipelineFn[]): CompilerFile[] {
