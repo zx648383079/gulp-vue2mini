@@ -177,6 +177,12 @@ class StyleTokenizer {
         let blockStart;
         const endIndex = reader.indexOf(';');
         blockStart = reader.indexOf('{');
+        while (blockStart > 0) {
+            if (reader.readSeek(blockStart - 1, 1) !== '#') {
+                break;
+            }
+            blockStart = reader.indexOf('{', blockStart - reader.position + 2);
+        }
         if (endIndex > 0 && (blockStart < 0 || blockStart > endIndex)) {
             const line = reader.readRange(endIndex);
             reader.position = endIndex;

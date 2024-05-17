@@ -155,6 +155,9 @@ export class ThemeTokenizer implements Compiler<CompilerFile, IPage> {
             content = content.substring(1);
         } else if (content.indexOf('=') > 0) {
             type = 'set';
+            // 赋值不允许存在行内注释内容
+            content = line.substring(1);
+            comment = '';
         }
         if (type === 'extend' && /[\<\>]/.test(content)) {
             // 如果包含 <> 字符则不符合规则

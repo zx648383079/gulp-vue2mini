@@ -140,6 +140,8 @@ class ThemeTokenizer {
         }
         else if (content.indexOf('=') > 0) {
             type = 'set';
+            content = line.substring(1);
+            comment = '';
         }
         if (type === 'extend' && /[\<\>]/.test(content)) {
             return;

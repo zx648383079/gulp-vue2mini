@@ -1,6 +1,6 @@
 {
     "name": "gulp-vue2mini",
-    "version": "1.5.6",
+    "version": "1.5.7",
     "description": "converter vue to mini program",
     "main": "dist/index.js",
     "scripts": {
@@ -50,7 +50,7 @@
         "chokidar": "^3.6.0",
         "clean-css": "^5.3.3",
         "glob": "^10.3.15",
-        "sass": "^1.77.1",
+        "sass": "^1.77.2",
         "typescript": "^5.4.5",
         "uglify-js": "^3.17.4"
     }

@@ -228,6 +228,13 @@ export class StyleTokenizer implements Tokenizer<string|CharIterator, StyleToken
         let blockStart: number;
         const endIndex = reader.indexOf(';');
         blockStart = reader.indexOf('{');
+        // 验证 block 是否正确 允许 #{$prefix} 存在
+        while (blockStart > 0) {
+            if (reader.readSeek(blockStart - 1, 1) !== '#') {
+                break;
+            }
+            blockStart = reader.indexOf('{', blockStart - reader.position + 2);
+        }
         if (endIndex > 0 && (blockStart < 0 || blockStart > endIndex)) {
             const line = reader.readRange(endIndex) as string;
             reader.position = endIndex;
