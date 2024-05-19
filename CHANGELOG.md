@@ -1,5 +1,10 @@
 # Change Log
 
+## v1.5.7
+
+1. 修复 `unStudly` 转换字符丢失错误
+2. 增加 `regexReplace` 全局规则验证
+
 ## v1.5.6
 
 1. 解析 sass 验证 block 是否正确 允许 `#{$prefix}` 存在

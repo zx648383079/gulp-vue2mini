@@ -86,21 +86,24 @@ function unStudly(val, link = '-', isFirstLink = false) {
     if (!val || val.length < 1) {
         return '';
     }
-    const items = [];
-    val.split(/[A-Z\s]/).forEach(item => {
-        if (item.length < 1) {
-            return;
+    const isUpperAlphabet = (v) => {
+        if (v.length !== 1) {
+            return false;
         }
-        if (!isFirstLink && items.length < 1) {
-            items.push(item);
-            return;
+        const code = v.charCodeAt(0);
+        return code >= 65 && code <= 90;
+    };
+    const res = regexReplace(val, /([A-Z]|[\.\s_-]+)/g, match => {
+        const v = isUpperAlphabet(match[0]) ? match[0].toLowerCase() : '';
+        if (match.index < 1 && !isFirstLink) {
+            return v;
         }
-        items.push(link);
-        if (item.trim().length > 0) {
-            items.push(item.toLowerCase());
-        }
+        return link + v;
     });
-    return items.join('');
+    if (link.length > 0 && !res.startsWith(link) && isFirstLink) {
+        return link + res;
+    }
+    return res;
 }
 exports.unStudly = unStudly;
 function eachFile(folder, cb) {
@@ -170,10 +173,18 @@ function regexReplace(content, pattern, cb) {
     if (content.length < 1) {
         return content;
     }
+    if (!pattern.global) {
+        throw new Error(`pattern must be global regex, like: ${pattern}g`);
+    }
     const matches = [];
     let match;
+    let lastIndex = -1;
     while (null !== (match = pattern.exec(content))) {
+        if (match.index <= lastIndex) {
+            break;
+        }
         matches.push(match);
+        lastIndex = match.index;
     }
     const block = [];
     for (let i = matches.length - 1; i >= 0; i--) {

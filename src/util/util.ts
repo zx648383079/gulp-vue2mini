@@ -79,21 +79,24 @@ export function unStudly(val: string, link = '-', isFirstLink = false): string {
     if (!val || val.length < 1) {
         return '';
     }
-    const items: string[] = [];
-    val.split(/[A-Z\s]/).forEach(item => {
-        if (item.length < 1) {
-            return;
+    const isUpperAlphabet = (v: string) => {
+        if (v.length !== 1) {
+            return false;
         }
-        if (!isFirstLink && items.length < 1) {
-            items.push(item);
-            return;
+        const code = v.charCodeAt(0);
+        return code >= 65 && code <= 90;
+    };
+    const res = regexReplace(val, /([A-Z]|[\.\s_-]+)/g, match => {
+        const v = isUpperAlphabet(match[0]) ? match[0].toLowerCase() : '';
+        if (match.index < 1 && !isFirstLink) {
+            return v;
         }
-        items.push(link);
-        if (item.trim().length > 0) {
-            items.push(item.toLowerCase());
-        }
+        return link + v;
     });
-    return items.join('');
+    if (link.length > 0 && !res.startsWith(link) && isFirstLink) {
+        return link + res;
+    }
+    return res;
 }
 
 export function eachFile(folder: string, cb: (file: CompilerFile) => void) {
@@ -188,10 +191,19 @@ export function regexReplace(content: string, pattern: RegExp, cb: (match: RegEx
     if (content.length < 1) {
         return content;
     }
+    if (!pattern.global) {
+        throw new Error(`pattern must be global regex, like: ${pattern}g`);
+    }
     const matches: RegExpExecArray[] = [];
     let match: RegExpExecArray|null;
+    let lastIndex = -1;
     while (null !== (match = pattern.exec(content))) {
+        if (match.index <= lastIndex) {
+            // 陷入死循环
+            break;
+        }
         matches.push(match as RegExpExecArray);
+        lastIndex = match.index;
     }
     const block: string[] = [];
     for (let i = matches.length - 1; i >= 0; i--) {
