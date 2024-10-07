@@ -51,10 +51,10 @@ class StyleParser {
         this.preppendItems = [];
         this.themeUsedKeys = [];
         const content = this.renderPart(file, true);
-        return [...this.preppendItems, this.compiler.renderTheme(this.themeItems, this.themeUsedKeys), content].join('\n');
+        return [...this.preppendItems, this.compiler.renderTheme(this.themeItems, this.themeUsedKeys), content].filter(i => !!i).join('\n');
     }
     renderPart(file, isEntry = false) {
-        let content = file.content ? file.content : this.project.fileContent(file);
+        const content = typeof file.content !== 'undefined' ? file.content : this.project.fileContent(file);
         const needTheme = this.needTheme(content);
         const hasTheme = this.hasTheme(content);
         if (!needTheme && !hasTheme) {

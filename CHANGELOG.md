@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.5.8
+
+1. 修复 template 解析 style 合并问题
+
 ## v1.5.7
 
 1. 修复 `unStudly` 转换字符丢失错误

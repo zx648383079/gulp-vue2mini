@@ -47,11 +47,11 @@
         "webpack-sources": "^3.2.3"
     },
     "dependencies": {
-        "chokidar": "^3.6.0",
+        "chokidar": "^4.0.1",
         "clean-css": "^5.3.3",
-        "glob": "^10.3.15",
-        "sass": "^1.77.2",
-        "typescript": "^5.4.5",
-        "uglify-js": "^3.17.4"
+        "glob": "^11.0.0",
+        "sass": "^1.79.4",
+        "typescript": "^5.6.2",
+        "uglify-js": "^3.19.3"
     }
 }
