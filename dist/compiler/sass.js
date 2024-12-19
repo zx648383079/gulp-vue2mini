@@ -1,10 +1,13 @@
-import { StyleTokenizer, StyleTokenType } from '../tokenizer';
-import { isEmptyCode } from '../util';
-import { StyleCompiler } from './style';
-export class SassCompiler {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SassCompiler = void 0;
+const tokenizer_1 = require("../tokenizer");
+const util_1 = require("../util");
+const style_1 = require("./style");
+class SassCompiler {
     tokenizer;
     compiler;
-    constructor(tokenizer = new StyleTokenizer(), compiler = new StyleCompiler()) {
+    constructor(tokenizer = new tokenizer_1.StyleTokenizer(), compiler = new style_1.StyleCompiler()) {
         this.tokenizer = tokenizer;
         this.compiler = compiler;
     }
@@ -82,7 +85,7 @@ export class SassCompiler {
                 appendTag();
                 let i = pos;
                 while (i < name.length) {
-                    if (!isEmptyCode(name.charAt(i))) {
+                    if (!(0, util_1.isEmptyCode)(name.charAt(i))) {
                         break;
                     }
                     i++;
@@ -93,7 +96,7 @@ export class SassCompiler {
             }
             if (code === '.') {
                 appendTag();
-                tag = (args.length > 0 && !isEmptyCode(name.charAt(pos - 2)) ? '&' : '') + code;
+                tag = (args.length > 0 && !(0, util_1.isEmptyCode)(name.charAt(pos - 2)) ? '&' : '') + code;
                 continue;
             }
             if (code === ':') {
@@ -108,7 +111,7 @@ export class SassCompiler {
                 pos = i;
                 continue;
             }
-            if (isEmptyCode(code)) {
+            if ((0, util_1.isEmptyCode)(code)) {
                 appendTag();
                 tag = '';
                 continue;
@@ -217,12 +220,12 @@ export class SassCompiler {
         };
         const mergeStyle = (parent, children) => {
             children.forEach(i => {
-                if (i.type !== StyleTokenType.STYLE) {
+                if (i.type !== tokenizer_1.StyleTokenType.STYLE) {
                     parent.push(i);
                     return;
                 }
                 for (const j of parent) {
-                    if (j.type === StyleTokenType.STYLE && j.name === i.name) {
+                    if (j.type === tokenizer_1.StyleTokenType.STYLE && j.name === i.name) {
                         j.content = i.content;
                         return;
                     }
@@ -237,7 +240,7 @@ export class SassCompiler {
             }
             const name = names.shift();
             for (const item of parent) {
-                if (item.type !== StyleTokenType.STYLE_GROUP) {
+                if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP) {
                     continue;
                 }
                 if (!arrEq(name, item.name)) {
@@ -250,7 +253,7 @@ export class SassCompiler {
                 return;
             }
             const block = {
-                type: StyleTokenType.STYLE_GROUP,
+                type: tokenizer_1.StyleTokenType.STYLE_GROUP,
                 name,
                 children: []
             };
@@ -258,7 +261,7 @@ export class SassCompiler {
             appendBlock(names, children, block.children);
         };
         const createTree = (item, parent) => {
-            if (item.type !== StyleTokenType.STYLE_GROUP) {
+            if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP) {
                 parent.push(item);
                 return;
             }
@@ -271,3 +274,4 @@ export class SassCompiler {
         return data;
     }
 }
+exports.SassCompiler = SassCompiler;

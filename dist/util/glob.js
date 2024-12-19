@@ -1,19 +1,23 @@
-import { globSync } from 'glob';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.glob = glob;
+exports.renderOutputRule = renderOutputRule;
+const glob_1 = require("glob");
 function isGlobPattern(input) {
     return input.indexOf('*') >= 0 || input.indexOf('?') >= 0 || input.indexOf('[') >= 0 || input.indexOf('(') >= 0 || input.indexOf('{') >= 0;
 }
-export function glob(input) {
+function glob(input) {
     const items = [];
     for (const item of input) {
         if (!isGlobPattern(item)) {
             items.push(item);
             continue;
         }
-        items.push(...globSync(item));
+        items.push(...(0, glob_1.globSync)(item));
     }
     return items;
 }
-export function renderOutputRule(input, output) {
+function renderOutputRule(input, output) {
     if (!output.endsWith('/')) {
         return output;
     }

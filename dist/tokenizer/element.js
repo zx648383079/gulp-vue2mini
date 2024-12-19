@@ -1,5 +1,8 @@
-import { Attribute } from './attribute';
-export class ElementToken {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ElementToken = void 0;
+const attribute_1 = require("./attribute");
+class ElementToken {
     tag;
     text;
     node;
@@ -20,10 +23,10 @@ export class ElementToken {
         return new ElementToken(undefined, text, node);
     }
     static noKid(tag, attribute) {
-        return new ElementToken(tag, undefined, 'element', undefined, Attribute.create(attribute));
+        return new ElementToken(tag, undefined, 'element', undefined, attribute_1.Attribute.create(attribute));
     }
     static create(tag, children, attribute) {
-        return new ElementToken(tag, undefined, 'element', children, Attribute.create(attribute));
+        return new ElementToken(tag, undefined, 'element', children, attribute_1.Attribute.create(attribute));
     }
     static jsonCallback(item, children) {
         if (item.node === 'root') {
@@ -56,7 +59,7 @@ export class ElementToken {
     }
     attr(key, value) {
         if (!this.attribute) {
-            this.attribute = new Attribute();
+            this.attribute = new attribute_1.Attribute();
         }
         if (typeof value !== 'undefined') {
             this.attribute.set(key, value);
@@ -133,3 +136,4 @@ export class ElementToken {
         return new ElementToken(this.tag, this.text, this.node, this.children, this.attribute);
     }
 }
+exports.ElementToken = ElementToken;

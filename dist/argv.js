@@ -1,3 +1,6 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.formatArgv = formatArgv;
 function parseValue(val) {
     const num = +val;
     if (num) {
@@ -11,7 +14,7 @@ function parseValue(val) {
     }
     return val;
 }
-export function formatArgv(argv = process.argv, defaultParams) {
+function formatArgv(argv = process.argv, defaultParams) {
     const args = {
         _: argv.slice(0, 2),
         additional: [],

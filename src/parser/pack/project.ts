@@ -1,9 +1,9 @@
-import path from 'path';
+import * as path from 'path';
 import { BaseProjectCompiler, CompilerFile, IProjectCompiler, LogLevel, eachCompileFile, fileContent } from '../../compiler';
 import { PackLoader } from './register';
 import { PackPipelineFn } from './pipeline';
 import * as UglifyJS from 'uglify-js';
-import CleanCSS from 'clean-css';
+import * as CleanCSS from 'clean-css';
 import { copyFileSync, writeFileSync } from 'fs';
 import { LINE_SPLITE, regexReplace, renderOutputRule } from '../../util';
 import { PackCompiler } from './compiler';

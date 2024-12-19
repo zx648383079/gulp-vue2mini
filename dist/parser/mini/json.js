@@ -1,4 +1,7 @@
-export class JsonParser {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.JsonParser = void 0;
+class JsonParser {
     constructor(_) { }
     render(...args) {
         return JSON.stringify(this.merge(...args));
@@ -27,3 +30,4 @@ export class JsonParser {
         return Object.assign({}, ...items);
     }
 }
+exports.JsonParser = JsonParser;

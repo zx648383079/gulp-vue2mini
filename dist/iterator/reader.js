@@ -1,4 +1,7 @@
-export class ReaderIterator {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ReaderIterator = void 0;
+class ReaderIterator {
     reader;
     constructor(reader) {
         this.reader = reader;
@@ -82,3 +85,4 @@ export class ReaderIterator {
         }
     }
 }
+exports.ReaderIterator = ReaderIterator;

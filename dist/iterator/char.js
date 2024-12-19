@@ -1,4 +1,7 @@
-export class CharIterator {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CharIterator = void 0;
+class CharIterator {
     content;
     constructor(content) {
         this.content = content;
@@ -147,3 +150,4 @@ export class CharIterator {
         return index;
     }
 }
+exports.CharIterator = CharIterator;

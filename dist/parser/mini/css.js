@@ -1,10 +1,17 @@
-import * as fs from 'fs';
-import * as path from 'path';
-export function ttfToBase64(file) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StyleParser = void 0;
+exports.ttfToBase64 = ttfToBase64;
+exports.replaceTTF = replaceTTF;
+exports.preImport = preImport;
+exports.endImport = endImport;
+const fs = require("fs");
+const path = require("path");
+function ttfToBase64(file) {
     const content = fs.readFileSync(file);
     return 'url(\'data:font/truetype;charset=utf-8;base64,' + content.toString('base64') + '\') format(\'truetype\')';
 }
-export function replaceTTF(content, folder) {
+function replaceTTF(content, folder) {
     const reg = /@font-face\s*\{[^\{\}]+\}/g;
     const matches = content.match(reg);
     if (!matches || matches.length < 1) {
@@ -32,7 +39,7 @@ export function replaceTTF(content, folder) {
     }
     return content;
 }
-export function preImport(content) {
+function preImport(content) {
     const matches = content.match(/(@import.+;)/g);
     if (!matches || matches.length < 1) {
         return content;
@@ -45,7 +52,7 @@ export function preImport(content) {
     }
     return content;
 }
-export function endImport(content) {
+function endImport(content) {
     const matches = content.match(/\/\*\*\s{0,}parser\[(@.+)\]parser\s{0,}\*\*\//g);
     if (!matches || matches.length < 1) {
         return content;
@@ -55,9 +62,10 @@ export function endImport(content) {
     }
     return content;
 }
-export class StyleParser {
+class StyleParser {
     constructor(_) { }
     render(content, _) {
         return content;
     }
 }
+exports.StyleParser = StyleParser;

@@ -1,6 +1,9 @@
-import * as ts from 'typescript';
-import path from 'path';
-export class Host {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Host = void 0;
+const ts = require("typescript");
+const path = require("path");
+class Host {
     input;
     fallback;
     languageVersion;
@@ -61,3 +64,4 @@ export class Host {
         return this.fallback.getSourceFile(fileName, languageVersion, onError);
     }
 }
+exports.Host = Host;

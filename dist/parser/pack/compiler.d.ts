@@ -9,6 +9,7 @@ export declare class PackCompiler {
     private loadHost;
     private removeExtension;
     compileTypescipt(files: CompilerFile[], tsConfigFileName?: string, sourceMap?: boolean, declaration?: boolean): CompilerFile[];
+    private AddImportExtension;
     compileSass(file: CompilerFile, options?: SassOptions): string;
     private pushFile;
     finish(): void;

@@ -17,10 +17,10 @@
         "removeComments": true,
         "pretty": true,
         "strictPropertyInitialization": true,
-        "module": "nodenext",
-        "moduleResolution": "nodenext",
+        "module": "CommonJS",
+        "moduleResolution": "node10",
         "importHelpers": false,
-        "target": "es2022",
+        "target": "ES2023",
         "typeRoots": [
             "./node_modules/@types"
         ]

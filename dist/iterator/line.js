@@ -1,7 +1,10 @@
-import { splitLine } from '../util/util';
-export class LineIterator {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LineIterator = void 0;
+const util_1 = require("../util/util");
+class LineIterator {
     constructor(content) {
-        this.lines = content instanceof Array ? content : splitLine(content);
+        this.lines = content instanceof Array ? content : (0, util_1.splitLine)(content);
     }
     lines;
     index = -1;
@@ -88,3 +91,4 @@ export class LineIterator {
         }
     }
 }
+exports.LineIterator = LineIterator;

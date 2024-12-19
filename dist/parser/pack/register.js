@@ -1,5 +1,8 @@
-import { PackPipeline } from './pipeline';
-export class PackLoader {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PackLoader = void 0;
+const pipeline_1 = require("./pipeline");
+class PackLoader {
     static _instance;
     static get taskName() {
         return this._instance.taskName;
@@ -17,6 +20,7 @@ export class PackLoader {
         return () => names;
     }
     static input(...items) {
-        return new PackPipeline(...items);
+        return new pipeline_1.PackPipeline(...items);
     }
 }
+exports.PackLoader = PackLoader;

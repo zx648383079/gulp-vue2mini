@@ -1,8 +1,11 @@
-import { Transform } from 'readable-stream';
-import { PluginCompiler } from '../compiler';
-import { renameExt } from './gulp-tempate';
-export function gulpTs(tsConfigFileName = 'tsconfig.json') {
-    return new Transform({
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.gulpTs = gulpTs;
+const readable_stream_1 = require("readable-stream");
+const compiler_1 = require("../compiler");
+const gulp_tempate_1 = require("./gulp-tempate");
+function gulpTs(tsConfigFileName = 'tsconfig.json') {
+    return new readable_stream_1.Transform({
         objectMode: true,
         transform: (file, _, callback) => {
             if (file.isNull()) {
@@ -11,9 +14,9 @@ export function gulpTs(tsConfigFileName = 'tsconfig.json') {
             if (!file.isBuffer()) {
                 return callback();
             }
-            const content = PluginCompiler.ts(String(file.contents), file.path, tsConfigFileName, true);
+            const content = compiler_1.PluginCompiler.ts(String(file.contents), file.path, tsConfigFileName, true);
             file.contents = Buffer.from(content);
-            file.path = renameExt(file.path, 'js');
+            file.path = (0, gulp_tempate_1.renameExt)(file.path, 'js');
             return callback(undefined, file);
         }
     });

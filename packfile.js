@@ -1,4 +1,4 @@
-var loader = require('./dist').PackLoader;
+import { PackLoader as loader } from './dist';
 
 loader.task('test', async () => {
     await loader.input('src/test.ts')

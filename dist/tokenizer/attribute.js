@@ -1,4 +1,7 @@
-export class Attribute {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Attribute = void 0;
+class Attribute {
     items;
     static create(attribute) {
         if (!attribute) {
@@ -101,3 +104,4 @@ export class Attribute {
         return Attribute.create(JSON.parse(JSON.stringify(this.items)));
     }
 }
+exports.Attribute = Attribute;

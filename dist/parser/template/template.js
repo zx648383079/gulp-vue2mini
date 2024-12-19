@@ -1,15 +1,18 @@
-import * as path from 'path';
-import { CompilerFile, PluginCompiler, TemplateCompiler } from '../../compiler';
-import { ElementToken, TemplateTokenizer } from '../../tokenizer';
-import { joinLine } from '../../util';
-import { REGEX_ASSET } from './tokenizer';
-export class TemplateParser {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TemplateParser = void 0;
+const path = require("path");
+const compiler_1 = require("../../compiler");
+const tokenizer_1 = require("../../tokenizer");
+const util_1 = require("../../util");
+const tokenizer_2 = require("./tokenizer");
+class TemplateParser {
     project;
     constructor(project) {
         this.project = project;
     }
-    tokenizer = new TemplateTokenizer();
-    compiler = new TemplateCompiler();
+    tokenizer = new tokenizer_1.TemplateTokenizer();
+    compiler = new compiler_1.TemplateCompiler();
     render(file) {
         const tokenizer = this.project.tokenizer;
         const page = tokenizer.render(file);
@@ -47,7 +50,7 @@ export class TemplateParser {
                     lines.push(token.content);
                     return;
                 }
-                const next = tokenizer.render(new CompilerFile(token.content));
+                const next = tokenizer.render(new compiler_1.CompilerFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
@@ -58,7 +61,7 @@ export class TemplateParser {
                     lines.push(renderPage(next));
                 }
             });
-            return joinLine(lines);
+            return (0, util_1.joinLine)(lines);
         };
         let content = renderPage(page);
         if (layout) {
@@ -72,7 +75,7 @@ export class TemplateParser {
     mergeStyle(content, file, time) {
         const currentFolder = path.dirname(file);
         const replacePath = (text) => {
-            return text.replace(REGEX_ASSET, ($0, _, $2) => {
+            return text.replace(tokenizer_2.REGEX_ASSET, ($0, _, $2) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
                     return $0;
                 }
@@ -139,9 +142,9 @@ export class TemplateParser {
                 lines.push(item.text);
             }
         });
-        let style = this.project.style.render(new CompilerFile(file, time, '', styleLang, joinLine(lines)));
+        let style = this.project.style.render(new compiler_1.CompilerFile(file, time, '', styleLang, (0, util_1.joinLine)(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
-            style = PluginCompiler.sass(style, file, styleLang, {
+            style = compiler_1.PluginCompiler.sass(style, file, styleLang, {
                 importer: this.project.style.importer,
             });
         }
@@ -151,9 +154,9 @@ export class TemplateParser {
                 lines.push(item.text);
             }
         });
-        let script = this.project.script.render(joinLine(lines));
+        let script = this.project.script.render((0, util_1.joinLine)(lines));
         if (script.length > 0 && scriptLang === 'ts') {
-            script = PluginCompiler.ts(script, file);
+            script = compiler_1.PluginCompiler.ts(script, file);
         }
         const pushStyle = (root) => {
             if (root.node !== 'element') {
@@ -164,7 +167,7 @@ export class TemplateParser {
                     root.children = !root.children ? headers : root.children.concat(headers);
                 }
                 if (style.length > 0) {
-                    root.children?.push(ElementToken.create('style', [ElementToken.text(style)]));
+                    root.children?.push(tokenizer_1.ElementToken.create('style', [tokenizer_1.ElementToken.text(style)]));
                 }
                 headers = [];
                 return;
@@ -174,7 +177,7 @@ export class TemplateParser {
                     root.children = !root.children ? footers : root.children.concat(footers);
                 }
                 if (script.length > 0) {
-                    root.children?.push(ElementToken.create('script', [ElementToken.text(script)]));
+                    root.children?.push(tokenizer_1.ElementToken.create('script', [tokenizer_1.ElementToken.text(script)]));
                 }
                 footers = [];
                 return;
@@ -195,3 +198,4 @@ export class TemplateParser {
         return items.join('\r\n');
     }
 }
+exports.TemplateParser = TemplateParser;

@@ -1,11 +1,17 @@
-import { Transform } from 'readable-stream';
-import { preImport, endImport, replaceTTF } from '../parser/mini/css';
-import { CacheManger } from '../util';
-import { MiniProject } from '../parser/mini/project';
-import { CompilerFile } from '../compiler';
-const cachesFiles = new CacheManger();
-const project = new MiniProject(process.cwd(), process.cwd());
-export function dealTemplateFile(contentBuff, path, ext, wantTag) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.dealTemplateFile = dealTemplateFile;
+exports.renameExt = renameExt;
+exports.replacePath = replacePath;
+exports.template = template;
+const readable_stream_1 = require("readable-stream");
+const css_1 = require("../parser/mini/css");
+const util_1 = require("../util");
+const project_1 = require("../parser/mini/project");
+const compiler_1 = require("../compiler");
+const cachesFiles = new util_1.CacheManger();
+const project = new project_1.MiniProject(process.cwd(), process.cwd());
+function dealTemplateFile(contentBuff, path, ext, wantTag) {
     if (wantTag === 'tpl') {
         wantTag = 'wxml';
     }
@@ -17,7 +23,7 @@ export function dealTemplateFile(contentBuff, path, ext, wantTag) {
     if (cachesFiles.has(fileTag)) {
         return Buffer.from(wantTag === 'json' ? '{}' : '');
     }
-    const res = project.readyMixFile(new CompilerFile(path, 0, path, ext, String(contentBuff)));
+    const res = project.readyMixFile(new compiler_1.CompilerFile(path, 0, path, ext, String(contentBuff)));
     for (const item of res) {
         const cacheKey = path.replace(ext, '__tmpl.' + item.type);
         if ((!item.content || item.content.trim().length < 1) && cachesFiles.has(cacheKey)) {
@@ -31,13 +37,13 @@ export function dealTemplateFile(contentBuff, path, ext, wantTag) {
     }
     return Buffer.from(wantTag === 'json' ? '{}' : '');
 }
-export function renameExt(path, ext) {
+function renameExt(path, ext) {
     if (ext.length > 0 && ext.charAt(0) !== '.') {
         ext = '.' + ext;
     }
     return path.replace(/\.[^\.]+$/, ext);
 }
-export function replacePath(file, search, value) {
+function replacePath(file, search, value) {
     const regex = new RegExp('[\\\\/]' + search + '$');
     if (regex.test(file)) {
         return file.substring(0, file.length - search.length) + value;
@@ -48,8 +54,8 @@ export function replacePath(file, search, value) {
     }
     return file.replace(split + search + split, split + value + split);
 }
-export function template(tag, srcFolder = 'src', distFolder = 'dist', tplExt = '.vue') {
-    return new Transform({
+function template(tag, srcFolder = 'src', distFolder = 'dist', tplExt = '.vue') {
+    return new readable_stream_1.Transform({
         objectMode: true,
         transform: (file, _, callback) => {
             if (file.isNull()) {
@@ -62,14 +68,14 @@ export function template(tag, srcFolder = 'src', distFolder = 'dist', tplExt = '
                 return callback(undefined, file);
             }
             if (tag === 'presass') {
-                const str = preImport(String(file.contents));
+                const str = (0, css_1.preImport)(String(file.contents));
                 file.contents = Buffer.from(str);
                 file.path = replacePath(file.path, distFolder, srcFolder);
                 return callback(undefined, file);
             }
             if (tag === 'endsass') {
-                let str = endImport(String(file.contents));
-                str = replaceTTF(str, replacePath(file.base, distFolder, srcFolder));
+                let str = (0, css_1.endImport)(String(file.contents));
+                str = (0, css_1.replaceTTF)(str, replacePath(file.base, distFolder, srcFolder));
                 file.contents = Buffer.from(str);
                 file.path = renameExt(replacePath(file.path, srcFolder, distFolder), 'wxss');
                 return callback(undefined, file);

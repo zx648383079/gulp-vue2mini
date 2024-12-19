@@ -1,6 +1,9 @@
-import { StyleTokenCoverter, StyleTokenType } from '../tokenizer';
-import { LINE_SPLITE, splitLine } from '../util';
-export class StyleCompiler {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StyleCompiler = void 0;
+const tokenizer_1 = require("../tokenizer");
+const util_1 = require("../util");
+class StyleCompiler {
     indent;
     isIndent;
     constructor(indent = '    ', isIndent = false) {
@@ -16,26 +19,26 @@ export class StyleCompiler {
         };
         return this.toString(data, (item, content, level) => {
             const spaces = this.indent.length > 0 ? this.indent.repeat(level) : this.indent;
-            if (item.type === StyleTokenType.TEXT) {
-                return endTextJoin(spaces, item.content) + LINE_SPLITE;
+            if (item.type === tokenizer_1.StyleTokenType.TEXT) {
+                return endTextJoin(spaces, item.content) + util_1.LINE_SPLITE;
             }
-            if (item.type === StyleTokenType.COMMENT) {
+            if (item.type === tokenizer_1.StyleTokenType.COMMENT) {
                 const text = item.content;
                 if (text.indexOf('\n') < 0) {
-                    return spaces + '// ' + item.content + LINE_SPLITE;
+                    return spaces + '// ' + item.content + util_1.LINE_SPLITE;
                 }
-                return spaces + '/* ' + splitLine(text).map(i => i.trim()).join(LINE_SPLITE + spaces) + ' */' + LINE_SPLITE;
+                return spaces + '/* ' + (0, util_1.splitLine)(text).map(i => i.trim()).join(util_1.LINE_SPLITE + spaces) + ' */' + util_1.LINE_SPLITE;
             }
-            if (Object.prototype.hasOwnProperty.call(StyleTokenCoverter, item.type)) {
-                return endTextJoin(spaces, StyleTokenCoverter[item.type], ' ', item.content) + LINE_SPLITE;
+            if (Object.prototype.hasOwnProperty.call(tokenizer_1.StyleTokenCoverter, item.type)) {
+                return endTextJoin(spaces, tokenizer_1.StyleTokenCoverter[item.type], ' ', item.content) + util_1.LINE_SPLITE;
             }
-            if (item.type === StyleTokenType.STYLE) {
-                return endTextJoin(spaces, item.name, ': ', item.content) + LINE_SPLITE;
+            if (item.type === tokenizer_1.StyleTokenType.STYLE) {
+                return endTextJoin(spaces, item.name, ': ', item.content) + util_1.LINE_SPLITE;
             }
-            if (item.type === StyleTokenType.STYLE_GROUP) {
-                const line = spaces + (typeof item.name === 'object' ? item.name.join(',' + LINE_SPLITE + spaces) : item.name) + (this.isIndent ? '' : ' {') + LINE_SPLITE + content;
+            if (item.type === tokenizer_1.StyleTokenType.STYLE_GROUP) {
+                const line = spaces + (typeof item.name === 'object' ? item.name.join(',' + util_1.LINE_SPLITE + spaces) : item.name) + (this.isIndent ? '' : ' {') + util_1.LINE_SPLITE + content;
                 if (!this.isIndent) {
-                    return line + spaces + '}' + LINE_SPLITE;
+                    return line + spaces + '}' + util_1.LINE_SPLITE;
                 }
                 return line;
             }
@@ -58,10 +61,10 @@ export class StyleCompiler {
                 if (a.type === b.type) {
                     return 0;
                 }
-                if (a.type === StyleTokenType.STYLE_GROUP) {
+                if (a.type === tokenizer_1.StyleTokenType.STYLE_GROUP) {
                     return 1;
                 }
-                if (b.type === StyleTokenType.STYLE_GROUP) {
+                if (b.type === tokenizer_1.StyleTokenType.STYLE_GROUP) {
                     return -1;
                 }
                 return 0;
@@ -86,3 +89,4 @@ export class StyleCompiler {
         return cb(data, children.length < 1 ? undefined : children);
     }
 }
+exports.StyleCompiler = StyleCompiler;

@@ -1,13 +1,16 @@
-import { CacheManger } from '../../util/cache';
-import * as path from 'path';
-import { splitLine, splitStr } from '../../util';
-export const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
-export class ThemeTokenizer {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ThemeTokenizer = exports.REGEX_ASSET = void 0;
+const cache_1 = require("../../util/cache");
+const path = require("path");
+const util_1 = require("../../util");
+exports.REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
+class ThemeTokenizer {
     project;
     constructor(project) {
         this.project = project;
     }
-    cachesFiles = new CacheManger();
+    cachesFiles = new cache_1.CacheManger();
     render(file) {
         const time = file.mtime;
         if (this.cachesFiles.has(file.src, time)) {
@@ -20,7 +23,7 @@ export class ThemeTokenizer {
         const ext = file.extname;
         const pageData = {};
         const replacePath = (text) => {
-            return text.replace(REGEX_ASSET, ($0, _, $2) => {
+            return text.replace(exports.REGEX_ASSET, ($0, _, $2) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
                     return $0;
                 }
@@ -33,7 +36,7 @@ export class ThemeTokenizer {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        splitLine(this.project.fileContent(file)).forEach((line, i) => {
+        (0, util_1.splitLine)(this.project.fileContent(file)).forEach((line, i) => {
             const token = this.converterToken(line);
             if (!token) {
                 tokens.push({
@@ -43,7 +46,7 @@ export class ThemeTokenizer {
                 return;
             }
             if (token.type === 'set') {
-                const [key, val] = splitStr(token.content, '=', 2);
+                const [key, val] = (0, util_1.splitStr)(token.content, '=', 2);
                 pageData[key.trim()] = val;
                 return;
             }
@@ -142,3 +145,4 @@ export class ThemeTokenizer {
         throw new Error('[' + key + ']: page data error');
     }
 }
+exports.ThemeTokenizer = ThemeTokenizer;

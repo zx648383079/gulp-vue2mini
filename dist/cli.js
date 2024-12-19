@@ -1,15 +1,17 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import * as chokidar from 'chokidar';
-import { TemplateProject } from './parser/template/project';
-import { MiniProject } from './parser/mini/project';
-import { formatArgv } from './argv';
-import { StyleProject } from './parser/style/style';
-import { CompilerFile, LogLevel } from './compiler';
-import { eachFile } from './util';
-import { PackProject } from './parser/pack/project';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const fs = require("fs");
+const path = require("path");
+const chokidar = require("chokidar");
+const project_1 = require("./parser/template/project");
+const project_2 = require("./parser/mini/project");
+const argv_1 = require("./argv");
+const style_1 = require("./parser/style/style");
+const compiler_1 = require("./compiler");
+const util_1 = require("./util");
+const project_3 = require("./parser/pack/project");
 process.env.INIT_CWD = process.cwd();
-const argv = formatArgv(process.argv, {
+const argv = (0, argv_1.formatArgv)(process.argv, {
     mini: false,
     custom: false,
     css: false,
@@ -56,16 +58,16 @@ const inputState = fs.statSync(input);
 const inputFolder = inputState.isDirectory() ? input : path.dirname(input);
 const createProject = () => {
     if (argv.params.mini) {
-        return new MiniProject(inputFolder, outputFolder, argv.params);
+        return new project_2.MiniProject(inputFolder, outputFolder, argv.params);
     }
     if (argv.params.theme) {
-        return new TemplateProject(inputFolder, outputFolder, argv.params);
+        return new project_1.TemplateProject(inputFolder, outputFolder, argv.params);
     }
     if (argv.params.css) {
-        return new StyleProject(inputFolder, outputFolder, argv.params);
+        return new style_1.StyleProject(inputFolder, outputFolder, argv.params);
     }
     if (argv.params.custom) {
-        return new PackProject(inputFolder, outputFolder, argv.params);
+        return new project_3.PackProject(inputFolder, outputFolder, argv.params);
     }
     return undefined;
 };
@@ -77,7 +79,7 @@ if (!project) {
 const initTime = new Date().getTime();
 const renderFile = (file) => {
     if (typeof file !== 'object') {
-        file = new CompilerFile(file);
+        file = new compiler_1.CompilerFile(file);
     }
     if (argv.params.watch && file.mtime && file.mtime > initTime) {
         project.booted();
@@ -89,29 +91,29 @@ const renderFile = (file) => {
         project?.compileFile(file);
     }
     catch (error) {
-        project?.logFile(file, 'Failure \n' + error.message, LogLevel.error);
+        project?.logFile(file, 'Failure \n' + error.message, compiler_1.LogLevel.error);
         if (argv.params.debug) {
             project?.logger.debug(error);
         }
     }
 };
-if (project instanceof PackProject) {
+if (project instanceof project_3.PackProject) {
     project.compile();
 }
 else if (argv.params.watch) {
     chokidar.watch(inputFolder).on('unlink', file => {
         project?.unlink(file);
     }).on('add', (file, stats) => {
-        renderFile(new CompilerFile(file, stats?.mtimeMs));
+        renderFile(new compiler_1.CompilerFile(file, stats?.mtimeMs));
     }).on('change', (file, stats) => {
-        renderFile(new CompilerFile(file, stats?.mtimeMs));
+        renderFile(new compiler_1.CompilerFile(file, stats?.mtimeMs));
     });
 }
 else {
     if (inputState.isFile()) {
-        renderFile(new CompilerFile(input, initTime));
+        renderFile(new compiler_1.CompilerFile(input, initTime));
     }
     else {
-        eachFile(inputFolder, renderFile);
+        (0, util_1.eachFile)(inputFolder, renderFile);
     }
 }

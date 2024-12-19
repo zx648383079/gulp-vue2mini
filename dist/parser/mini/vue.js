@@ -1,11 +1,14 @@
-import { ElementToken, TemplateTokenizer } from '../../tokenizer';
-import { joinLine } from '../../util';
-export class VueParser {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VueParser = void 0;
+const tokenizer_1 = require("../../tokenizer");
+const util_1 = require("../../util");
+class VueParser {
     project;
     constructor(project) {
         this.project = project;
     }
-    tokenizer = new TemplateTokenizer();
+    tokenizer = new tokenizer_1.TemplateTokenizer();
     render(content, ext, srcFile) {
         if (ext === 'json') {
             return { json: content };
@@ -54,16 +57,16 @@ export class VueParser {
         }
         const res = {};
         if (items.style.lines.length > 0) {
-            res.style = { type: items.style.type, content: this.project.style.render(joinLine(items.style.lines), srcFile) };
+            res.style = { type: items.style.type, content: this.project.style.render((0, util_1.joinLine)(items.style.lines), srcFile) };
         }
         let tplFuns = [];
         if (items.html.length > 0) {
-            const wxml = this.project.template.render(new ElementToken('root', undefined, undefined, items.html));
+            const wxml = this.project.template.render(new tokenizer_1.ElementToken('root', undefined, undefined, items.html));
             res.template = wxml.template;
             tplFuns = wxml.func || [];
         }
         if (items.script.lines.length > 0) {
-            const json = this.splitTsFile(joinLine(items.script.lines), tplFuns);
+            const json = this.splitTsFile((0, util_1.joinLine)(items.script.lines), tplFuns);
             res.script = { type: items.script.type, content: json.script ? json.script.content : '' };
             res.json = json.json;
         }
@@ -87,3 +90,4 @@ export class VueParser {
         return data;
     }
 }
+exports.VueParser = VueParser;

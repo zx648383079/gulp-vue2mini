@@ -1,4 +1,7 @@
-export class CacheManger {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CacheManger = void 0;
+class CacheManger {
     data = {};
     has(key, time = 0) {
         return this.data.hasOwnProperty(key) && (time === 0 || this.data[key].time >= time);
@@ -32,3 +35,4 @@ export class CacheManger {
         return this;
     }
 }
+exports.CacheManger = CacheManger;

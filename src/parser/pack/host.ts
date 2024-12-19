@@ -1,6 +1,6 @@
 import * as ts from 'typescript';
 import { PackProject } from './project';
-import path from 'path';
+import * as path from 'path';
 
 export class Host implements ts.CompilerHost {
 

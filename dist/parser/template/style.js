@@ -1,17 +1,20 @@
-import * as path from 'path';
-import { CompilerFile } from '../../compiler';
-import { StyleTokenizer } from '../../tokenizer';
-import { ThemeStyleCompiler } from '../../compiler';
-import { getExtensionName, regexReplace } from '../../util';
-export class StyleParser {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StyleParser = void 0;
+const path = require("path");
+const compiler_1 = require("../../compiler");
+const tokenizer_1 = require("../../tokenizer");
+const compiler_2 = require("../../compiler");
+const util_1 = require("../../util");
+class StyleParser {
     project;
     constructor(project) {
         this.project = project;
         const varPrefix = this.project.options?.prefix;
-        this.compiler = new ThemeStyleCompiler(true, typeof varPrefix === 'string' && varPrefix.length > 0, varPrefix ?? 'zre');
+        this.compiler = new compiler_2.ThemeStyleCompiler(true, typeof varPrefix === 'string' && varPrefix.length > 0, varPrefix ?? 'zre');
     }
     themeItems = {};
-    tokenizer = new StyleTokenizer();
+    tokenizer = new tokenizer_1.StyleTokenizer();
     compiler;
     preppendItems = [];
     themeUsedKeys = [];
@@ -83,14 +86,14 @@ export class StyleParser {
         }
         const ext = file.extname;
         const folder = file.dirname;
-        return regexReplace(content, /@(import)\s+["'](.+?)["'];*/g, match => {
+        return (0, util_1.regexReplace)(content, /@(import)\s+["'](.+?)["'];*/g, match => {
             if (match[2].startsWith('sass:')) {
                 this.preppendItems.push(match[0]);
                 return '';
             }
             const importFile = path.resolve(folder, match[2].indexOf('.') > 0 ? match[2] : ('_' + match[2] + ext));
             this.project.link.push(importFile, file.src);
-            return this.renderPart(new CompilerFile(importFile, file.mtime, undefined, getExtensionName(importFile)));
+            return this.renderPart(new compiler_1.CompilerFile(importFile, file.mtime, undefined, (0, util_1.getExtensionName)(importFile)));
         });
     }
     hasTheme(content) {
@@ -105,11 +108,12 @@ export class StyleParser {
         },
         load: url => {
             const fileName = url.toString();
-            const ext = getExtensionName(fileName);
+            const ext = (0, util_1.getExtensionName)(fileName);
             return {
-                contents: this.renderPart(new CompilerFile(fileName, 0, undefined, ext)),
+                contents: this.renderPart(new compiler_1.CompilerFile(fileName, 0, undefined, ext)),
                 syntax: ext === 'sass' ? 'indented' : 'scss'
             };
         }
     };
 }
+exports.StyleParser = StyleParser;

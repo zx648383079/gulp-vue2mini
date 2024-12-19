@@ -1,5 +1,8 @@
-import { eachObject } from './util';
-export class LinkManager {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LinkManager = void 0;
+const util_1 = require("./util");
+class LinkManager {
     data = {};
     listeners = [];
     lockItems = [];
@@ -80,7 +83,7 @@ export class LinkManager {
         this.removeLink(file);
     }
     removeLink(file) {
-        eachObject(this.data, items => {
+        (0, util_1.eachObject)(this.data, items => {
             for (let index = items.length - 1; index >= 0; index--) {
                 if (items[index] === file) {
                     items.splice(index, 1);
@@ -89,3 +92,4 @@ export class LinkManager {
         });
     }
 }
+exports.LinkManager = LinkManager;

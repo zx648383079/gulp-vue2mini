@@ -1,11 +1,11 @@
-import path from 'path';
+import * as path from 'path';
 import { PackProject } from './project';
 import * as ts from 'typescript';
 import { Host } from './host';
 import * as sass from 'sass';
-import { LINE_SPLITE, getExtensionName } from '../../util';
+import { LINE_SPLITE, getExtensionName, regexReplace } from '../../util';
 import { CompilerFile, PluginCompiler, SassOptions } from '../../compiler';
-import { writeFileSync } from 'fs';
+import { writeFileSync, existsSync, statSync } from 'fs';
 
 export class PackCompiler {
 
@@ -90,7 +90,9 @@ export class PackCompiler {
                 switch (extension) {
                     case 'js':
                     case 'jsx':
-                        item.file.content = content;
+                    case 'mjs':
+                    case 'cjs':
+                        item.file.content = this.AddImportExtension(content, fileName, extension);
                         break;
                     case 'd.ts.map':
                         // dtsMapContent = content;
@@ -110,6 +112,20 @@ export class PackCompiler {
 			false,
 		);
         return files;
+    }
+
+    private AddImportExtension(content: string, entry: string, extension: string): string {
+        entry = path.dirname(entry);
+        return regexReplace(content, /((import|export) .* from\s+['"])(\.{1,2}\/.*)(?=['"])/g, macth => {
+            if (macth[3].endsWith('.' + extension)) {
+                return macth[0];
+            }
+            const fullPath = path.join(entry, macth[3]);
+            if (existsSync(fullPath) && statSync(fullPath).isDirectory()) {
+                return `${macth[1]}${macth[3]}/index.${extension}`;
+            }
+            return `${macth[1]}${macth[3]}.${extension}`;
+        });
     }
 
     public compileSass(file: CompilerFile, options: SassOptions = {}): string {

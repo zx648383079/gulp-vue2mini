@@ -1,30 +1,33 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { BaseProjectCompiler, CompilerFile, eachCompileFile, fileContent, PluginCompiler } from '../../compiler';
-import * as UglifyJS from 'uglify-js';
-import CleanCSS from 'clean-css';
-import { ThemeTokenizer } from './tokenizer';
-import { StyleParser } from './style';
-import { TemplateParser } from './template';
-import { ScriptParser } from './script';
-import { CacheManger, eachFile, LinkManager } from '../../util';
-export class TemplateProject extends BaseProjectCompiler {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TemplateProject = void 0;
+const fs = require("fs");
+const path = require("path");
+const compiler_1 = require("../../compiler");
+const UglifyJS = require("uglify-js");
+const CleanCSS = require("clean-css");
+const tokenizer_1 = require("./tokenizer");
+const style_1 = require("./style");
+const template_1 = require("./template");
+const script_1 = require("./script");
+const util_1 = require("../../util");
+class TemplateProject extends compiler_1.BaseProjectCompiler {
     constructor(inputFolder, outputFolder, options) {
         super(inputFolder, outputFolder, options);
         this.link.on((file, mtime) => {
             if (!this.isBooted) {
                 return;
             }
-            this.compileAFile(new CompilerFile(file, mtime));
+            this.compileAFile(new compiler_1.CompilerFile(file, mtime));
         });
         this.ready();
     }
-    link = new LinkManager();
-    script = new ScriptParser(this);
-    template = new TemplateParser(this);
-    style = new StyleParser(this);
-    tokenizer = new ThemeTokenizer(this);
-    cache = new CacheManger();
+    link = new util_1.LinkManager();
+    script = new script_1.ScriptParser(this);
+    template = new template_1.TemplateParser(this);
+    style = new style_1.StyleParser(this);
+    tokenizer = new tokenizer_1.ThemeTokenizer(this);
+    cache = new util_1.CacheManger();
     get compilerMin() {
         return this.options && this.options.min;
     }
@@ -36,23 +39,23 @@ export class TemplateProject extends BaseProjectCompiler {
         const ext = src.extname;
         const dist = this.outputFile(src);
         if (ext === '.ts') {
-            return CompilerFile.from(src, dist.replace(ext, '.js'), 'ts');
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.js'), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {
             if (src.basename.startsWith('_')) {
                 this.style.render(src);
                 return undefined;
             }
-            return CompilerFile.from(src, dist.replace(ext, '.css'), ext.substring(1));
+            return compiler_1.CompilerFile.from(src, dist.replace(ext, '.css'), ext.substring(1));
         }
         if (ext === '.html') {
-            const file = CompilerFile.from(src, dist, 'html');
+            const file = compiler_1.CompilerFile.from(src, dist, 'html');
             if (!this.tokenizer.render(file).canRender) {
                 return undefined;
             }
             return file;
         }
-        return CompilerFile.from(src, dist, ext.substring(1));
+        return compiler_1.CompilerFile.from(src, dist, ext.substring(1));
     }
     compileFile(src) {
         this.compileAFile(src);
@@ -61,7 +64,7 @@ export class TemplateProject extends BaseProjectCompiler {
         const compile = (file) => {
             this.mkIfNotFolder(path.dirname(file.dist));
             if (file.type === 'ts') {
-                let content = PluginCompiler.ts(this.fileContent(file), file.src);
+                let content = compiler_1.PluginCompiler.ts(this.fileContent(file), file.src);
                 if (content && content.length > 0 && this.compilerMin) {
                     content = UglifyJS.minify(content).code;
                 }
@@ -70,7 +73,7 @@ export class TemplateProject extends BaseProjectCompiler {
             }
             if (file.type === 'scss' || file.type === 'sass') {
                 let content = this.style.render(file);
-                content = PluginCompiler.sass(content, file.src, file.type, {
+                content = compiler_1.PluginCompiler.sass(content, file.src, file.type, {
                     importer: this.style.importer,
                 });
                 if (content && content.length > 0 && this.compilerMin) {
@@ -89,7 +92,7 @@ export class TemplateProject extends BaseProjectCompiler {
             }
             fs.copyFileSync(file.src, file.dist);
         };
-        eachCompileFile(this.readyFile(src), file => {
+        (0, compiler_1.eachCompileFile)(this.readyFile(src), file => {
             if (src.mtime && src.mtime > 0 && file.distMtime >= src.mtime) {
                 return;
             }
@@ -103,7 +106,7 @@ export class TemplateProject extends BaseProjectCompiler {
             file.content = this.cache.get(file.src);
             return file.content;
         }
-        this.cache.set(file.src, fileContent(file), file.mtime);
+        this.cache.set(file.src, (0, compiler_1.fileContent)(file), file.mtime);
         return file.content;
     }
     unlink(src) {
@@ -111,12 +114,12 @@ export class TemplateProject extends BaseProjectCompiler {
         if (fs.existsSync(dist)) {
             fs.unlinkSync(dist);
         }
-        const file = src instanceof CompilerFile ? src.src : src;
+        const file = src instanceof compiler_1.CompilerFile ? src.src : src;
         this.link.remove(file);
         this.cache.delete(file);
     }
     ready() {
-        eachFile(this.inputFolder, file => {
+        (0, util_1.eachFile)(this.inputFolder, file => {
             const ext = file.extname.substring(1);
             if (ext === 'html') {
                 this.style.extractTheme(this.template.extractStyle(this.fileContent(file)));
@@ -129,3 +132,4 @@ export class TemplateProject extends BaseProjectCompiler {
         });
     }
 }
+exports.TemplateProject = TemplateProject;

@@ -1,6 +1,9 @@
-import { eachCompileFile } from '../../compiler';
-import { PackLoader } from './register';
-export class PackPipeline {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PackPipeline = void 0;
+const compiler_1 = require("../../compiler");
+const register_1 = require("./register");
+class PackPipeline {
     constructor(...items) {
         this.items = items;
     }
@@ -15,22 +18,23 @@ export class PackPipeline {
         return this;
     }
     ts(tsConfigFileName = 'tsconfig.json', sourceMap, declaration) {
-        const instance = PackLoader._instance;
+        const instance = register_1.PackLoader._instance;
         return this.pipe(files => {
             return instance.compiler.compileTypescipt(files, tsConfigFileName, sourceMap, declaration);
         });
     }
     sass(options = {}) {
-        const instance = PackLoader._instance;
+        const instance = register_1.PackLoader._instance;
         return this.pipe(files => {
-            eachCompileFile(files, file => {
+            (0, compiler_1.eachCompileFile)(files, file => {
                 file.content = instance.compiler.compileSass(file, options);
             });
             return files;
         });
     }
     output(fileName) {
-        const instance = PackLoader._instance;
+        const instance = register_1.PackLoader._instance;
         return instance.compileAsync(this.items, this.pipeItems, fileName);
     }
 }
+exports.PackPipeline = PackPipeline;

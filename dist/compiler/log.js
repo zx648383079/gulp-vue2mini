@@ -1,4 +1,7 @@
-export const Colors = {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LogStr = exports.Logger = exports.LogLevel = exports.Colors = void 0;
+exports.Colors = {
     bold: [1, 22],
     dim: [2, 22],
     italic: [3, 23],
@@ -49,19 +52,19 @@ export const Colors = {
     cyanBG: [46, 49],
     whiteBG: [47, 49],
 };
-export var LogLevel;
+var LogLevel;
 (function (LogLevel) {
     LogLevel[LogLevel["fatal"] = 0] = "fatal";
     LogLevel[LogLevel["error"] = 1] = "error";
     LogLevel[LogLevel["warn"] = 2] = "warn";
     LogLevel[LogLevel["info"] = 3] = "info";
     LogLevel[LogLevel["debug"] = 4] = "debug";
-})(LogLevel || (LogLevel = {}));
-export class Logger {
+})(LogLevel || (exports.LogLevel = LogLevel = {}));
+class Logger {
     levelColors = {
-        [LogLevel.error]: Colors.red,
-        [LogLevel.warn]: Colors.yellow,
-        [LogLevel.debug]: Colors.green,
+        [LogLevel.error]: exports.Colors.red,
+        [LogLevel.warn]: exports.Colors.yellow,
+        [LogLevel.debug]: exports.Colors.green,
     };
     debug(msg) {
         this.log(LogLevel.debug, msg);
@@ -93,14 +96,15 @@ export class Logger {
         return this.levelColors[level];
     }
     format(color, msg) {
-        const val = typeof color === 'string' ? Colors[color] : color;
+        const val = typeof color === 'string' ? exports.Colors[color] : color;
         if (!val) {
             return msg;
         }
         return this.colorToStr(val[0]) + msg + this.colorToStr(val[1]);
     }
 }
-export class LogStr {
+exports.Logger = Logger;
+class LogStr {
     constructor(color, ...items) {
         this.join(color, ...items);
     }
@@ -111,7 +115,7 @@ export class LogStr {
             return this;
         }
         if (typeof color === 'string') {
-            color = Colors[color];
+            color = exports.Colors[color];
         }
         else if (typeof color === 'object' && color instanceof Array && color.length < 2) {
             color = undefined;
@@ -140,3 +144,4 @@ export class LogStr {
         return new LogStr(color, ...items);
     }
 }
+exports.LogStr = LogStr;

@@ -1,10 +1,13 @@
-import path from 'path';
-import * as ts from 'typescript';
-import { Host } from './host';
-import { LINE_SPLITE, getExtensionName } from '../../util';
-import { CompilerFile, PluginCompiler } from '../../compiler';
-import { writeFileSync } from 'fs';
-export class PackCompiler {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PackCompiler = void 0;
+const path = require("path");
+const ts = require("typescript");
+const host_1 = require("./host");
+const util_1 = require("../../util");
+const compiler_1 = require("../../compiler");
+const fs_1 = require("fs");
+class PackCompiler {
     project;
     constructor(project) {
         this.project = project;
@@ -40,11 +43,11 @@ export class PackCompiler {
             readFile: ts.sys.readFile
         }, path.resolve(projectDirectory), undefined, tsConfigFileName);
         this.compilerOptions = parsed.options;
-        this.host = new Host(this.project, this.compilerOptions);
+        this.host = new host_1.Host(this.project, this.compilerOptions);
     }
     removeExtension(fileName, ext) {
         if (typeof ext === 'undefined') {
-            ext = getExtensionName(fileName, ['min.js']);
+            ext = (0, util_1.getExtensionName)(fileName, ['min.js']);
         }
         fileName = fileName.replaceAll('\\', '/');
         if (!ext) {
@@ -67,7 +70,7 @@ export class PackCompiler {
             };
         }
         program.emit(undefined, (fileName, content) => {
-            const extension = getExtensionName(fileName, ['d.ts', 'd.ts.map']);
+            const extension = (0, util_1.getExtensionName)(fileName, ['d.ts', 'd.ts.map']);
             const key = this.removeExtension(fileName, extension);
             const item = maps[key];
             if (!item) {
@@ -76,7 +79,9 @@ export class PackCompiler {
             switch (extension) {
                 case 'js':
                 case 'jsx':
-                    item.file.content = content;
+                case 'mjs':
+                case 'cjs':
+                    item.file.content = this.AddImportExtension(content, fileName, extension);
                     break;
                 case 'd.ts.map':
                     this.pushFile(item.dist + '.' + extension, extension, content);
@@ -91,8 +96,21 @@ export class PackCompiler {
         }, undefined, false);
         return files;
     }
+    AddImportExtension(content, entry, extension) {
+        entry = path.dirname(entry);
+        return (0, util_1.regexReplace)(content, /((import|export) .* from\s+['"])(\.{1,2}\/.*)(?=['"])/g, macth => {
+            if (macth[3].endsWith('.' + extension)) {
+                return macth[0];
+            }
+            const fullPath = path.join(entry, macth[3]);
+            if ((0, fs_1.existsSync)(fullPath) && (0, fs_1.statSync)(fullPath).isDirectory()) {
+                return `${macth[1]}${macth[3]}/index.${extension}`;
+            }
+            return `${macth[1]}${macth[3]}.${extension}`;
+        });
+    }
     compileSass(file, options = {}) {
-        const output = PluginCompiler.sassImporter().compileString(this.project.readSync(file), PluginCompiler.createSassOptions(file.src, file.extname.substring(1), options));
+        const output = compiler_1.PluginCompiler.sassImporter().compileString(this.project.readSync(file), compiler_1.PluginCompiler.createSassOptions(file.src, file.extname.substring(1), options));
         if (!options.sourceMap) {
             return output.css.toString();
         }
@@ -103,17 +121,18 @@ export class PackCompiler {
                 sources: output.sourceMap.sources.map(item => path.relative(path.dirname(file.dist), item.startsWith('file:') ? item.substring(6) : item).replaceAll('\\', '/')),
             }) : 'map');
         }
-        return output.css.toString() + LINE_SPLITE + '/*# sourceMappingURL=' + path.basename(fileName) + ' */';
+        return output.css.toString() + util_1.LINE_SPLITE + '/*# sourceMappingURL=' + path.basename(fileName) + ' */';
     }
     pushFile(fileName, extension, content) {
         if (content.length === 0) {
             return;
         }
-        this.fileItems.push(new CompilerFile(fileName, undefined, fileName, extension, content));
+        this.fileItems.push(new compiler_1.CompilerFile(fileName, undefined, fileName, extension, content));
     }
     finish() {
         const items = this.fileItems;
         this.fileItems = [];
-        items.forEach(item => writeFileSync(item.dist, item.content));
+        items.forEach(item => (0, fs_1.writeFileSync)(item.dist, item.content));
     }
 }
+exports.PackCompiler = PackCompiler;

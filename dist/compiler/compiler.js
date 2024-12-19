@@ -1,10 +1,13 @@
-import * as path from 'path';
-import * as ts from 'typescript';
-import * as fs from 'fs';
-import { pathToFileURL } from 'url';
-import { Colors, Logger, LogLevel, LogStr } from './log';
-import { eachObject, twoPad } from '../util';
-export class CompilerFile {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.fileContent = exports.eachCompileFile = exports.PluginCompiler = exports.BaseProjectCompiler = exports.CompilerFile = void 0;
+const path = require("path");
+const ts = require("typescript");
+const fs = require("fs");
+const url_1 = require("url");
+const log_1 = require("./log");
+const util_1 = require("../util");
+class CompilerFile {
     src;
     mtime;
     dist;
@@ -36,7 +39,8 @@ export class CompilerFile {
         return new CompilerFile(file.src, file.mtime, dist, type, content);
     }
 }
-export class BaseProjectCompiler {
+exports.CompilerFile = CompilerFile;
+class BaseProjectCompiler {
     inputFolder;
     outputFolder;
     options;
@@ -46,7 +50,7 @@ export class BaseProjectCompiler {
         this.options = options;
     }
     isBooted = false;
-    logger = new Logger();
+    logger = new log_1.Logger();
     booted() {
         this.isBooted = true;
     }
@@ -64,19 +68,20 @@ export class BaseProjectCompiler {
             fs.unlinkSync(dist);
         }
     }
-    logFile(file, tip = 'Finished', level = LogLevel.info) {
+    logFile(file, tip = 'Finished', level = log_1.LogLevel.info) {
         const realFile = file instanceof CompilerFile ? file.src : file;
         this.log(this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile, tip, level);
     }
-    log(key, tip = 'Finished', level = LogLevel.info) {
+    log(key, tip = 'Finished', level = log_1.LogLevel.info) {
         const now = new Date();
-        this.logger.log(level, LogStr.build(undefined, '[', twoPad(now.getHours()), ':', twoPad(now.getMinutes()), ':', twoPad(now.getSeconds()), '] ')
-            .join(Colors.magenta, key)
+        this.logger.log(level, log_1.LogStr.build(undefined, '[', (0, util_1.twoPad)(now.getHours()), ':', (0, util_1.twoPad)(now.getMinutes()), ':', (0, util_1.twoPad)(now.getSeconds()), '] ')
+            .join(log_1.Colors.magenta, key)
             .join(' ')
             .join(this.logger.levelToColor(level), tip));
     }
 }
-export class PluginCompiler {
+exports.BaseProjectCompiler = BaseProjectCompiler;
+class PluginCompiler {
     static ts(input, file, tsConfigFileName = 'tsconfig.json', sourceMap = false) {
         let projectDirectory = process.cwd();
         tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
@@ -127,11 +132,11 @@ export class PluginCompiler {
             return fileExsist(new URL(fileName.substring(0, i + 1) + '_' + fileName.substring(i + 2) + extension, base));
         };
         if (!options.importers) {
-            const includePaths = [pathToFileURL(file)];
+            const includePaths = [(0, url_1.pathToFileURL)(file)];
             if (Object.prototype.hasOwnProperty.call(options, 'includePaths')) {
-                eachObject(options.includePaths, v => {
+                (0, util_1.eachObject)(options.includePaths, v => {
                     if (v && typeof v === 'string') {
-                        includePaths.push(pathToFileURL(v));
+                        includePaths.push((0, url_1.pathToFileURL)(v));
                     }
                 });
             }
@@ -167,7 +172,8 @@ export class PluginCompiler {
         return require('less');
     }
 }
-export const eachCompileFile = (files, callback) => {
+exports.PluginCompiler = PluginCompiler;
+const eachCompileFile = (files, callback) => {
     if (!files) {
         return;
     }
@@ -177,10 +183,12 @@ export const eachCompileFile = (files, callback) => {
     }
     callback(files);
 };
-export const fileContent = (file) => {
+exports.eachCompileFile = eachCompileFile;
+const fileContent = (file) => {
     if (typeof file.content !== 'undefined') {
         return file.content;
     }
     file.content = fs.readFileSync(file.src).toString();
     return file.content;
 };
+exports.fileContent = fileContent;
