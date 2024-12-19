@@ -9,6 +9,7 @@ export enum StyleTokenType {
     INCLUDE,
     EXTEND,
     USE,
+    FORWARD,
     TEXT,
     STYLE_GROUP,
     STYLE,
@@ -18,6 +19,7 @@ export const StyleTokenCoverter: any = {
     [StyleTokenType.EXTEND]: '@extend',
     [StyleTokenType.CHASET]: '@charset',
     [StyleTokenType.USE]: '@use',
+    [StyleTokenType.FORWARD]: '@forward',
     [StyleTokenType.IMPORT]: '@import',
     [StyleTokenType.INCLUDE]: '@include',
 };

@@ -98,7 +98,7 @@ export class StyleParser {
         }
         const ext = file.extname;
         const folder = file.dirname;
-        return regexReplace(content, /@(import|use)\s+["'](.+?)["'];*/g, match => {
+        return regexReplace(content, /@(import)\s+["'](.+?)["'];*/g, match => {
             if (match[2].startsWith('sass:')) {
                 this.preppendItems.push(match[0]);
                 return '';

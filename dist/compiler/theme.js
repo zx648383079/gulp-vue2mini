@@ -1,16 +1,13 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ThemeStyleCompiler = void 0;
-const tokenizer_1 = require("../tokenizer");
-const util_1 = require("../util");
-const style_1 = require("./style");
-class ThemeStyleCompiler {
+import { StyleTokenizer, StyleTokenType } from '../tokenizer';
+import { eachObject, regexReplace, splitStr, unStudly } from '../util';
+import { StyleCompiler } from './style';
+export class ThemeStyleCompiler {
     autoDark;
     useVar;
     varPrefix;
     tokenizer;
     compiler;
-    constructor(autoDark = true, useVar = false, varPrefix = 'zre', tokenizer = new tokenizer_1.StyleTokenizer(), compiler = new style_1.StyleCompiler()) {
+    constructor(autoDark = true, useVar = false, varPrefix = 'zre', tokenizer = new StyleTokenizer(), compiler = new StyleCompiler()) {
         this.autoDark = autoDark;
         this.useVar = useVar;
         this.varPrefix = varPrefix;
@@ -68,13 +65,13 @@ class ThemeStyleCompiler {
             const children = this.cloneStyle(themeOption, appendItems, theme);
             const cls = '.theme-' + theme;
             for (const item of children) {
-                if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP) {
+                if (item.type !== StyleTokenType.STYLE_GROUP) {
                     continue;
                 }
                 if (item.name[0].indexOf('@media') >= 0) {
                     finishItems.push({ ...item, children: [
                             {
-                                type: tokenizer_1.StyleTokenType.STYLE_GROUP,
+                                type: StyleTokenType.STYLE_GROUP,
                                 name: [cls],
                                 children: [...item.children]
                             }
@@ -92,7 +89,7 @@ class ThemeStyleCompiler {
         });
         if (this.autoDark && Object.prototype.hasOwnProperty.call(themeOption, 'dark')) {
             finishItems.push({
-                type: tokenizer_1.StyleTokenType.STYLE_GROUP,
+                type: StyleTokenType.STYLE_GROUP,
                 name: ['@media (prefers-color-scheme: dark)'],
                 children: this.cloneStyle(themeOption, appendItems, 'dark')
             });
@@ -106,23 +103,23 @@ class ThemeStyleCompiler {
         const items = [];
         const toThemeVar = (data, root) => {
             const children = [];
-            (0, util_1.eachObject)(data, (v, k) => {
+            eachObject(data, (v, k) => {
                 if (typeof keys !== 'undefined' && keys.indexOf(k) < 0) {
                     return;
                 }
                 children.push({
-                    type: tokenizer_1.StyleTokenType.STYLE,
+                    type: StyleTokenType.STYLE,
                     name: this.formatVarKey(k),
                     content: v
                 });
             });
             return {
-                type: tokenizer_1.StyleTokenType.STYLE_GROUP,
+                type: StyleTokenType.STYLE_GROUP,
                 name: root,
                 children,
             };
         };
-        (0, util_1.eachObject)(themeOption, (data, key) => {
+        eachObject(themeOption, (data, key) => {
             if (key === 'default') {
                 items.push(toThemeVar(data, ':root'));
                 return;
@@ -130,7 +127,7 @@ class ThemeStyleCompiler {
             items.push(toThemeVar(data, '.theme-' + key));
             if (key === 'dark' && this.autoDark) {
                 items.push({
-                    type: tokenizer_1.StyleTokenType.STYLE_GROUP,
+                    type: StyleTokenType.STYLE_GROUP,
                     name: ['@media (prefers-color-scheme: dark)'],
                     children: [toThemeVar(data, ':root')]
                 });
@@ -140,7 +137,7 @@ class ThemeStyleCompiler {
     }
     themeStyle(themeOption, item, theme = 'default') {
         const keys = [];
-        const res = (0, util_1.regexReplace)(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
+        const res = regexReplace(item.content, /(,|\s|\(|^)@([a-zA-Z_\.]+)/g, match => {
             const [val, callKey] = this.themeStyleValue(themeOption, match[2], theme);
             if (callKey) {
                 keys.push(callKey);
@@ -167,7 +164,7 @@ class ThemeStyleCompiler {
                 }
                 item.content = val;
             }
-            if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP || !item.children || item.children.length < 1) {
+            if (item.type !== StyleTokenType.STYLE_GROUP || !item.children || item.children.length < 1) {
                 source.push(item);
                 continue;
             }
@@ -189,7 +186,7 @@ class ThemeStyleCompiler {
                 children.push({ ...item, content: this.themeStyle(themeOption, item, theme)[0] });
                 continue;
             }
-            if (item.type !== tokenizer_1.StyleTokenType.STYLE_GROUP) {
+            if (item.type !== StyleTokenType.STYLE_GROUP) {
                 children.push(item);
                 continue;
             }
@@ -205,7 +202,7 @@ class ThemeStyleCompiler {
             ];
         }
         if (name.indexOf('.') >= 0) {
-            [theme, name] = (0, util_1.splitStr)(name, '.', 2);
+            [theme, name] = splitStr(name, '.', 2);
             if (themeOption[theme][name]) {
                 return [themeOption[theme][name], undefined];
             }
@@ -213,10 +210,10 @@ class ThemeStyleCompiler {
         throw new Error(`[${theme}].${name} is error value`);
     }
     formatVarKey(name) {
-        return `--${this.varPrefix}-${(0, util_1.unStudly)(name)}`;
+        return `--${this.varPrefix}-${unStudly(name)}`;
     }
     isThemeStyle(item) {
-        if (item.type !== tokenizer_1.StyleTokenType.STYLE) {
+        if (item.type !== StyleTokenType.STYLE) {
             return false;
         }
         return /(,|\s|\(|^)@[a-z]/.test(item.content);
@@ -229,7 +226,7 @@ class ThemeStyleCompiler {
                 themeOption[name] = {};
             }
             item.children?.forEach(i => {
-                if (i.type === tokenizer_1.StyleTokenType.STYLE) {
+                if (i.type === StyleTokenType.STYLE) {
                     themeOption[name][i.name] = i.content;
                 }
             });
@@ -245,7 +242,6 @@ class ThemeStyleCompiler {
         return [themeOption, sourceItems];
     }
     isThemeDef(item) {
-        return item.type === tokenizer_1.StyleTokenType.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
+        return item.type === StyleTokenType.STYLE_GROUP && item.name[0].indexOf('@theme ') === 0;
     }
 }
-exports.ThemeStyleCompiler = ThemeStyleCompiler;

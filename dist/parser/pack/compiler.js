@@ -1,39 +1,10 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PackCompiler = void 0;
-const path_1 = __importDefault(require("path"));
-const ts = __importStar(require("typescript"));
-const host_1 = require("./host");
-const util_1 = require("../../util");
-const compiler_1 = require("../../compiler");
-const fs_1 = require("fs");
-class PackCompiler {
+import path from 'path';
+import * as ts from 'typescript';
+import { Host } from './host';
+import { LINE_SPLITE, getExtensionName } from '../../util';
+import { CompilerFile, PluginCompiler } from '../../compiler';
+import { writeFileSync } from 'fs';
+export class PackCompiler {
     project;
     constructor(project) {
         this.project = project;
@@ -46,8 +17,8 @@ class PackCompiler {
             return;
         }
         let projectDirectory = process.cwd();
-        tsConfigFileName = path_1.default.resolve(process.cwd(), tsConfigFileName);
-        projectDirectory = path_1.default.dirname(tsConfigFileName);
+        tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
+        projectDirectory = path.dirname(tsConfigFileName);
         const tsConfig = ts.readConfigFile(tsConfigFileName, ts.sys.readFile);
         const option = tsConfig.config || {};
         if (typeof sourceMap === 'boolean') {
@@ -67,13 +38,13 @@ class PackCompiler {
             readDirectory: () => [],
             fileExists: ts.sys.fileExists,
             readFile: ts.sys.readFile
-        }, path_1.default.resolve(projectDirectory), undefined, tsConfigFileName);
+        }, path.resolve(projectDirectory), undefined, tsConfigFileName);
         this.compilerOptions = parsed.options;
-        this.host = new host_1.Host(this.project, this.compilerOptions);
+        this.host = new Host(this.project, this.compilerOptions);
     }
     removeExtension(fileName, ext) {
         if (typeof ext === 'undefined') {
-            ext = (0, util_1.getExtensionName)(fileName, ['min.js']);
+            ext = getExtensionName(fileName, ['min.js']);
         }
         fileName = fileName.replaceAll('\\', '/');
         if (!ext) {
@@ -96,7 +67,7 @@ class PackCompiler {
             };
         }
         program.emit(undefined, (fileName, content) => {
-            const extension = (0, util_1.getExtensionName)(fileName, ['d.ts', 'd.ts.map']);
+            const extension = getExtensionName(fileName, ['d.ts', 'd.ts.map']);
             const key = this.removeExtension(fileName, extension);
             const item = maps[key];
             if (!item) {
@@ -121,7 +92,7 @@ class PackCompiler {
         return files;
     }
     compileSass(file, options = {}) {
-        const output = compiler_1.PluginCompiler.sassImporter().compileString(this.project.readSync(file), compiler_1.PluginCompiler.createSassOptions(file.src, file.extname.substring(1), options));
+        const output = PluginCompiler.sassImporter().compileString(this.project.readSync(file), PluginCompiler.createSassOptions(file.src, file.extname.substring(1), options));
         if (!options.sourceMap) {
             return output.css.toString();
         }
@@ -129,21 +100,20 @@ class PackCompiler {
         if (options.sourceMap) {
             this.pushFile(fileName, '', output.sourceMap ? JSON.stringify({
                 ...output.sourceMap,
-                sources: output.sourceMap.sources.map(item => path_1.default.relative(path_1.default.dirname(file.dist), item.startsWith('file:') ? item.substring(6) : item).replaceAll('\\', '/')),
+                sources: output.sourceMap.sources.map(item => path.relative(path.dirname(file.dist), item.startsWith('file:') ? item.substring(6) : item).replaceAll('\\', '/')),
             }) : 'map');
         }
-        return output.css.toString() + util_1.LINE_SPLITE + '/*# sourceMappingURL=' + path_1.default.basename(fileName) + ' */';
+        return output.css.toString() + LINE_SPLITE + '/*# sourceMappingURL=' + path.basename(fileName) + ' */';
     }
     pushFile(fileName, extension, content) {
         if (content.length === 0) {
             return;
         }
-        this.fileItems.push(new compiler_1.CompilerFile(fileName, undefined, fileName, extension, content));
+        this.fileItems.push(new CompilerFile(fileName, undefined, fileName, extension, content));
     }
     finish() {
         const items = this.fileItems;
         this.fileItems = [];
-        items.forEach(item => (0, fs_1.writeFileSync)(item.dist, item.content));
+        items.forEach(item => writeFileSync(item.dist, item.content));
     }
 }
-exports.PackCompiler = PackCompiler;

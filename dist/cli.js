@@ -1,40 +1,15 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const fs = __importStar(require("fs"));
-const path = __importStar(require("path"));
-const chokidar = __importStar(require("chokidar"));
-const project_1 = require("./parser/template/project");
-const project_2 = require("./parser/mini/project");
-const argv_1 = require("./argv");
-const style_1 = require("./parser/style/style");
-const compiler_1 = require("./compiler");
-const util_1 = require("./util");
-const project_3 = require("./parser/pack/project");
+import * as fs from 'fs';
+import * as path from 'path';
+import * as chokidar from 'chokidar';
+import { TemplateProject } from './parser/template/project';
+import { MiniProject } from './parser/mini/project';
+import { formatArgv } from './argv';
+import { StyleProject } from './parser/style/style';
+import { CompilerFile, LogLevel } from './compiler';
+import { eachFile } from './util';
+import { PackProject } from './parser/pack/project';
 process.env.INIT_CWD = process.cwd();
-const argv = (0, argv_1.formatArgv)(process.argv, {
+const argv = formatArgv(process.argv, {
     mini: false,
     custom: false,
     css: false,
@@ -81,16 +56,16 @@ const inputState = fs.statSync(input);
 const inputFolder = inputState.isDirectory() ? input : path.dirname(input);
 const createProject = () => {
     if (argv.params.mini) {
-        return new project_2.MiniProject(inputFolder, outputFolder, argv.params);
+        return new MiniProject(inputFolder, outputFolder, argv.params);
     }
     if (argv.params.theme) {
-        return new project_1.TemplateProject(inputFolder, outputFolder, argv.params);
+        return new TemplateProject(inputFolder, outputFolder, argv.params);
     }
     if (argv.params.css) {
-        return new style_1.StyleProject(inputFolder, outputFolder, argv.params);
+        return new StyleProject(inputFolder, outputFolder, argv.params);
     }
     if (argv.params.custom) {
-        return new project_3.PackProject(inputFolder, outputFolder, argv.params);
+        return new PackProject(inputFolder, outputFolder, argv.params);
     }
     return undefined;
 };
@@ -102,7 +77,7 @@ if (!project) {
 const initTime = new Date().getTime();
 const renderFile = (file) => {
     if (typeof file !== 'object') {
-        file = new compiler_1.CompilerFile(file);
+        file = new CompilerFile(file);
     }
     if (argv.params.watch && file.mtime && file.mtime > initTime) {
         project.booted();
@@ -114,29 +89,29 @@ const renderFile = (file) => {
         project?.compileFile(file);
     }
     catch (error) {
-        project?.logFile(file, 'Failure \n' + error.message, compiler_1.LogLevel.error);
+        project?.logFile(file, 'Failure \n' + error.message, LogLevel.error);
         if (argv.params.debug) {
             project?.logger.debug(error);
         }
     }
 };
-if (project instanceof project_3.PackProject) {
+if (project instanceof PackProject) {
     project.compile();
 }
 else if (argv.params.watch) {
     chokidar.watch(inputFolder).on('unlink', file => {
         project?.unlink(file);
     }).on('add', (file, stats) => {
-        renderFile(new compiler_1.CompilerFile(file, stats?.mtimeMs));
+        renderFile(new CompilerFile(file, stats?.mtimeMs));
     }).on('change', (file, stats) => {
-        renderFile(new compiler_1.CompilerFile(file, stats?.mtimeMs));
+        renderFile(new CompilerFile(file, stats?.mtimeMs));
     });
 }
 else {
     if (inputState.isFile()) {
-        renderFile(new compiler_1.CompilerFile(input, initTime));
+        renderFile(new CompilerFile(input, initTime));
     }
     else {
-        (0, util_1.eachFile)(inputFolder, renderFile);
+        eachFile(inputFolder, renderFile);
     }
 }

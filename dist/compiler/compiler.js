@@ -1,36 +1,10 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.fileContent = exports.eachCompileFile = exports.PluginCompiler = exports.BaseProjectCompiler = exports.CompilerFile = void 0;
-const path = __importStar(require("path"));
-const ts = __importStar(require("typescript"));
-const fs = __importStar(require("fs"));
-const url_1 = require("url");
-const log_1 = require("./log");
-const util_1 = require("../util");
-class CompilerFile {
+import * as path from 'path';
+import * as ts from 'typescript';
+import * as fs from 'fs';
+import { pathToFileURL } from 'url';
+import { Colors, Logger, LogLevel, LogStr } from './log';
+import { eachObject, twoPad } from '../util';
+export class CompilerFile {
     src;
     mtime;
     dist;
@@ -62,8 +36,7 @@ class CompilerFile {
         return new CompilerFile(file.src, file.mtime, dist, type, content);
     }
 }
-exports.CompilerFile = CompilerFile;
-class BaseProjectCompiler {
+export class BaseProjectCompiler {
     inputFolder;
     outputFolder;
     options;
@@ -73,7 +46,7 @@ class BaseProjectCompiler {
         this.options = options;
     }
     isBooted = false;
-    logger = new log_1.Logger();
+    logger = new Logger();
     booted() {
         this.isBooted = true;
     }
@@ -91,20 +64,19 @@ class BaseProjectCompiler {
             fs.unlinkSync(dist);
         }
     }
-    logFile(file, tip = 'Finished', level = log_1.LogLevel.info) {
+    logFile(file, tip = 'Finished', level = LogLevel.info) {
         const realFile = file instanceof CompilerFile ? file.src : file;
         this.log(this.inputFolder ? path.relative(this.inputFolder, realFile) : realFile, tip, level);
     }
-    log(key, tip = 'Finished', level = log_1.LogLevel.info) {
+    log(key, tip = 'Finished', level = LogLevel.info) {
         const now = new Date();
-        this.logger.log(level, log_1.LogStr.build(undefined, '[', (0, util_1.twoPad)(now.getHours()), ':', (0, util_1.twoPad)(now.getMinutes()), ':', (0, util_1.twoPad)(now.getSeconds()), '] ')
-            .join(log_1.Colors.magenta, key)
+        this.logger.log(level, LogStr.build(undefined, '[', twoPad(now.getHours()), ':', twoPad(now.getMinutes()), ':', twoPad(now.getSeconds()), '] ')
+            .join(Colors.magenta, key)
             .join(' ')
             .join(this.logger.levelToColor(level), tip));
     }
 }
-exports.BaseProjectCompiler = BaseProjectCompiler;
-class PluginCompiler {
+export class PluginCompiler {
     static ts(input, file, tsConfigFileName = 'tsconfig.json', sourceMap = false) {
         let projectDirectory = process.cwd();
         tsConfigFileName = path.resolve(process.cwd(), tsConfigFileName);
@@ -155,11 +127,11 @@ class PluginCompiler {
             return fileExsist(new URL(fileName.substring(0, i + 1) + '_' + fileName.substring(i + 2) + extension, base));
         };
         if (!options.importers) {
-            const includePaths = [(0, url_1.pathToFileURL)(file)];
+            const includePaths = [pathToFileURL(file)];
             if (Object.prototype.hasOwnProperty.call(options, 'includePaths')) {
-                (0, util_1.eachObject)(options.includePaths, v => {
+                eachObject(options.includePaths, v => {
                     if (v && typeof v === 'string') {
-                        includePaths.push((0, url_1.pathToFileURL)(v));
+                        includePaths.push(pathToFileURL(v));
                     }
                 });
             }
@@ -195,8 +167,7 @@ class PluginCompiler {
         return require('less');
     }
 }
-exports.PluginCompiler = PluginCompiler;
-const eachCompileFile = (files, callback) => {
+export const eachCompileFile = (files, callback) => {
     if (!files) {
         return;
     }
@@ -206,12 +177,10 @@ const eachCompileFile = (files, callback) => {
     }
     callback(files);
 };
-exports.eachCompileFile = eachCompileFile;
-const fileContent = (file) => {
+export const fileContent = (file) => {
     if (typeof file.content !== 'undefined') {
         return file.content;
     }
     file.content = fs.readFileSync(file.src).toString();
     return file.content;
 };
-exports.fileContent = fileContent;

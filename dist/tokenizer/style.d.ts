@@ -7,9 +7,10 @@ export declare enum StyleTokenType {
     INCLUDE = 3,
     EXTEND = 4,
     USE = 5,
-    TEXT = 6,
-    STYLE_GROUP = 7,
-    STYLE = 8
+    FORWARD = 6,
+    TEXT = 7,
+    STYLE_GROUP = 8,
+    STYLE = 9
 }
 export declare const StyleTokenCoverter: any;
 export interface StyleToken {

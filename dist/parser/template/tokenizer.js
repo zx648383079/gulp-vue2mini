@@ -1,39 +1,13 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ThemeTokenizer = exports.REGEX_ASSET = void 0;
-const cache_1 = require("../../util/cache");
-const path = __importStar(require("path"));
-const util_1 = require("../../util");
-exports.REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
-class ThemeTokenizer {
+import { CacheManger } from '../../util/cache';
+import * as path from 'path';
+import { splitLine, splitStr } from '../../util';
+export const REGEX_ASSET = /(src|href|action)=["']([^"'\>]+)/g;
+export class ThemeTokenizer {
     project;
     constructor(project) {
         this.project = project;
     }
-    cachesFiles = new cache_1.CacheManger();
+    cachesFiles = new CacheManger();
     render(file) {
         const time = file.mtime;
         if (this.cachesFiles.has(file.src, time)) {
@@ -46,7 +20,7 @@ class ThemeTokenizer {
         const ext = file.extname;
         const pageData = {};
         const replacePath = (text) => {
-            return text.replace(exports.REGEX_ASSET, ($0, _, $2) => {
+            return text.replace(REGEX_ASSET, ($0, _, $2) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
                     return $0;
                 }
@@ -59,7 +33,7 @@ class ThemeTokenizer {
                 return $0.replace($2, path.resolve(currentFolder, $2));
             });
         };
-        (0, util_1.splitLine)(this.project.fileContent(file)).forEach((line, i) => {
+        splitLine(this.project.fileContent(file)).forEach((line, i) => {
             const token = this.converterToken(line);
             if (!token) {
                 tokens.push({
@@ -69,7 +43,7 @@ class ThemeTokenizer {
                 return;
             }
             if (token.type === 'set') {
-                const [key, val] = (0, util_1.splitStr)(token.content, '=', 2);
+                const [key, val] = splitStr(token.content, '=', 2);
                 pageData[key.trim()] = val;
                 return;
             }
@@ -168,4 +142,3 @@ class ThemeTokenizer {
         throw new Error('[' + key + ']: page data error');
     }
 }
-exports.ThemeTokenizer = ThemeTokenizer;

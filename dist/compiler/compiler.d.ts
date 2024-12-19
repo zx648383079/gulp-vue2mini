@@ -1,4 +1,3 @@
-/// <reference types="less" />
 import * as sass from 'sass';
 import { Logger, LogLevel } from './log';
 export interface SassOptions extends sass.StringOptions<'sync'> {
@@ -29,8 +28,8 @@ export interface IProjectCompiler {
 export declare class BaseProjectCompiler {
     readonly inputFolder: string;
     readonly outputFolder: string;
-    options?: any;
-    constructor(inputFolder: string, outputFolder: string, options?: any);
+    options?: any | undefined;
+    constructor(inputFolder: string, outputFolder: string, options?: any | undefined);
     isBooted: boolean;
     logger: Logger;
     booted(): void;

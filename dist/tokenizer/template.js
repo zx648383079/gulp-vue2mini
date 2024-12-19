@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TemplateTokenizer = exports.SINGLE_TAGS = void 0;
-const iterator_1 = require("../iterator");
-const util_1 = require("../util");
-const element_1 = require("./element");
+import { CharIterator } from '../iterator';
+import { isEmptyCode } from '../util';
+import { ElementToken } from './element';
 var ElementTokenType;
 (function (ElementTokenType) {
     ElementTokenType[ElementTokenType["NONE"] = 0] = "NONE";
@@ -12,13 +9,13 @@ var ElementTokenType;
     ElementTokenType[ElementTokenType["ATTR_VALUE"] = 3] = "ATTR_VALUE";
     ElementTokenType[ElementTokenType["END_TAG"] = 4] = "END_TAG";
 })(ElementTokenType || (ElementTokenType = {}));
-exports.SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr', '!DOCTYPE'];
+export const SINGLE_TAGS = ['area', 'base', 'basefont', 'br', 'col', 'frame', 'hr', 'img', 'input', 'link', 'meta', 'param', 'embed', 'command', 'keygen', 'source', 'track', 'wbr', '!DOCTYPE'];
 const ALLOW_INCLUDE_TAGS = ['style', 'script'];
-class TemplateTokenizer {
+export class TemplateTokenizer {
     render(content) {
-        const reader = content instanceof iterator_1.CharIterator ? content : new iterator_1.CharIterator(content);
+        const reader = content instanceof CharIterator ? content : new CharIterator(content);
         reader.reset();
-        return element_1.ElementToken.nodeElement('root', this.renderElement(reader));
+        return ElementToken.nodeElement('root', this.renderElement(reader));
     }
     renderElement(reader) {
         const items = [];
@@ -37,7 +34,7 @@ class TemplateTokenizer {
         let code;
         while (reader.moveNext()) {
             code = reader.current;
-            if ((0, util_1.isEmptyCode)(code)) {
+            if (isEmptyCode(code)) {
                 continue;
             }
             if (code !== '<') {
@@ -76,15 +73,15 @@ class TemplateTokenizer {
                     attrs[name] = true;
                     name = '';
                 }
-                if (exports.SINGLE_TAGS.indexOf(tag) >= 0) {
+                if (SINGLE_TAGS.indexOf(tag) >= 0) {
                     this.moveEndTag(reader, tag);
-                    return element_1.ElementToken.noKid(tag.trim(), attrs);
+                    return ElementToken.noKid(tag.trim(), attrs);
                 }
                 const children = ALLOW_INCLUDE_TAGS.indexOf(tag) >= 0 ? this.parserSpecialText(reader, tag) : this.renderElement(reader);
                 if (children.length < 1) {
-                    return element_1.ElementToken.noKid(tag.trim(), attrs);
+                    return ElementToken.noKid(tag.trim(), attrs);
                 }
-                return element_1.ElementToken.create(tag.trim(), children, attrs);
+                return ElementToken.create(tag.trim(), children, attrs);
             }
             if (code === '/') {
                 if (status === ElementTokenType.ATTR || status === ElementTokenType.TAG) {
@@ -161,7 +158,7 @@ class TemplateTokenizer {
                 value += code;
             }
         }
-        return element_1.ElementToken.noKid(tag.trim(), attrs);
+        return ElementToken.noKid(tag.trim(), attrs);
     }
     isNodeBegin(reader) {
         let status = ElementTokenType.TAG;
@@ -228,7 +225,7 @@ class TemplateTokenizer {
         const end = reader.indexOf('-->', 4);
         const text = reader.read(end - start, 4);
         reader.position = end + 2;
-        return element_1.ElementToken.comment(text.trim());
+        return ElementToken.comment(text.trim());
     }
     getTextElement(reader) {
         let text = '';
@@ -244,7 +241,7 @@ class TemplateTokenizer {
         if (text.length < 1) {
             return false;
         }
-        return element_1.ElementToken.text(text.trim());
+        return ElementToken.text(text.trim());
     }
     backslashedCount(reader) {
         return reader.reverseCount('\\');
@@ -252,7 +249,7 @@ class TemplateTokenizer {
     moveEndTag(reader, tag) {
         let po = -1;
         reader.each((code, i) => {
-            if ((0, util_1.isEmptyCode)(code)) {
+            if (isEmptyCode(code)) {
                 return;
             }
             if (code === '<') {
@@ -301,7 +298,6 @@ class TemplateTokenizer {
         if (text.length < 1) {
             return [];
         }
-        return [element_1.ElementToken.text(text.trim())];
+        return [ElementToken.text(text.trim())];
     }
 }
-exports.TemplateTokenizer = TemplateTokenizer;

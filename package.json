@@ -1,6 +1,6 @@
 {
     "name": "gulp-vue2mini",
-    "version": "1.5.8",
+    "version": "1.6.1",
     "description": "converter vue to mini program",
     "main": "dist/index.js",
     "scripts": {
@@ -30,28 +30,28 @@
     },
     "devDependencies": {
         "@types/clean-css": "^4.2.11",
-        "@types/less": "^3.0.6",
-        "@types/node": "^20.12.12",
-        "@types/readable-stream": "^4.0.14",
+        "@types/less": "^3.0.7",
+        "@types/node": "^22.10.2",
+        "@types/readable-stream": "^4.0.18",
         "@types/uglify-js": "^3.17.5",
         "@types/vinyl": "^2.0.12",
         "@types/webpack-sources": "^3.2.3",
-        "@typescript-eslint/eslint-plugin": "^7.9.0",
+        "@typescript-eslint/eslint-plugin": "^8.18.1",
         "codelyzer": "^6.0.2",
         "gulp": "^5.0.0",
         "gulp-typescript": "^5.0.1",
-        "less": "^4.2.0",
+        "less": "^4.2.1",
         "readable-stream": "^4.5.2",
         "vinyl": "^3.0.0",
-        "webpack": "^5.91.0",
+        "webpack": "^5.97.1",
         "webpack-sources": "^3.2.3"
     },
     "dependencies": {
-        "chokidar": "^4.0.1",
+        "chokidar": "^4.0.3",
         "clean-css": "^5.3.3",
         "glob": "^11.0.0",
-        "sass": "^1.79.4",
-        "typescript": "^5.6.2",
+        "sass": "^1.83.0",
+        "typescript": "^5.7.2",
         "uglify-js": "^3.19.3"
     }
 }

@@ -1,41 +1,15 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TemplateParser = void 0;
-const path = __importStar(require("path"));
-const compiler_1 = require("../../compiler");
-const tokenizer_1 = require("../../tokenizer");
-const util_1 = require("../../util");
-const tokenizer_2 = require("./tokenizer");
-class TemplateParser {
+import * as path from 'path';
+import { CompilerFile, PluginCompiler, TemplateCompiler } from '../../compiler';
+import { ElementToken, TemplateTokenizer } from '../../tokenizer';
+import { joinLine } from '../../util';
+import { REGEX_ASSET } from './tokenizer';
+export class TemplateParser {
     project;
     constructor(project) {
         this.project = project;
     }
-    tokenizer = new tokenizer_1.TemplateTokenizer();
-    compiler = new compiler_1.TemplateCompiler();
+    tokenizer = new TemplateTokenizer();
+    compiler = new TemplateCompiler();
     render(file) {
         const tokenizer = this.project.tokenizer;
         const page = tokenizer.render(file);
@@ -73,7 +47,7 @@ class TemplateParser {
                     lines.push(token.content);
                     return;
                 }
-                const next = tokenizer.render(new compiler_1.CompilerFile(token.content));
+                const next = tokenizer.render(new CompilerFile(token.content));
                 if (next.isLayout) {
                     layout = next;
                     return;
@@ -84,7 +58,7 @@ class TemplateParser {
                     lines.push(renderPage(next));
                 }
             });
-            return (0, util_1.joinLine)(lines);
+            return joinLine(lines);
         };
         let content = renderPage(page);
         if (layout) {
@@ -98,7 +72,7 @@ class TemplateParser {
     mergeStyle(content, file, time) {
         const currentFolder = path.dirname(file);
         const replacePath = (text) => {
-            return text.replace(tokenizer_2.REGEX_ASSET, ($0, _, $2) => {
+            return text.replace(REGEX_ASSET, ($0, _, $2) => {
                 if ($2.indexOf('#') === 0 || $2.indexOf('javascript:') === 0) {
                     return $0;
                 }
@@ -165,9 +139,9 @@ class TemplateParser {
                 lines.push(item.text);
             }
         });
-        let style = this.project.style.render(new compiler_1.CompilerFile(file, time, '', styleLang, (0, util_1.joinLine)(lines)));
+        let style = this.project.style.render(new CompilerFile(file, time, '', styleLang, joinLine(lines)));
         if (style.length > 0 && ['scss', 'sass'].indexOf(styleLang) >= 0) {
-            style = compiler_1.PluginCompiler.sass(style, file, styleLang, {
+            style = PluginCompiler.sass(style, file, styleLang, {
                 importer: this.project.style.importer,
             });
         }
@@ -177,9 +151,9 @@ class TemplateParser {
                 lines.push(item.text);
             }
         });
-        let script = this.project.script.render((0, util_1.joinLine)(lines));
+        let script = this.project.script.render(joinLine(lines));
         if (script.length > 0 && scriptLang === 'ts') {
-            script = compiler_1.PluginCompiler.ts(script, file);
+            script = PluginCompiler.ts(script, file);
         }
         const pushStyle = (root) => {
             if (root.node !== 'element') {
@@ -190,7 +164,7 @@ class TemplateParser {
                     root.children = !root.children ? headers : root.children.concat(headers);
                 }
                 if (style.length > 0) {
-                    root.children?.push(tokenizer_1.ElementToken.create('style', [tokenizer_1.ElementToken.text(style)]));
+                    root.children?.push(ElementToken.create('style', [ElementToken.text(style)]));
                 }
                 headers = [];
                 return;
@@ -200,7 +174,7 @@ class TemplateParser {
                     root.children = !root.children ? footers : root.children.concat(footers);
                 }
                 if (script.length > 0) {
-                    root.children?.push(tokenizer_1.ElementToken.create('script', [tokenizer_1.ElementToken.text(script)]));
+                    root.children?.push(ElementToken.create('script', [ElementToken.text(script)]));
                 }
                 footers = [];
                 return;
@@ -221,4 +195,3 @@ class TemplateParser {
         return items.join('\r\n');
     }
 }
-exports.TemplateParser = TemplateParser;

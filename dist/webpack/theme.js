@@ -1,11 +1,8 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ThemePlugin = void 0;
-const webpack_1 = require("webpack");
-const webpack_sources_1 = require("webpack-sources");
-const compiler_1 = require("../compiler");
+import { ModuleFilenameHelpers } from 'webpack';
+import { RawSource } from 'webpack-sources';
+import { ThemeStyleCompiler } from '../compiler';
 const pluginName = 'ZreThemePlugin';
-class ThemePlugin {
+export class ThemePlugin {
     option;
     autoDark;
     useVar;
@@ -15,7 +12,7 @@ class ThemePlugin {
         this.autoDark = autoDark;
         this.useVar = useVar;
         this.varPrefix = varPrefix;
-        this.compiler = new compiler_1.ThemeStyleCompiler(this.autoDark, this.useVar, this.varPrefix);
+        this.compiler = new ThemeStyleCompiler(this.autoDark, this.useVar, this.varPrefix);
     }
     compiler;
     apply(compiler) {
@@ -23,12 +20,11 @@ class ThemePlugin {
             Array.from(compilation.chunks)
                 .reduce((acc, chunk) => acc.concat(chunk.files || []), [])
                 .concat(compilation.additionalChunkAssets || [])
-                .filter(webpack_1.ModuleFilenameHelpers.matchObject.bind(null, { test: /\.(js|css|sass|scss|less)(\?.*)?$/i })).forEach(file => {
+                .filter(ModuleFilenameHelpers.matchObject.bind(null, { test: /\.(js|css|sass|scss|less)(\?.*)?$/i })).forEach(file => {
                 const asset = compilation.assets[file];
                 const content = this.compiler.renderString(String(asset.source()), this.option);
-                compilation.assets[file] = new webpack_sources_1.RawSource(content);
+                compilation.assets[file] = new RawSource(content);
             });
         });
     }
 }
-exports.ThemePlugin = ThemePlugin;

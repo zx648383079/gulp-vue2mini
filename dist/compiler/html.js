@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TemplateCompiler = exports.htmlBeautify = void 0;
-const tokenizer_1 = require("../tokenizer");
-const util_1 = require("../util");
-function htmlBeautify(indent = '    ') {
+import { SINGLE_TAGS } from '../tokenizer';
+import { LINE_SPLITE } from '../util';
+export function htmlBeautify(indent = '    ') {
     return (item, content, level) => {
         if (item.node === 'root') {
             return content;
@@ -11,7 +8,7 @@ function htmlBeautify(indent = '    ') {
         if (item.node === 'text') {
             return item.text + '';
         }
-        const spaces = indent.length > 0 ? util_1.LINE_SPLITE + indent.repeat(level - 1) : indent;
+        const spaces = indent.length > 0 ? LINE_SPLITE + indent.repeat(level - 1) : indent;
         if (item.node === 'comment') {
             return `${spaces}<!-- ${item.text} -->`;
         }
@@ -22,15 +19,14 @@ function htmlBeautify(indent = '    ') {
         if (item.tag === '!DOCTYPE') {
             return `<${item.tag}${attr}>`;
         }
-        if (tokenizer_1.SINGLE_TAGS.indexOf(item.tag) >= 0) {
+        if (SINGLE_TAGS.indexOf(item.tag) >= 0) {
             return `${spaces}<${item.tag}${attr}/>`;
         }
         const endSpaces = item.children && !item.isTextChild() ? spaces : '';
         return `${spaces}<${item.tag}${attr}>${content}${endSpaces}</${item.tag}>`;
     };
 }
-exports.htmlBeautify = htmlBeautify;
-class TemplateCompiler {
+export class TemplateCompiler {
     indent;
     constructor(indent = '') {
         this.indent = indent;
@@ -71,4 +67,3 @@ class TemplateCompiler {
         return cb(data, children.length < 1 ? undefined : children);
     }
 }
-exports.TemplateCompiler = TemplateCompiler;

@@ -1,5 +1,9 @@
 # Change Log
 
+## v1.6.0
+
+1. sass 的 `@theme` 功能进入移除状态，请使用 css 的 var 搭配 sass 的模块功能实现多主题
+
 ## v1.5.8
 
 1. 修复 template 解析 style 合并问题

@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.LogStr = exports.Logger = exports.LogLevel = exports.Colors = void 0;
-exports.Colors = {
+export const Colors = {
     bold: [1, 22],
     dim: [2, 22],
     italic: [3, 23],
@@ -52,19 +49,19 @@ exports.Colors = {
     cyanBG: [46, 49],
     whiteBG: [47, 49],
 };
-var LogLevel;
+export var LogLevel;
 (function (LogLevel) {
     LogLevel[LogLevel["fatal"] = 0] = "fatal";
     LogLevel[LogLevel["error"] = 1] = "error";
     LogLevel[LogLevel["warn"] = 2] = "warn";
     LogLevel[LogLevel["info"] = 3] = "info";
     LogLevel[LogLevel["debug"] = 4] = "debug";
-})(LogLevel || (exports.LogLevel = LogLevel = {}));
-class Logger {
+})(LogLevel || (LogLevel = {}));
+export class Logger {
     levelColors = {
-        [LogLevel.error]: exports.Colors.red,
-        [LogLevel.warn]: exports.Colors.yellow,
-        [LogLevel.debug]: exports.Colors.green,
+        [LogLevel.error]: Colors.red,
+        [LogLevel.warn]: Colors.yellow,
+        [LogLevel.debug]: Colors.green,
     };
     debug(msg) {
         this.log(LogLevel.debug, msg);
@@ -96,15 +93,14 @@ class Logger {
         return this.levelColors[level];
     }
     format(color, msg) {
-        const val = typeof color === 'string' ? exports.Colors[color] : color;
+        const val = typeof color === 'string' ? Colors[color] : color;
         if (!val) {
             return msg;
         }
         return this.colorToStr(val[0]) + msg + this.colorToStr(val[1]);
     }
 }
-exports.Logger = Logger;
-class LogStr {
+export class LogStr {
     constructor(color, ...items) {
         this.join(color, ...items);
     }
@@ -115,7 +111,7 @@ class LogStr {
             return this;
         }
         if (typeof color === 'string') {
-            color = exports.Colors[color];
+            color = Colors[color];
         }
         else if (typeof color === 'object' && color instanceof Array && color.length < 2) {
             color = undefined;
@@ -144,4 +140,3 @@ class LogStr {
         return new LogStr(color, ...items);
     }
 }
-exports.LogStr = LogStr;

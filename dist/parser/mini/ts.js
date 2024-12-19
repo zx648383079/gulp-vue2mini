@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ScriptParser = void 0;
-const util_1 = require("../../util");
+import { joinLine, LINE_SPLITE, splitLine } from '../../util';
 const CLASS_REG = /(export\s+(default\s+)?)?class\s+(\S+)\s+extends\s(WxPage|WxApp|WxComponent)[^\s\{]+/;
-class ScriptParser {
+export class ScriptParser {
     constructor(_) { }
     render(source, templateFunc) {
         let content = source.replace(/import.+?from\s+.+?\.vue["'];/, '')
@@ -22,7 +19,7 @@ class ScriptParser {
             isApp: match[4] === 'WxApp',
             isComponent: match[4] === 'WxComponent',
             isPage: match[4] === 'WxPage',
-            script: !reg.test(content) ? content + util_1.LINE_SPLITE + match[4].substring(2) + '(new ' + match[3] + '());' : content,
+            script: !reg.test(content) ? content + LINE_SPLITE + match[4].substring(2) + '(new ' + match[3] + '());' : content,
         };
         if (res.isApp || res.isPage || res.isComponent) {
             res.json = this.parseJson(source);
@@ -48,7 +45,7 @@ class ScriptParser {
             }
             return;
         };
-        const lines = (0, util_1.splitLine)(content);
+        const lines = splitLine(content);
         let num = 0;
         let inMethod = 0;
         let method;
@@ -83,7 +80,7 @@ class ScriptParser {
                 lines[i] = '';
                 if (leftNum > 0) {
                     if (num === 0) {
-                        data[method + ''].items.push((0, util_1.joinLine)(block));
+                        data[method + ''].items.push(joinLine(block));
                         inMethod = 0;
                         continue;
                     }
@@ -95,7 +92,7 @@ class ScriptParser {
             block.push(line);
             lines[i] = '';
             if (num === 0) {
-                data[method + ''].items.push((0, util_1.joinLine)(block));
+                data[method + ''].items.push(joinLine(block));
                 inMethod = 0;
                 continue;
             }
@@ -110,7 +107,7 @@ class ScriptParser {
                 delete data[key];
             }
         }
-        content = (0, util_1.joinLine)(lines);
+        content = joinLine(lines);
         for (const key in data) {
             if (!data.hasOwnProperty(key)) {
                 continue;
@@ -140,7 +137,6 @@ class ScriptParser {
             }
             tplFuns = lines;
         }
-        return (0, util_1.joinLine)([content.substring(0, pos + 1)].concat(tplFuns, [content.substring(pos + 2)]));
+        return joinLine([content.substring(0, pos + 1)].concat(tplFuns, [content.substring(pos + 2)]));
     }
 }
-exports.ScriptParser = ScriptParser;

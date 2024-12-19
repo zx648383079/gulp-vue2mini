@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.StyleTokenizer = exports.StyleTokenCoverter = exports.StyleTokenType = void 0;
-const iterator_1 = require("../iterator");
-const util_1 = require("../util");
-var StyleTokenType;
+import { CharIterator } from '../iterator';
+import { isEmptyCode, isLineCode } from '../util';
+export var StyleTokenType;
 (function (StyleTokenType) {
     StyleTokenType[StyleTokenType["COMMENT"] = 0] = "COMMENT";
     StyleTokenType[StyleTokenType["CHASET"] = 1] = "CHASET";
@@ -11,18 +8,20 @@ var StyleTokenType;
     StyleTokenType[StyleTokenType["INCLUDE"] = 3] = "INCLUDE";
     StyleTokenType[StyleTokenType["EXTEND"] = 4] = "EXTEND";
     StyleTokenType[StyleTokenType["USE"] = 5] = "USE";
-    StyleTokenType[StyleTokenType["TEXT"] = 6] = "TEXT";
-    StyleTokenType[StyleTokenType["STYLE_GROUP"] = 7] = "STYLE_GROUP";
-    StyleTokenType[StyleTokenType["STYLE"] = 8] = "STYLE";
-})(StyleTokenType || (exports.StyleTokenType = StyleTokenType = {}));
-exports.StyleTokenCoverter = {
+    StyleTokenType[StyleTokenType["FORWARD"] = 6] = "FORWARD";
+    StyleTokenType[StyleTokenType["TEXT"] = 7] = "TEXT";
+    StyleTokenType[StyleTokenType["STYLE_GROUP"] = 8] = "STYLE_GROUP";
+    StyleTokenType[StyleTokenType["STYLE"] = 9] = "STYLE";
+})(StyleTokenType || (StyleTokenType = {}));
+export const StyleTokenCoverter = {
     [StyleTokenType.EXTEND]: '@extend',
     [StyleTokenType.CHASET]: '@charset',
     [StyleTokenType.USE]: '@use',
+    [StyleTokenType.FORWARD]: '@forward',
     [StyleTokenType.IMPORT]: '@import',
     [StyleTokenType.INCLUDE]: '@include',
 };
-class StyleTokenizer {
+export class StyleTokenizer {
     isIndent;
     constructor(isIndent = false) {
         this.isIndent = isIndent;
@@ -31,7 +30,7 @@ class StyleTokenizer {
         this.isIndent = content.indexOf('{') < 0;
     }
     render(content) {
-        const reader = content instanceof iterator_1.CharIterator ? content : new iterator_1.CharIterator(content);
+        const reader = content instanceof CharIterator ? content : new CharIterator(content);
         reader.reset();
         return this.renderBlock(reader);
     }
@@ -61,7 +60,7 @@ class StyleTokenizer {
             }
             reader.moveNext();
             code = reader.current;
-            if (!this.isIndent && (0, util_1.isEmptyCode)(code)) {
+            if (!this.isIndent && isEmptyCode(code)) {
                 continue;
             }
             if (code === '/' && this.isComment(reader)) {
@@ -77,7 +76,7 @@ class StyleTokenizer {
     getPreviousLine(reader, start, end = 0) {
         while (start > end) {
             const code = reader.readSeek(--start);
-            if ((0, util_1.isLineCode)(code)) {
+            if (isLineCode(code)) {
                 return start;
             }
         }
@@ -112,9 +111,9 @@ class StyleTokenizer {
     }
     getTextBlock(line) {
         line = line.trim();
-        for (const key in exports.StyleTokenCoverter) {
-            if (Object.prototype.hasOwnProperty.call(exports.StyleTokenCoverter, key)) {
-                const search = exports.StyleTokenCoverter[key];
+        for (const key in StyleTokenCoverter) {
+            if (Object.prototype.hasOwnProperty.call(StyleTokenCoverter, key)) {
+                const search = StyleTokenCoverter[key];
                 if (line.startsWith(search)) {
                     return {
                         type: key,
@@ -253,7 +252,7 @@ class StyleTokenizer {
                 const pos = reader.position;
                 while (reader.moveNext()) {
                     const code = reader.current;
-                    if (!(0, util_1.isLineCode)(code)) {
+                    if (!isLineCode(code)) {
                         continue;
                     }
                     this.moveNewLine(reader);
@@ -280,7 +279,7 @@ class StyleTokenizer {
         let count = 0;
         while (pos < reader.length) {
             const code = reader.readSeek(pos++);
-            if ((0, util_1.isLineCode)(code)) {
+            if (isLineCode(code)) {
                 if (count > 0) {
                     break;
                 }
@@ -306,16 +305,16 @@ class StyleTokenizer {
         else if (code == '\r') {
             source += reader.readSeek(source + 1) === '\n' ? 2 : 1;
         }
-        else if (!(0, util_1.isEmptyCode)(code)) {
+        else if (!isEmptyCode(code)) {
             return source;
         }
         let pos = source;
         while (pos < reader.length - 1) {
             code = reader.readSeek(++pos);
-            if ((0, util_1.isLineCode)(code)) {
+            if (isLineCode(code)) {
                 return this.jumpEmptyLine(reader, pos);
             }
-            if (!(0, util_1.isEmptyCode)(code)) {
+            if (!isEmptyCode(code)) {
                 return source;
             }
         }
@@ -334,13 +333,13 @@ class StyleTokenizer {
             if (inComment && code === '*' && reader.readSeek(pos + 1) === '/') {
                 while (pos < reader.length) {
                     code = reader.readSeek(++pos);
-                    if (!(0, util_1.isLineCode)(code)) {
+                    if (!isLineCode(code)) {
                         continue;
                     }
                     return this.indentSize(reader, this.jumpEmptyLine(reader, pos));
                 }
             }
-            if (!inComment && (0, util_1.isLineCode)(code)) {
+            if (!inComment && isLineCode(code)) {
                 return this.indentSize(reader, this.jumpEmptyLine(reader, pos));
             }
         }
@@ -361,11 +360,10 @@ class StyleTokenizer {
             if (code === ',') {
                 return true;
             }
-            if (!(0, util_1.isLineCode)(code)) {
+            if (!isLineCode(code)) {
                 return false;
             }
         }
         return false;
     }
 }
-exports.StyleTokenizer = StyleTokenizer;

@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.WxmlCompiler = void 0;
-const tokenizer_1 = require("../../tokenizer");
-const util_1 = require("../../util");
+import { TemplateTokenizer } from '../../tokenizer';
+import { splitStr, studly } from '../../util';
 var FuncType;
 (function (FuncType) {
     FuncType[FuncType["BIND"] = 0] = "BIND";
@@ -10,21 +7,21 @@ var FuncType;
     FuncType[FuncType["CONVERTER"] = 2] = "CONVERTER";
     FuncType[FuncType["FUNC"] = 3] = "FUNC";
 })(FuncType || (FuncType = {}));
-class WxmlCompiler {
+export class WxmlCompiler {
     exclude;
     disallowAttrs;
     constructor(_, exclude = /^(.+[\-A-Z].+|[A-Z].+)$/, disallowAttrs = []) {
         this.exclude = exclude;
         this.disallowAttrs = disallowAttrs;
     }
-    tokenizer = new tokenizer_1.TemplateTokenizer();
+    tokenizer = new TemplateTokenizer();
     existFunc = {};
     replaceAttrs = {
         'v-if': (value, _, attrs) => {
             attrs.set('wx:if', '{{ ' + value + ' }}');
         },
         'v-model': (value, tag, attrs) => {
-            const func = (0, util_1.studly)(value, false) + 'Changed';
+            const func = studly(value, false) + 'Changed';
             if (!Object.prototype.hasOwnProperty.call(this.existFunc, func)) {
                 this.existFunc[func] = {
                     type: FuncType.BIND,
@@ -270,7 +267,7 @@ class WxmlCompiler {
         if (value.charAt(0) === '{') {
             const clsObj = {};
             value.substring(1, value.length - 1).split(',').forEach(item => {
-                let [key, con] = (0, util_1.splitStr)(item, ':', 2);
+                let [key, con] = splitStr(item, ':', 2);
                 key = key.trim();
                 con = con.trim();
                 const isNot = con.charAt(0) === '!';
@@ -304,7 +301,7 @@ class WxmlCompiler {
         }
         const addFun = (key, val) => {
             key = key.trim();
-            let dataKey = (0, util_1.studly)(key);
+            let dataKey = studly(key);
             const f = 'tapItem' + dataKey;
             dataKey = dataKey.toLowerCase();
             if (!Object.prototype.hasOwnProperty.call(this.existFunc, f)) {
@@ -317,7 +314,7 @@ class WxmlCompiler {
         };
         let match = value.match(/(([\+\-]{2})|([\+\-\*\/]\=))/);
         if (match) {
-            let [key, val] = (0, util_1.splitStr)(value, match[0], 2);
+            let [key, val] = splitStr(value, match[0], 2);
             if (match[1].charAt(1) !== '=') {
                 val = '1';
             }
@@ -326,7 +323,7 @@ class WxmlCompiler {
             return;
         }
         if (value.indexOf('=') > 0 && !/[''].*=/.test(value)) {
-            const [key, val] = (0, util_1.splitStr)(value, '=', 2);
+            const [key, val] = splitStr(value, '=', 2);
             addFun(key, this.qv(val.trim()));
             return;
         }
@@ -519,4 +516,3 @@ class WxmlCompiler {
         return `<input${attr}/>`;
     }
 }
-exports.WxmlCompiler = WxmlCompiler;

@@ -1,47 +1,18 @@
-"use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PackProject = void 0;
-const path_1 = __importDefault(require("path"));
-const compiler_1 = require("../../compiler");
-const register_1 = require("./register");
-const UglifyJS = __importStar(require("uglify-js"));
-const clean_css_1 = __importDefault(require("clean-css"));
-const fs_1 = require("fs");
-const util_1 = require("../../util");
-const compiler_2 = require("./compiler");
-const util_2 = require("../../util");
-class PackProject extends compiler_1.BaseProjectCompiler {
+import path from 'path';
+import { BaseProjectCompiler, CompilerFile, LogLevel, eachCompileFile, fileContent } from '../../compiler';
+import { PackLoader } from './register';
+import * as UglifyJS from 'uglify-js';
+import CleanCSS from 'clean-css';
+import { copyFileSync, writeFileSync } from 'fs';
+import { LINE_SPLITE, regexReplace, renderOutputRule } from '../../util';
+import { PackCompiler } from './compiler';
+import { glob } from '../../util';
+export class PackProject extends BaseProjectCompiler {
     constructor(_, outputFolder, options) {
         super(process.cwd(), outputFolder, options);
-        register_1.PackLoader._instance = this;
+        PackLoader._instance = this;
     }
-    compiler = new compiler_2.PackCompiler(this);
+    compiler = new PackCompiler(this);
     fileItems = {};
     items = {};
     get compilerMin() {
@@ -60,15 +31,15 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         this.logFile(src, 'unsupport file');
     }
     compile() {
-        const entry = path_1.default.resolve(this.inputFolder, 'packfile.js');
-        const local = require(path_1.default.join(this.inputFolder, 'node_modules/gulp-vue2mini'));
+        const entry = path.resolve(this.inputFolder, 'packfile.js');
+        const local = require(path.join(this.inputFolder, 'node_modules/gulp-vue2mini'));
         local.PackLoader._instance = this;
         require(entry);
         this.compileTask(this.taskName);
     }
     compileTask(name) {
         if (!Object.prototype.hasOwnProperty.call(this.items, name)) {
-            this.log(name, 'task not found', compiler_1.LogLevel.error);
+            this.log(name, 'task not found', LogLevel.error);
             return;
         }
         this.log(name, "starting ...");
@@ -77,14 +48,14 @@ class PackProject extends compiler_1.BaseProjectCompiler {
             res.then(_ => {
                 this.log(name, "finished!");
             }, err => {
-                this.log(name, err ?? "failure!", compiler_1.LogLevel.error);
+                this.log(name, err ?? "failure!", LogLevel.error);
             });
         }
         else if (res instanceof Array) {
             res.forEach(item => this.compileTask(item));
         }
         else {
-            this.log(name, res ? "finished!" : "failure!", res ? compiler_1.LogLevel.info : compiler_1.LogLevel.error);
+            this.log(name, res ? "finished!" : "failure!", res ? LogLevel.info : LogLevel.error);
         }
     }
     task(name, cb) {
@@ -94,18 +65,18 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         this.fileItems = {};
         const isSingleFile = !output.endsWith('/');
         return new Promise((resolve, _) => {
-            const files = (0, util_2.glob)(input);
+            const files = glob(input);
             let items = [];
             if (isSingleFile) {
-                const input = files.map(file => this.readSync(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, file)))).join(util_1.LINE_SPLITE);
-                const inputFile = this.readyCompilerFile(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, output)), output, true);
+                const input = files.map(file => this.readSync(new CompilerFile(path.resolve(this.inputFolder, file)))).join(LINE_SPLITE);
+                const inputFile = this.readyCompilerFile(new CompilerFile(path.resolve(this.inputFolder, output)), output, true);
                 inputFile.content = input;
                 this.fileItems[inputFile.src] = inputFile;
                 items.push(inputFile);
             }
             else {
                 for (const file of files) {
-                    (0, compiler_1.eachCompileFile)(this.readyCompilerFile(new compiler_1.CompilerFile(path_1.default.resolve(this.inputFolder, file)), (0, util_1.renderOutputRule)(file, output)), src => {
+                    eachCompileFile(this.readyCompilerFile(new CompilerFile(path.resolve(this.inputFolder, file)), renderOutputRule(file, output)), src => {
                         this.fileItems[src.src] = src;
                         items.push(src);
                     });
@@ -122,7 +93,7 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         });
     }
     getFile(fileName) {
-        const file = path_1.default.resolve(this.inputFolder, fileName);
+        const file = path.resolve(this.inputFolder, fileName);
         if (this.fileItems[file]) {
             return this.fileItems[file];
         }
@@ -135,12 +106,12 @@ class PackProject extends compiler_1.BaseProjectCompiler {
                 return '';
             }
             lockItems.push(file.src);
-            const content = (0, compiler_1.fileContent)(file);
+            const content = fileContent(file);
             if (file.type !== 'ts') {
                 return content;
             }
-            return (0, util_1.regexReplace)(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
-                const part = new compiler_1.CompilerFile(path_1.default.resolve(file.dirname, match[1]), undefined, undefined, file.type);
+            return regexReplace(content, /\/{2,}\s*@import\s+["'](.+?)["'];*/g, match => {
+                const part = new CompilerFile(path.resolve(file.dirname, match[1]), undefined, undefined, file.type);
                 return readOnLock(part);
             });
         };
@@ -170,7 +141,7 @@ class PackProject extends compiler_1.BaseProjectCompiler {
                 else if (res === null) {
                     continue;
                 }
-                else if (res instanceof compiler_1.CompilerFile) {
+                else if (res instanceof CompilerFile) {
                     items.push(res);
                     continue;
                 }
@@ -181,26 +152,26 @@ class PackProject extends compiler_1.BaseProjectCompiler {
         return input;
     }
     writeAsync(file, type = '', fileName = '') {
-        if (file instanceof compiler_1.CompilerFile) {
+        if (file instanceof CompilerFile) {
             fileName = file.dist;
             type = file.type;
         }
-        this.mkIfNotFolder(path_1.default.dirname(fileName));
+        this.mkIfNotFolder(path.dirname(fileName));
         const mustRead = this.compilerMin && ['js', 'ts', 'css', 'sass', 'scss', 'less'].indexOf(type) >= 0;
-        if (!mustRead && file instanceof compiler_1.CompilerFile && typeof file.content === 'undefined') {
-            (0, fs_1.copyFileSync)(file.src, fileName);
+        if (!mustRead && file instanceof CompilerFile && typeof file.content === 'undefined') {
+            copyFileSync(file.src, fileName);
         }
         else {
-            let content = file instanceof compiler_1.CompilerFile ? (0, compiler_1.fileContent)(file) : file;
+            let content = file instanceof CompilerFile ? fileContent(file) : file;
             if (content.length > 0 && this.compilerMin) {
                 if (['js', 'ts'].indexOf(type) >= 0) {
                     content = UglifyJS.minify(content).code;
                 }
                 else if (['css', 'sass', 'scss', 'less'].indexOf(type) >= 0) {
-                    content = new clean_css_1.default().minify(content).styles;
+                    content = new CleanCSS().minify(content).styles;
                 }
             }
-            (0, fs_1.writeFileSync)(fileName, content);
+            writeFileSync(fileName, content);
         }
         this.logFile(fileName, 'SUCCESS!');
     }
@@ -211,18 +182,18 @@ class PackProject extends compiler_1.BaseProjectCompiler {
             if (!noExclude && src.basename.startsWith('_')) {
                 return undefined;
             }
-            return compiler_1.CompilerFile.from(src, this.replaceExtension(dist, ext, '.js', this.compilerMin), 'ts');
+            return CompilerFile.from(src, this.replaceExtension(dist, ext, '.js', this.compilerMin), 'ts');
         }
         if (['.scss', '.sass'].indexOf(ext) >= 0) {
             if (!noExclude && src.basename.startsWith('_')) {
                 return undefined;
             }
-            return compiler_1.CompilerFile.from(src, this.replaceExtension(dist, ext, '.css', this.compilerMin), ext.substring(1));
+            return CompilerFile.from(src, this.replaceExtension(dist, ext, '.css', this.compilerMin), ext.substring(1));
         }
         if (this.compilerMin && ['.css', '.js'].indexOf(ext) >= 0) {
-            return compiler_1.CompilerFile.from(src, this.replaceExtension(dist, ext, true), ext.substring(1));
+            return CompilerFile.from(src, this.replaceExtension(dist, ext, true), ext.substring(1));
         }
-        return compiler_1.CompilerFile.from(src, dist, ext.substring(1));
+        return CompilerFile.from(src, dist, ext.substring(1));
     }
     replaceExtension(file, oldExt, replaceExt = false, min = false) {
         if (typeof replaceExt === 'boolean') {
@@ -239,9 +210,8 @@ class PackProject extends compiler_1.BaseProjectCompiler {
     }
     readyOutputFile(file, output) {
         if (!output.endsWith('/')) {
-            return path_1.default.resolve(this.inputFolder, output);
+            return path.resolve(this.inputFolder, output);
         }
-        return path_1.default.resolve(this.inputFolder, output, path_1.default.relative(this.inputFolder, file instanceof compiler_1.CompilerFile ? file.src : file));
+        return path.resolve(this.inputFolder, output, path.relative(this.inputFolder, file instanceof CompilerFile ? file.src : file));
     }
 }
-exports.PackProject = PackProject;
