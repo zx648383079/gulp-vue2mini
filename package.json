@@ -31,27 +31,27 @@
     "devDependencies": {
         "@types/clean-css": "^4.2.11",
         "@types/less": "^3.0.8",
-        "@types/node": "^22.10.2",
+        "@types/node": "^22.15.19",
         "@types/readable-stream": "^4.0.18",
         "@types/uglify-js": "^3.17.5",
         "@types/vinyl": "^2.0.12",
         "@types/webpack-sources": "^3.2.3",
-        "@typescript-eslint/eslint-plugin": "^8.24.1",
+        "@typescript-eslint/eslint-plugin": "^8.32.1",
         "codelyzer": "^6.0.2",
         "gulp": "^5.0.0",
         "gulp-typescript": "^5.0.1",
-        "less": "^4.2.2",
+        "less": "^4.3.0",
         "readable-stream": "^4.7.0",
         "vinyl": "^3.0.0",
-        "webpack": "^5.98.0",
+        "webpack": "^5.99.8",
         "webpack-sources": "^3.2.3"
     },
     "dependencies": {
         "chokidar": "^4.0.3",
         "clean-css": "^5.3.3",
-        "glob": "^11.0.1",
-        "sass": "^1.85.0",
-        "typescript": "^5.7.3",
+        "glob": "^11.0.2",
+        "sass": "^1.89.0",
+        "typescript": "^5.8.3",
         "uglify-js": "^3.19.3"
     }
 }
